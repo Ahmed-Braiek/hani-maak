@@ -1,0 +1,2 @@
+import {PatientShell} from "@/components/PatientShell";import {MedicineClient} from "@/components/MedicineClient";
+export default function Medicine(){return <PatientShell><div className="eyebrow">Continuité · Prototype vision</div><h1 className="mobile-title">Relire mon médicament</h1><p className="muted">Clarifiez le texte visible d'un emballage déjà en votre possession et retrouvez une instruction professionnelle enregistrée.</p><MedicineClient/></PatientShell>}

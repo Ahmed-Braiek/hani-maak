@@ -1,0 +1,2 @@
+"use client";import {useState} from "react";import {useRouter} from "next/navigation";
+export function DemoResetClient(){const [busy,setBusy]=useState(false);const router=useRouter();async function reset(){if(!confirm("Reset all demo data to the known synthetic seed?"))return;setBusy(true);await fetch("/api/v1/demo/reset",{method:"POST"});setBusy(false);router.refresh()}return <button className="btn btn-danger" onClick={reset} disabled={busy}>{busy?"Resetting…":"Reset demo data"}</button>}

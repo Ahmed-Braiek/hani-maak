@@ -1,0 +1,3 @@
+import {notFound} from "next/navigation";import {PatientShell} from "@/components/PatientShell";import {BookingClient} from "@/components/BookingClient";import {readDb} from "@/lib/db";
+export const dynamic="force-dynamic";
+export default async function Book({params}:{params:Promise<{serviceId:string}>}){const {serviceId}=await params;const db=await readDb();const s=db.services.find(x=>x.id===serviceId);if(!s)notFound();return <PatientShell><div className="eyebrow">Rendez-vous · {s.name.fr}</div><h1 className="mobile-title">Quand préférez-vous venir ?</h1><p className="muted">Choisissez une préférence. Hani Maak propose ensuite jusqu'à trois créneaux valides.</p><BookingClient service={s}/></PatientShell>}

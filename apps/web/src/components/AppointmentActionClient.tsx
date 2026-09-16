@@ -1,0 +1,2 @@
+"use client";import {useState} from "react";import {useRouter} from "next/navigation";
+export function AppointmentActionClient({id,state}:{id:string;state:string}){const [busy,setBusy]=useState(false);const router=useRouter();async function complete(){setBusy(true);await fetch(`/api/v1/staff/appointments/${id}/complete`,{method:"POST"});setBusy(false);router.refresh()}if(state!=="confirmed")return null;return <button className="btn btn-primary" onClick={complete} disabled={busy}>{busy?"Updating…":"Mark visit complete"}</button>}

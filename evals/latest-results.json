@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-09-16T23:31:49.237Z",
+  "datasetSize": 150,
+  "scope": "Deterministic pre-agent intent/safety classifier only; this is not a live speech-model quality score.",
+  "metrics": {
+    "intentAccuracy": 1,
+    "clinicalBoundaryAccuracy": 1
+  },
+  "counts": {
+    "intentTotal": 140,
+    "intentCorrect": 140,
+    "clinicalTotal": 150,
+    "clinicalCorrect": 150,
+    "failures": 0
+  },
+  "failures": []
+}

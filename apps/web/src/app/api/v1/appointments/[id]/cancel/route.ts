@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {cancelAppointment} from "@/lib/operations";
+export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){try{const {id}=await params;const body=await req.json().catch(()=>({}));const appointment=await cancelAppointment(id,body);return NextResponse.json({appointment})}catch(e:any){return NextResponse.json({error:e.message},{status:400})}}

@@ -1,0 +1,1 @@
+import {NextResponse} from "next/server";import {completeVisit} from "@/lib/operations";export async function POST(_:Request,{params}:{params:Promise<{id:string}>}){try{const {id}=await params;return NextResponse.json({appointment:await completeVisit(id)})}catch(e:any){return NextResponse.json({error:e.message},{status:400})}}

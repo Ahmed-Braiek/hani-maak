@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {joinWaitlist} from "@/lib/operations";
+export async function POST(req:Request){try{const b=await req.json();if(!b.serviceId||!b.fromDate||!b.toDate)return NextResponse.json({error:"serviceId, fromDate, toDate required"},{status:400});return NextResponse.json({waitlist:await joinWaitlist(b)},{status:201})}catch(e:any){return NextResponse.json({error:e.message},{status:400})}}

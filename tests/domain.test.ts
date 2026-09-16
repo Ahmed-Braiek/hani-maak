@@ -1,0 +1,11 @@
+import test from "node:test";import assert from "node:assert/strict";
+import {createSeedDb} from "../apps/web/src/lib/seed.ts";
+import {getAvailableSlots,tunisDateString} from "../apps/web/src/lib/scheduling.ts";
+import {shortestRoute} from "../apps/web/src/lib/routing.ts";
+import {detectClinicalBoundary,detectIntent,isAffirmative} from "../apps/web/src/lib/voice.ts";
+
+const futureRange=()=>{const from=new Date();from.setDate(from.getDate()+1);const to=new Date();to.setDate(to.getDate()+14);return [tunisDateString(from),tunisDateString(to)] as const};
+test("schedule engine returns rule-derived future slots",()=>{const db=createSeedDb();const [from,to]=futureRange();const slots=getAvailableSlots(db,"svc-imaging",from,to,"morning",50);assert.ok(slots.length>0);assert.ok(slots.every(s=>s.capacity===2));assert.ok(slots.every(s=>new Date(s.startAt).getHours()>=6));});
+test("capacity removes a full slot",()=>{const db=createSeedDb();const [from,to]=futureRange();const slots=getAvailableSlots(db,"svc-imaging",from,to,"morning",50);const target=slots[0];db.appointments.push({id:"x1",tenantId:db.tenant.id,patientId:"patient-amal",serviceId:"svc-imaging",startAt:target.startAt,endAt:target.endAt,state:"confirmed",channel:"app",provenance:"demo_seeded",version:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},{id:"x2",tenantId:db.tenant.id,patientId:"patient-hedi",serviceId:"svc-imaging",startAt:target.startAt,endAt:target.endAt,state:"confirmed",channel:"voice",provenance:"demo_seeded",version:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});const again=getAvailableSlots(db,"svc-imaging",from,to,"morning",50);assert.equal(again.some(s=>s.startAt===target.startAt),false);});
+test("route graph is deterministic and 150m to imaging",()=>{const db=createSeedDb();const r=shortestRoute(db.facilityNodes,db.facilityEdges,"node-main-gate","node-imaging",true);assert.deepEqual(r.nodeIds,["node-main-gate","node-reception","node-corridor-a","node-elevator","node-imaging"]);assert.equal(r.distanceM,150);});
+test("voice intent and safety guards",()=>{assert.equal(detectIntent("Nheb ناخذ rendez-vous fil imagerie"),"book");assert.equal(isAffirmative("اي نأكد"),true);assert.equal(detectClinicalBoundary("Nnajjem nzid dose?"),true);assert.equal(detectClinicalBoundary("وين نمشي للمصلحة؟"),false);});

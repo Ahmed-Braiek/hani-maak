@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {addCaregiverDelegation} from "@/lib/operations";
+export async function POST(req:Request){try{const b=await req.json();if(!b.caregiverName||!b.caregiverPhone)return NextResponse.json({error:"caregiverName and caregiverPhone required"},{status:400});return NextResponse.json({delegation:await addCaregiverDelegation(b)},{status:201})}catch(e:any){return NextResponse.json({error:e.message},{status:400})}}

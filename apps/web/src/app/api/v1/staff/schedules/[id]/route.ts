@@ -1,0 +1,3 @@
+import {NextResponse} from "next/server";import {mutateDb} from "@/lib/db";
+const validTime=(x:any)=>typeof x==="string"&&/^\d{2}:\d{2}$/.test(x);
+export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){try{const {id}=await params;const b=await req.json();const rule=await mutateDb(db=>{const x=db.scheduleRules.find(v=>v.id===id);if(!x)throw new Error("Schedule rule not found");if(validTime(b.startTime))x.startTime=b.startTime;if(validTime(b.endTime))x.endTime=b.endTime;if(Number.isInteger(b.capacity)&&b.capacity>0&&b.capacity<=50)x.capacity=b.capacity;if(x.endTime<=x.startTime)throw new Error("End time must be after start time");return x});return NextResponse.json({rule})}catch(e:any){return NextResponse.json({error:e.message},{status:400})}}

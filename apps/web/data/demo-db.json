@@ -1,0 +1,1158 @@
+{
+  "tenant": {
+    "id": "tenant-hani-demo",
+    "slug": "charles-nicolle-demo",
+    "displayName": "Hani Maak — Charles Nicolle Demo",
+    "timezone": "Africa/Tunis",
+    "defaultLocale": "fr",
+    "supportedLocales": [
+      "fr",
+      "ar",
+      "en"
+    ],
+    "address": "Boulevard 9 Avril 1938, Tunis 1006",
+    "phone": "Demo",
+    "demoMode": true,
+    "brand": {
+      "primary": "#0f766e",
+      "accent": "#ef6c4d",
+      "logoText": "HM"
+    }
+  },
+  "patients": [
+    {
+      "id": "patient-amal",
+      "tenantId": "tenant-hani-demo",
+      "firstName": "Amel",
+      "lastName": "Ben Salah",
+      "age": 61,
+      "phone": "+216 20 000 101",
+      "email": "amel.demo@example.com",
+      "preferredLocale": "fr",
+      "preferredChannel": "app",
+      "consentStatus": "demo",
+      "dataProvenance": "demo_seeded"
+    },
+    {
+      "id": "patient-hedi",
+      "tenantId": "tenant-hani-demo",
+      "firstName": "Hédi",
+      "lastName": "Trabelsi",
+      "age": 68,
+      "phone": "+216 20 000 102",
+      "preferredLocale": "ar",
+      "preferredChannel": "phone",
+      "consentStatus": "demo",
+      "dataProvenance": "demo_seeded"
+    },
+    {
+      "id": "patient-ines",
+      "tenantId": "tenant-hani-demo",
+      "firstName": "Inès",
+      "lastName": "Mansour",
+      "age": 34,
+      "phone": "+216 20 000 103",
+      "preferredLocale": "fr",
+      "preferredChannel": "app",
+      "consentStatus": "demo",
+      "dataProvenance": "demo_seeded"
+    }
+  ],
+  "staff": [
+    {
+      "id": "staff-salma",
+      "tenantId": "tenant-hani-demo",
+      "displayName": "Salma — Accueil",
+      "role": "receptionist",
+      "active": true
+    },
+    {
+      "id": "staff-youssef",
+      "tenantId": "tenant-hani-demo",
+      "displayName": "Youssef — Coordinateur",
+      "role": "coordinator",
+      "active": true
+    },
+    {
+      "id": "staff-admin",
+      "tenantId": "tenant-hani-demo",
+      "displayName": "Admin Hani Maak",
+      "role": "tenant_admin",
+      "active": true
+    }
+  ],
+  "services": [
+    {
+      "id": "svc-imaging",
+      "tenantId": "tenant-hani-demo",
+      "code": "IMG",
+      "department": "Imagerie médicale",
+      "bookingMode": "direct",
+      "slotDurationMin": 30,
+      "locationNodeId": "node-imaging",
+      "active": true,
+      "dataProvenance": "demo_seeded",
+      "name": {
+        "fr": "Imagerie médicale",
+        "ar": "التصوير الطبي",
+        "en": "Medical imaging"
+      },
+      "description": {
+        "fr": "Examens d'imagerie avec préparation et guidage jusqu'au service.",
+        "ar": "مواعيد التصوير الطبي مع التحضير والإرشاد إلى المصلحة.",
+        "en": "Medical imaging appointments with preparation and on-site guidance."
+      },
+      "aliases": {
+        "fr": [
+          "imagerie",
+          "radiologie",
+          "scanner",
+          "radio"
+        ],
+        "ar": [
+          "تصوير",
+          "أشعة",
+          "سكانار",
+          "راديو"
+        ],
+        "en": [
+          "imaging",
+          "radiology",
+          "scanner"
+        ]
+      },
+      "documents": [
+        "Pièce d'identité / Identité",
+        "Ordonnance ou demande médicale si disponible"
+      ],
+      "preparationTemplateId": "content-img-prep",
+      "followupTemplateId": "content-img-follow",
+      "accessibilityNotes": "Parcours accessible disponible dans le prototype."
+    },
+    {
+      "id": "svc-rheum",
+      "tenantId": "tenant-hani-demo",
+      "code": "RHE",
+      "department": "Rhumatologie",
+      "bookingMode": "direct",
+      "slotDurationMin": 30,
+      "locationNodeId": "node-rheum",
+      "active": true,
+      "dataProvenance": "demo_seeded",
+      "name": {
+        "fr": "Rhumatologie",
+        "ar": "أمراض الروماتيزم",
+        "en": "Rheumatology"
+      },
+      "description": {
+        "fr": "Consultation de rhumatologie.",
+        "ar": "استشارة في أمراض الروماتيزم.",
+        "en": "Rheumatology consultation."
+      },
+      "aliases": {
+        "fr": [
+          "rhumato",
+          "rhumatologie"
+        ],
+        "ar": [
+          "روماتيزم"
+        ],
+        "en": [
+          "rheumatology"
+        ]
+      },
+      "documents": [
+        "Pièce d'identité",
+        "Dossier médical si disponible"
+      ],
+      "preparationTemplateId": "content-general-prep",
+      "followupTemplateId": "content-general-follow"
+    },
+    {
+      "id": "svc-general",
+      "tenantId": "tenant-hani-demo",
+      "code": "GEN",
+      "department": "Consultation générale",
+      "bookingMode": "direct",
+      "slotDurationMin": 20,
+      "locationNodeId": "node-general",
+      "active": true,
+      "dataProvenance": "demo_seeded",
+      "name": {
+        "fr": "Consultation générale",
+        "ar": "استشارة عامة",
+        "en": "General consultation"
+      },
+      "description": {
+        "fr": "Flux général de démonstration.",
+        "ar": "مسار استشارة عامة للتجربة.",
+        "en": "General consultation demo workflow."
+      },
+      "aliases": {
+        "fr": [
+          "général",
+          "consultation"
+        ],
+        "ar": [
+          "استشارة",
+          "عام"
+        ],
+        "en": [
+          "general",
+          "consultation"
+        ]
+      },
+      "documents": [
+        "Pièce d'identité"
+      ],
+      "preparationTemplateId": "content-general-prep",
+      "followupTemplateId": "content-general-follow"
+    }
+  ],
+  "scheduleRules": [
+    {
+      "id": "rule-svc-imaging-1-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 1,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-1-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 1,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-2-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 2,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-2-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 2,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-3-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 3,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-3-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 3,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-4-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 4,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-4-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 4,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-5-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 5,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-imaging-5-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-imaging",
+      "dayOfWeek": 5,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 2,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-1-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 1,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-1-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 1,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-2-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 2,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-2-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 2,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-3-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 3,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-3-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 3,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-4-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 4,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-4-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 4,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-5-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 5,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-rheum-5-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-rheum",
+      "dayOfWeek": 5,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 30
+    },
+    {
+      "id": "rule-svc-general-1-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 1,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-1-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 1,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-2-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 2,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-2-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 2,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-3-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 3,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-3-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 3,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-4-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 4,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-4-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 4,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-5-am",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 5,
+      "startTime": "08:00",
+      "endTime": "12:00",
+      "capacity": 1,
+      "slotDurationMin": 20
+    },
+    {
+      "id": "rule-svc-general-5-pm",
+      "tenantId": "tenant-hani-demo",
+      "serviceId": "svc-general",
+      "dayOfWeek": 5,
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "capacity": 1,
+      "slotDurationMin": 20
+    }
+  ],
+  "scheduleExceptions": [
+    {
+      "id": "exc-demo",
+      "serviceId": "svc-imaging",
+      "date": "2026-09-30",
+      "startTime": "13:00",
+      "endTime": "15:30",
+      "closed": true,
+      "reason": "Demo: maintenance block"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "apt-seed-1",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-ines",
+      "serviceId": "svc-rheum",
+      "startAt": "2026-09-18T08:00:00.000Z",
+      "endAt": "2026-09-18T08:30:00.000Z",
+      "state": "confirmed",
+      "channel": "app",
+      "provenance": "demo_seeded",
+      "version": 1,
+      "createdAt": "2026-09-16T23:37:04.650Z",
+      "updatedAt": "2026-09-16T23:37:04.650Z"
+    },
+    {
+      "id": "apt-seed-2",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "serviceId": "svc-general",
+      "startAt": "2026-09-19T09:20:00.000Z",
+      "endAt": "2026-09-19T09:40:00.000Z",
+      "state": "confirmed",
+      "channel": "voice",
+      "provenance": "demo_seeded",
+      "version": 1,
+      "createdAt": "2026-09-16T23:37:04.650Z",
+      "updatedAt": "2026-09-16T23:37:04.650Z"
+    }
+  ],
+  "journeys": [],
+  "notifications": [],
+  "facilityNodes": [
+    {
+      "id": "node-main-gate",
+      "tenantId": "tenant-hani-demo",
+      "code": "GATE",
+      "label": {
+        "fr": "Entrée principale",
+        "ar": "المدخل الرئيسي",
+        "en": "Main entrance"
+      },
+      "type": "entrance",
+      "floor": 0,
+      "lat": 36.802254,
+      "lon": 10.161104,
+      "x": 8,
+      "y": 82,
+      "accessible": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "node-reception",
+      "tenantId": "tenant-hani-demo",
+      "code": "REC",
+      "label": {
+        "fr": "Accueil",
+        "ar": "الاستقبال",
+        "en": "Reception"
+      },
+      "type": "reception",
+      "floor": 0,
+      "x": 27,
+      "y": 67,
+      "accessible": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "node-corridor-a",
+      "tenantId": "tenant-hani-demo",
+      "code": "COR-A",
+      "label": {
+        "fr": "Couloir A",
+        "ar": "الممر أ",
+        "en": "Corridor A"
+      },
+      "type": "corridor",
+      "floor": 0,
+      "x": 49,
+      "y": 58,
+      "accessible": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "node-elevator",
+      "tenantId": "tenant-hani-demo",
+      "code": "LIFT",
+      "label": {
+        "fr": "Ascenseur",
+        "ar": "المصعد",
+        "en": "Elevator"
+      },
+      "type": "elevator",
+      "floor": 0,
+      "x": 62,
+      "y": 42,
+      "accessible": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "node-imaging",
+      "tenantId": "tenant-hani-demo",
+      "code": "IMG",
+      "label": {
+        "fr": "Imagerie médicale",
+        "ar": "التصوير الطبي",
+        "en": "Medical imaging"
+      },
+      "type": "department",
+      "floor": 0,
+      "x": 88,
+      "y": 24,
+      "accessible": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "node-rheum",
+      "tenantId": "tenant-hani-demo",
+      "code": "RHE",
+      "label": {
+        "fr": "Rhumatologie",
+        "ar": "أمراض الروماتيزم",
+        "en": "Rheumatology"
+      },
+      "type": "department",
+      "floor": 0,
+      "x": 82,
+      "y": 64,
+      "accessible": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "node-general",
+      "tenantId": "tenant-hani-demo",
+      "code": "GEN",
+      "label": {
+        "fr": "Consultation générale",
+        "ar": "استشارة عامة",
+        "en": "General consultation"
+      },
+      "type": "department",
+      "floor": 0,
+      "x": 41,
+      "y": 27,
+      "accessible": true,
+      "provenance": "demo_seeded"
+    }
+  ],
+  "facilityEdges": [
+    {
+      "id": "e1",
+      "tenantId": "tenant-hani-demo",
+      "from": "node-main-gate",
+      "to": "node-reception",
+      "distanceM": 45,
+      "bidirectional": true,
+      "accessible": true,
+      "restricted": false,
+      "instruction": {
+        "fr": "Entrez puis avancez jusqu'à l'accueil.",
+        "ar": "ادخل وتقدّم حتى الاستقبال.",
+        "en": "Enter and continue to reception."
+      },
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "e2",
+      "tenantId": "tenant-hani-demo",
+      "from": "node-reception",
+      "to": "node-corridor-a",
+      "distanceM": 35,
+      "bidirectional": true,
+      "accessible": true,
+      "restricted": false,
+      "instruction": {
+        "fr": "Depuis l'accueil, suivez le couloir A.",
+        "ar": "من الاستقبال اتبع الممر أ.",
+        "en": "From reception, follow corridor A."
+      },
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "e3",
+      "tenantId": "tenant-hani-demo",
+      "from": "node-corridor-a",
+      "to": "node-elevator",
+      "distanceM": 22,
+      "bidirectional": true,
+      "accessible": true,
+      "restricted": false,
+      "instruction": {
+        "fr": "Continuez jusqu'à l'ascenseur.",
+        "ar": "واصل حتى المصعد.",
+        "en": "Continue to the elevator."
+      },
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "e4",
+      "tenantId": "tenant-hani-demo",
+      "from": "node-elevator",
+      "to": "node-imaging",
+      "distanceM": 48,
+      "bidirectional": true,
+      "accessible": true,
+      "restricted": false,
+      "instruction": {
+        "fr": "Tournez vers l'Imagerie médicale.",
+        "ar": "اتجه نحو مصلحة التصوير الطبي.",
+        "en": "Turn toward Medical imaging."
+      },
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "e5",
+      "tenantId": "tenant-hani-demo",
+      "from": "node-corridor-a",
+      "to": "node-rheum",
+      "distanceM": 55,
+      "bidirectional": true,
+      "accessible": true,
+      "restricted": false,
+      "instruction": {
+        "fr": "Continuez à droite vers la rhumatologie.",
+        "ar": "واصل يميناً نحو الروماتيزم.",
+        "en": "Continue right toward Rheumatology."
+      },
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "e6",
+      "tenantId": "tenant-hani-demo",
+      "from": "node-corridor-a",
+      "to": "node-general",
+      "distanceM": 38,
+      "bidirectional": true,
+      "accessible": true,
+      "restricted": false,
+      "instruction": {
+        "fr": "Prenez le couloir secondaire vers la consultation générale.",
+        "ar": "اسلك الممر الفرعي نحو الاستشارة العامة.",
+        "en": "Take the secondary corridor toward General consultation."
+      },
+      "provenance": "demo_seeded"
+    }
+  ],
+  "contentTemplates": [
+    {
+      "id": "content-img-prep",
+      "tenantId": "tenant-hani-demo",
+      "type": "preparation",
+      "title": {
+        "fr": "Préparer votre rendez-vous",
+        "ar": "حضّر موعدك",
+        "en": "Prepare for your appointment"
+      },
+      "body": {
+        "fr": "Apportez votre pièce d'identité et la demande médicale si vous en avez une. Les consignes spécifiques à l'examen doivent venir du professionnel de santé.",
+        "ar": "أحضر بطاقة الهوية والطلب الطبي إن وُجد. التعليمات الخاصة بالفحص يجب أن تأتي من المهني الصحي.",
+        "en": "Bring your ID and medical request if available. Exam-specific instructions must come from the healthcare professional."
+      },
+      "version": 1,
+      "published": true,
+      "provenance": "demo_seeded",
+      "reviewedBy": "Demo content only"
+    },
+    {
+      "id": "content-img-follow",
+      "tenantId": "tenant-hani-demo",
+      "type": "follow_up",
+      "title": {
+        "fr": "Après la visite",
+        "ar": "بعد الزيارة",
+        "en": "After the visit"
+      },
+      "body": {
+        "fr": "Suivez uniquement les instructions données par l'équipe soignante. Hani Maak peut les afficher et vous les rappeler.",
+        "ar": "اتبع فقط تعليمات الفريق الصحي. هاني معاك يمكنه عرضها وتذكيرك بها.",
+        "en": "Follow only the instructions provided by the care team. Hani Maak can display and remind you of them."
+      },
+      "version": 1,
+      "published": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "content-general-prep",
+      "tenantId": "tenant-hani-demo",
+      "type": "preparation",
+      "title": {
+        "fr": "Avant votre visite",
+        "ar": "قبل الزيارة",
+        "en": "Before your visit"
+      },
+      "body": {
+        "fr": "Préparez votre identité et les documents demandés par le service.",
+        "ar": "حضّر بطاقة الهوية والوثائق المطلوبة من المصلحة.",
+        "en": "Prepare your ID and any documents requested by the service."
+      },
+      "version": 1,
+      "published": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "content-general-follow",
+      "tenantId": "tenant-hani-demo",
+      "type": "follow_up",
+      "title": {
+        "fr": "Votre prochaine étape",
+        "ar": "خطوتك القادمة",
+        "en": "Your next step"
+      },
+      "body": {
+        "fr": "Consultez les instructions ajoutées par l'équipe après la visite.",
+        "ar": "راجع التعليمات التي أضافها الفريق بعد الزيارة.",
+        "en": "Review the instructions added by the care team after the visit."
+      },
+      "version": 1,
+      "published": true,
+      "provenance": "demo_seeded"
+    },
+    {
+      "id": "content-med-demo",
+      "tenantId": "tenant-hani-demo",
+      "type": "medicine_instruction",
+      "title": {
+        "fr": "Instruction professionnelle enregistrée",
+        "ar": "تعليمات مهنية محفوظة",
+        "en": "Saved professional instruction"
+      },
+      "body": {
+        "fr": "Démonstration: prenez ce médicament uniquement selon l'instruction déjà donnée par votre médecin ou pharmacien. Hani Maak ne modifie pas la dose.",
+        "ar": "للتجربة: استعمل الدواء فقط حسب التعليمات التي أعطاها الطبيب أو الصيدلي. هاني معاك لا يغيّر الجرعة.",
+        "en": "Demo: use this medicine only according to the instruction already given by your doctor or pharmacist. Hani Maak does not change dosage."
+      },
+      "version": 1,
+      "published": true,
+      "provenance": "demo_seeded"
+    }
+  ],
+  "callSessions": [
+    {
+      "id": "call-mu4qv7j3-01w7l",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "caller": "+216 20 000 102",
+      "locale": "ar",
+      "startedAt": "2026-09-16T23:41:11.007Z",
+      "outcome": "active",
+      "state": "INTENT_CAPTURE",
+      "context": {
+        "source": "voice_lab",
+        "transcript": [
+          {
+            "role": "assistant",
+            "text": "عسلامة، أنا هاني معاك، مساعد آلي للإدارة. شنوة نجم نعاونك؟",
+            "at": "2026-09-16T23:41:11.007Z"
+          }
+        ]
+      },
+      "transcriptConsent": false
+    },
+    {
+      "id": "call-mu4qv7ht-lcqgg",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "caller": "+216 20 000 102",
+      "locale": "ar",
+      "startedAt": "2026-09-16T23:41:10.961Z",
+      "outcome": "active",
+      "state": "INTENT_CAPTURE",
+      "context": {
+        "source": "voice_lab",
+        "transcript": [
+          {
+            "role": "assistant",
+            "text": "عسلامة، أنا هاني معاك، مساعد آلي للإدارة. شنوة نجم نعاونك؟",
+            "at": "2026-09-16T23:41:10.961Z"
+          }
+        ]
+      },
+      "transcriptConsent": false
+    },
+    {
+      "id": "call-mu4qukpy-fq0ss",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "caller": "+216 20 000 102",
+      "locale": "ar",
+      "startedAt": "2026-09-16T23:40:41.446Z",
+      "outcome": "active",
+      "state": "INTENT_CAPTURE",
+      "context": {
+        "source": "voice_lab",
+        "transcript": [
+          {
+            "role": "assistant",
+            "text": "عسلامة، أنا هاني معاك، مساعد آلي للإدارة. شنوة نجم نعاونك؟",
+            "at": "2026-09-16T23:40:41.446Z"
+          }
+        ]
+      },
+      "transcriptConsent": false
+    },
+    {
+      "id": "call-mu4qukok-ijbce",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "caller": "+216 20 000 102",
+      "locale": "ar",
+      "startedAt": "2026-09-16T23:40:41.396Z",
+      "outcome": "active",
+      "state": "INTENT_CAPTURE",
+      "context": {
+        "source": "voice_lab",
+        "transcript": [
+          {
+            "role": "assistant",
+            "text": "عسلامة، أنا هاني معاك، مساعد آلي للإدارة. شنوة نجم نعاونك؟",
+            "at": "2026-09-16T23:40:41.396Z"
+          }
+        ]
+      },
+      "transcriptConsent": false
+    },
+    {
+      "id": "call-mu4qre44-42dy3",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "caller": "+216 20 000 102",
+      "locale": "ar",
+      "startedAt": "2026-09-16T23:38:12.916Z",
+      "outcome": "active",
+      "state": "PREFERENCE_CAPTURE",
+      "context": {
+        "source": "voice_lab",
+        "transcript": [
+          {
+            "role": "assistant",
+            "text": "عسلامة، أنا هاني معاك، مساعد آلي للإدارة. شنوة نجم نعاونك؟",
+            "at": "2026-09-16T23:38:12.916Z"
+          },
+          {
+            "role": "user",
+            "text": "hii",
+            "at": "2026-09-16T23:38:40.832Z"
+          },
+          {
+            "role": "assistant",
+            "text": "نجم نحجز، نلغي ولا نبدّل موعد، نعطيك التعليمات المعتمدة ولا نوجّهك داخل المؤسسة.",
+            "at": "2026-09-16T23:38:40.832Z"
+          },
+          {
+            "role": "user",
+            "text": "Nheb ناخذ rendez-vous fil imagerie",
+            "at": "2026-09-16T23:39:08.578Z"
+          },
+          {
+            "role": "assistant",
+            "text": "التصوير الطبي. تحب الموعد صباح ولا العشية؟",
+            "at": "2026-09-16T23:39:08.578Z"
+          }
+        ],
+        "intent": "book",
+        "serviceId": "svc-imaging"
+      },
+      "transcriptConsent": false
+    },
+    {
+      "id": "call-mu4qre2w-p9evg",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "caller": "+216 20 000 102",
+      "locale": "ar",
+      "startedAt": "2026-09-16T23:38:12.872Z",
+      "outcome": "active",
+      "state": "INTENT_CAPTURE",
+      "context": {
+        "source": "voice_lab",
+        "transcript": [
+          {
+            "role": "assistant",
+            "text": "عسلامة، أنا هاني معاك، مساعد آلي للإدارة. شنوة نجم نعاونك؟",
+            "at": "2026-09-16T23:38:12.872Z"
+          }
+        ]
+      },
+      "transcriptConsent": false
+    },
+    {
+      "id": "call-seed-1",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-hedi",
+      "caller": "+216 20 000 102",
+      "locale": "ar",
+      "startedAt": "2026-09-16T23:37:04.650Z",
+      "endedAt": "2026-09-16T23:37:04.650Z",
+      "outcome": "completed",
+      "state": "CLOSING",
+      "context": {
+        "intent": "book",
+        "serviceId": "svc-general"
+      },
+      "summary": "حجز موعد استشارة عامة عبر المساعد الصوتي — بيانات تجريبية.",
+      "transcriptConsent": false
+    }
+  ],
+  "toolEvents": [
+    {
+      "id": "tool-mu4qsl1m-yoj9c",
+      "tenantId": "tenant-hani-demo",
+      "callSessionId": "call-mu4qre44-42dy3",
+      "toolName": "search_services",
+      "arguments": {
+        "query": "Nheb ناخذ rendez-vous fil imagerie",
+        "locale": "ar"
+      },
+      "result": {
+        "serviceId": "svc-imaging",
+        "name": "التصوير الطبي"
+      },
+      "status": "success",
+      "latencyMs": 90,
+      "createdAt": "2026-09-16T23:39:08.554Z"
+    },
+    {
+      "id": "tool-seed-1",
+      "tenantId": "tenant-hani-demo",
+      "callSessionId": "call-seed-1",
+      "toolName": "create_appointment",
+      "arguments": {
+        "serviceId": "svc-general",
+        "explicitConfirmation": true
+      },
+      "result": {
+        "appointmentId": "apt-seed-2",
+        "state": "confirmed"
+      },
+      "status": "success",
+      "latencyMs": 142,
+      "createdAt": "2026-09-16T23:37:04.650Z"
+    }
+  ],
+  "escalations": [
+    {
+      "id": "esc-seed-1",
+      "tenantId": "tenant-hani-demo",
+      "patientId": "patient-amal",
+      "source": "app",
+      "category": "other",
+      "summary": "Demo: patient requested help finding the correct entrance.",
+      "priority": "normal",
+      "state": "open",
+      "createdAt": "2026-09-16T23:37:04.650Z"
+    }
+  ],
+  "auditLog": [
+    {
+      "id": "audit-mu4qsl1m-d5i3w",
+      "tenantId": "tenant-hani-demo",
+      "actorType": "ai",
+      "actorId": "call-mu4qre44-42dy3",
+      "action": "ai.tool.search_services",
+      "resourceType": "call_session",
+      "resourceId": "call-mu4qre44-42dy3",
+      "metadata": {
+        "status": "success"
+      },
+      "createdAt": "2026-09-16T23:39:08.554Z"
+    }
+  ],
+  "productEvents": [
+    {
+      "id": "evt-mu4qv7j3-5d68w",
+      "tenantId": "tenant-hani-demo",
+      "eventName": "voice_call_started",
+      "properties": {
+        "channel": "voice_lab"
+      },
+      "createdAt": "2026-09-16T23:41:11.007Z"
+    },
+    {
+      "id": "evt-mu4qv7ht-q4qdl",
+      "tenantId": "tenant-hani-demo",
+      "eventName": "voice_call_started",
+      "properties": {
+        "channel": "voice_lab"
+      },
+      "createdAt": "2026-09-16T23:41:10.961Z"
+    },
+    {
+      "id": "evt-mu4qukpy-wdpnl",
+      "tenantId": "tenant-hani-demo",
+      "eventName": "voice_call_started",
+      "properties": {
+        "channel": "voice_lab"
+      },
+      "createdAt": "2026-09-16T23:40:41.446Z"
+    },
+    {
+      "id": "evt-mu4qukok-swzct",
+      "tenantId": "tenant-hani-demo",
+      "eventName": "voice_call_started",
+      "properties": {
+        "channel": "voice_lab"
+      },
+      "createdAt": "2026-09-16T23:40:41.396Z"
+    },
+    {
+      "id": "evt-mu4qre44-2cn8z",
+      "tenantId": "tenant-hani-demo",
+      "eventName": "voice_call_started",
+      "properties": {
+        "channel": "voice_lab"
+      },
+      "createdAt": "2026-09-16T23:38:12.916Z"
+    },
+    {
+      "id": "evt-mu4qre2w-7cvyo",
+      "tenantId": "tenant-hani-demo",
+      "eventName": "voice_call_started",
+      "properties": {
+        "channel": "voice_lab"
+      },
+      "createdAt": "2026-09-16T23:38:12.872Z"
+    }
+  ],
+  "medicineSessions": [],
+  "caregiverDelegations": [],
+  "waitlistEntries": [],
+  "meta": {
+    "seededAt": "2026-09-16T23:37:04.650Z",
+    "revision": 11
+  }
+}

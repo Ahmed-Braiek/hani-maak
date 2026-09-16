@@ -1,0 +1,2 @@
+import {mkdir,writeFile} from "node:fs/promises";import path from "node:path";import {createSeedDb} from "../apps/web/src/lib/seed.ts";
+const out=path.join(process.cwd(),"apps","web","data","demo-db.json");await mkdir(path.dirname(out),{recursive:true});const db=createSeedDb();await writeFile(out,JSON.stringify(db,null,2),"utf8");console.log(`Demo state reset: ${out}`);console.log(`Seeded at: ${db.meta.seededAt}`);

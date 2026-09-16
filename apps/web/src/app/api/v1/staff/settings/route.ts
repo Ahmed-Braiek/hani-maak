@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {mutateDb} from "@/lib/db";
+export async function PATCH(req:Request){try{const b=await req.json();const tenant=await mutateDb(db=>{if(typeof b.displayName==="string")db.tenant.displayName=b.displayName.slice(0,120);if(b.brand){if(/^#[0-9a-f]{6}$/i.test(b.brand.primary))db.tenant.brand.primary=b.brand.primary;if(/^#[0-9a-f]{6}$/i.test(b.brand.accent))db.tenant.brand.accent=b.brand.accent;}return db.tenant});return NextResponse.json({tenant})}catch(e:any){return NextResponse.json({error:e.message},{status:400})}}

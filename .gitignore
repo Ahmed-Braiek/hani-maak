@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+.vercel
+coverage
+*.log
+apps/web/data/demo-db.json.tmp
+.DS_Store
+
+*.tsbuildinfo
