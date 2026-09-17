@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
 from typing import Any
 
 WRITE_TOOLS = {"create_appointment", "reschedule_appointment", "cancel_appointment"}
@@ -29,8 +30,12 @@ def is_explicit_confirmation(text: str) -> bool:
     return any(re.search(pattern, value, flags=re.IGNORECASE) for pattern in _AFFIRMATIVE_PATTERNS)
 
 
+def _action_args(args: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in args.items() if key != "idempotencyKey"}
+
+
 def normalize_action(name: str, args: dict[str, Any]) -> str:
-    return json.dumps({"name": name, "args": args}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps({"name": name, "args": _action_args(args)}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def guard_write_action(name: str, args: dict[str, Any], session) -> tuple[bool, dict[str, Any] | None]:
@@ -40,12 +45,17 @@ def guard_write_action(name: str, args: dict[str, Any], session) -> tuple[bool, 
     normalized = normalize_action(name, args)
     pending = session.pending_action
     if not pending or pending.get("normalized") != normalized:
-        session.pending_action = {"name": name, "args": args, "normalized": normalized}
+        session.pending_action = {
+            "name": name,
+            "args": _action_args(args),
+            "normalized": normalized,
+            "idempotencyKey": f"heni-{uuid.uuid4()}",
+        }
         return False, {
             "success": False,
             "requiresConfirmation": True,
             "action": name,
-            "details": args,
+            "details": _action_args(args),
             "message": "Ask the user to explicitly confirm these exact details before retrying the same action.",
         }
 
@@ -54,9 +64,11 @@ def guard_write_action(name: str, args: dict[str, Any], session) -> tuple[bool, 
             "success": False,
             "requiresConfirmation": True,
             "action": name,
-            "details": args,
+            "details": pending.get("args", _action_args(args)),
             "message": "The most recent user turn is not an explicit confirmation. Ask for confirmation again.",
         }
 
+    if pending.get("idempotencyKey"):
+        args["idempotencyKey"] = pending["idempotencyKey"]
     session.pending_action = None
     return True, None
