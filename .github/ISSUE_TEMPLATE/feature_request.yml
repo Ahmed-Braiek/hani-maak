@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a product or engineering improvement
+title: "[Feature]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: Please describe the user problem before the proposed implementation. Never include real patient information.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem being solved
+      description: What user or operational problem exists today?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: user
+    attributes:
+      label: Primary user
+      options: [Patient, Caregiver, Doctor, Administration, Super Admin, Healthcare provider, Developer]
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Expected benefit
+      description: What measurable or observable improvement should result?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: ux
+    attributes:
+      label: UX and accessibility requirements
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical, data or security considerations
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority rationale
+      options: [Nice to have, Important, Competition blocking, Production/security blocking]
+    validations:
+      required: true

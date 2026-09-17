@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible product or engineering defect
+title: "[Bug]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include real patient information, credentials, secrets or security exploit details here.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open...\n2. Tap...\n3. Observe..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Affected user role
+      options: [Patient, Doctor, Administration, Super Admin, Heni/Voice, Other]
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Affected module
+      options: [Booking, Appointments, Journey, Map/AR, Heni Chat, Heni Voice, Staff console, Authentication/Permissions, Notifications, Database, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, device/OS, deployment or local commit. Sanitize logs.
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options: [Low, Medium, High, Blocking]
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or sanitized logs
+      description: Optional. Remove patient information and secrets first.

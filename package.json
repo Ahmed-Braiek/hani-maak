@@ -9,16 +9,19 @@
     "dev": "npm run dev -w @hani-maak/web",
     "build": "npm run build -w @hani-maak/web",
     "start": "npm run start -w @hani-maak/web",
+    "typecheck": "npm run typecheck -w @hani-maak/web",
     "voice": "npm run dev -w @hani-maak/voice-bridge",
+    "voice:check": "npm run check -w @hani-maak/voice-bridge",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "demo:reset": "node --experimental-strip-types scripts/reset-demo.ts",
     "evals": "node --experimental-strip-types scripts/run-evals.ts",
     "qa": "npm test && npm run evals",
+    "verify": "npm run typecheck && npm run test && npm run evals && npm run voice:check && npm run build",
     "clean": "node -e \"require('fs').rmSync('apps/web/.next',{recursive:true,force:true})\"",
     "fresh": "npm run clean && npm run demo:reset && npm run dev"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.6.0"
   },
   "type": "module"
 }

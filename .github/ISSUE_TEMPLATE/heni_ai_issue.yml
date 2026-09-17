@@ -1,0 +1,65 @@
+name: Heni AI / Voice issue
+description: Report Heni language, safety, model, transcription, speech or latency behavior
+title: "[Heni]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use synthetic/redacted examples only. Do not submit patient records, credentials, phone numbers or other sensitive information.
+        Security vulnerabilities and exploitable prompt/tool bypasses must follow SECURITY.md instead of a public issue.
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Heni channel
+      options: [Chat, Browser voice, Realtime/PSTN voice, AR voice guidance]
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options: [Tunisian Derja, Derja + French mix, French, English, Other/mixed]
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Synthetic input or scenario
+      description: Redact all identifying/sensitive data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior/output
+    validations:
+      required: true
+  - type: checkboxes
+    id: category
+    attributes:
+      label: What kind of issue is this?
+      options:
+        - label: Possible safety-boundary issue
+        - label: Hallucination / invented fact
+        - label: Wrong language or code-switching
+        - label: Speech-to-text problem
+        - label: Text-to-speech problem
+        - label: Latency / interruption problem
+        - label: Tool/action problem
+        - label: Provider/model failure
+  - type: input
+    id: model
+    attributes:
+      label: Model/provider version if known
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser/device, route, deployment/commit and relevant sanitized logs.

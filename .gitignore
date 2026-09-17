@@ -1,11 +1,48 @@
-node_modules
-.next
-.env
-.env.local
-.vercel
-coverage
-*.log
-apps/web/data/demo-db.json.tmp
-.DS_Store
+# Dependencies
+node_modules/
 
+# Framework / build output
+.next/
+dist/
+build/
+coverage/
 *.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Hosting / local tooling
+.vercel/
+.turbo/
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Demo persistence scratch files
+apps/web/data/demo-db.json.tmp
+
+# AI data safety: never commit private/raw training corpora
+ai/training/datasets/private/
+ai/training/datasets/raw/
+ai/training/datasets/**/*.parquet
+ai/training/datasets/**/*.csv
+
+# Local generated artifacts
+*.local
