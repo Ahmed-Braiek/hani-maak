@@ -11,7 +11,7 @@ function distanceKm(lat1:number,lng1:number,lat2:number,lng2:number){
   return 2*r*Math.asin(Math.sqrt(a));
 }
 
-export function MapClient({_serviceId="svc-imaging"}:{serviceId?:string;_serviceId?:string}){
+export function MapClient({serviceId:_serviceId="svc-imaging"}:{serviceId?:string}){
   const {locale}=usePersistentLocale();
   const [locating,setLocating]=useState(false);
   const [locationState,setLocationState]=useState<"idle"|"found"|"denied"|"unavailable">("idle");
