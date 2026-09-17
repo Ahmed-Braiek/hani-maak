@@ -19,10 +19,11 @@ _client = create_google_client()
 
 
 def _live_config() -> dict:
+    blocking_tools = [{**tool, "behavior": "BLOCKING"} for tool in TOOL_DECLARATIONS]
     return {
         "response_modalities": ["AUDIO"],
         "system_instruction": HENI_SYSTEM_PROMPT,
-        "tools": [{"function_declarations": TOOL_DECLARATIONS}],
+        "tools": [{"function_declarations": blocking_tools}],
         "input_audio_transcription": {},
         "output_audio_transcription": {},
         "speech_config": {
