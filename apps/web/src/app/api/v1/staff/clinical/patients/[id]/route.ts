@@ -1,0 +1,5 @@
+import {NextResponse} from "next/server";
+import {requirePermission} from "@/lib/staff-auth";
+import {readDb} from "@/lib/db";
+
+export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){try{await requirePermission("patients.view_medical");const {id}=await params;const db=await readDb();const patient=db.patients.find(p=>p.id===id);if(!patient)return NextResponse.json({error:"not_found"},{status:404});const appointments=db.appointments.filter(a=>a.patientId===id);const documents=db.medicineSessions.filter(m=>m.patientId===id).map(m=>({id:m.id,fileName:m.fileName,outcome:m.outcome,createdAt:m.createdAt}));return NextResponse.json({patient:{id:patient.id,firstName:patient.firstName,lastName:patient.lastName,phone:patient.phone,email:patient.email},appointments,medicalDocuments:documents,clinicalNotes:[]})}catch(error){const status=(error as Error&{status?:number}).status??500;return NextResponse.json({error:status===403?"access_denied":"clinical_data_unavailable"},{status})}}
