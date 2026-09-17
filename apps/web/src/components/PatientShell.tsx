@@ -11,7 +11,7 @@ export function PatientShell({children,locale:initialLocale="fr"}:{children:Reac
   return <div className={`patient-shell ${rtl?"rtl":""}`} dir={rtl?"rtl":"ltr"}>
     <header className="patient-head">
       <div className="patient-head-brand"><Link className="patient-home-icon" href="/" aria-label={t(locale,"nav.home")}>⌂</Link><Logo compact/></div>
-      <div className="patient-head-actions"><Link className="patient-staff-chip" href="/staff">▣ Staff</Link><LocaleSwitcher/></div>
+      <div className="patient-head-actions"><LocaleSwitcher/></div>
     </header>
     <main className="patient-main">{children}</main>
     <nav className="mobile-nav patient-mobile-nav" aria-label={t(locale,"patient.navigation")}>
@@ -19,7 +19,6 @@ export function PatientShell({children,locale:initialLocale="fr"}:{children:Reac
       <Link className="mobile-link" href="/patient/journey"><span>✓</span><span>{t(locale,"nav.journey")}</span></Link>
       <Link className="mobile-link" href="/patient/map"><span>⌖</span><span>{t(locale,"nav.map")}</span></Link>
       <Link className="mobile-link" href="/patient/profile"><span>○</span><span>{t(locale,"nav.profile")}</span></Link>
-      <Link className="mobile-link patient-staff-nav" href="/staff"><span>▣</span><span>Staff</span></Link>
     </nav>
   </div>
 }
