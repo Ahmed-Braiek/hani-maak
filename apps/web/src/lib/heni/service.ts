@@ -27,7 +27,7 @@ async function createSession(locale: HeniLocale, patientId: string, source: stri
   return created.session.id;
 }
 
-async function runDeterministic(sessionId: string, message: string) {
+async function runDeterministic(sessionId: string, message: string): Promise<any> {
   return voiceTurn(sessionId, message);
 }
 
