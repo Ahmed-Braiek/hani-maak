@@ -19,7 +19,7 @@ async function externalPatientTurn(body:any){
   if(!base||!secret)return null;
   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15_000);
   try{
-    const response=await fetch(`${base}/v1/chat`,{method:"POST",headers:{"content-type":"application/json","x-heni-agent-key":secret},body:JSON.stringify({message:String(body.message??"").trim(),locale:body.locale==="fr"||body.locale==="en"||body.locale==="ar"?body.locale:"ar",patientId:DEMO_PATIENT_ID,source:String(body.source||"website"),sessionId:body.sessionId||undefined,history:Array.isArray(body.history)?body.history.slice(-12):[]}),cache:"no-store",signal:controller.signal});
+    const response=await fetch(`${base}/v1/chat`,{method:"POST",headers:{"content-type":"application/json","x-heni-agent-key":secret},body:JSON.stringify({message:String(body.message??"").trim(),locale:body.locale==="fr"||body.locale==="en"||body.locale==="ar"?body.locale:"ar",patientId:DEMO_PATIENT_ID,source:String(body.source||"website"),sessionId:body.sessionId||undefined,confirmationToken:typeof body.confirmationToken==="string"?body.confirmationToken:undefined,history:Array.isArray(body.history)?body.history.slice(-12):[]}),cache:"no-store",signal:controller.signal});
     const text=await response.text();let payload:any={};try{payload=text?JSON.parse(text):{}}catch{payload={error:"invalid_agent_response"}}
     if(!response.ok)throw new Error(String(payload?.detail||payload?.error||`agent_${response.status}`));
     return payload;
