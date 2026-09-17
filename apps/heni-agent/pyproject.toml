@@ -1,0 +1,17 @@
+[project]
+name = "heni-agent"
+version = "1.0.0"
+description = "Real-time multilingual Heni voice and chat agent for Hani Maak"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "fastapi>=0.117.1,<1.0.0",
+  "google-genai>=2.0.0,<3.0.0",
+  "httpx>=0.28.1,<1.0.0",
+  "python-dotenv>=1.0.1,<2.0.0",
+  "uvicorn[standard]>=0.35.0,<1.0.0",
+  "websockets>=15.0,<16.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
