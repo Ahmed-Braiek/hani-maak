@@ -8,6 +8,7 @@ from google.genai import types
 from .config import settings
 from .google_client import create_google_client
 from .heni_prompt import HENI_SYSTEM_PROMPT
+from .security import sign_confirmation_token, verify_confirmation_token
 from .session_store import get_or_create_session, touch_session
 from .tools.declarations import TOOL_DECLARATIONS
 from .tools.execute import execute_tool
@@ -33,6 +34,7 @@ async def run_chat_turn(
     source: str,
     session_id: str | None,
     history: list[dict[str, Any]],
+    confirmation_token: str | None = None,
 ) -> dict[str, Any]:
     session = get_or_create_session(
         session_id or str(uuid.uuid4()),
@@ -41,6 +43,9 @@ async def run_chat_turn(
         source=source,
     )
     touch_session(session.id)
+    # HTTP requests can land on different Vercel instances. Restore pending write
+    # state only from a signed token rather than trusting process memory or the browser.
+    session.pending_action = verify_confirmation_token(confirmation_token, patient_id)
     session.last_user_text = message
 
     contents = _content_from_history(history)
@@ -69,8 +74,9 @@ async def run_chat_turn(
 
         response_parts = []
         for call in calls:
-            result = await execute_tool(call.name, call.args or {}, session)
-            tool_events.append({"name": call.name, "args": call.args or {}, "result": result})
+            args = dict(call.args or {})
+            result = await execute_tool(call.name, args, session)
+            tool_events.append({"name": call.name, "args": args, "result": result})
             response_parts.append(
                 types.Part(
                     function_response=types.FunctionResponse(
@@ -91,9 +97,15 @@ async def run_chat_turn(
     if not reply:
         reply = "سامحني، ما نجّمتش نكمّل الإجابة توّا. نجم نطلبلك مساعدة من الموظفين."
 
+    pending_token = (
+        sign_confirmation_token(session.pending_action, patient_id)
+        if session.pending_action
+        else None
+    )
     return {
         "message": reply,
         "sessionId": session.id,
+        "confirmationToken": pending_token,
         "tools": tool_events,
         "tool": tool_events[-1]["name"] if tool_events else None,
         "model": settings.text_model,
