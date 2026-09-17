@@ -14,7 +14,7 @@ export default async function ARPage({searchParams}:{searchParams:Promise<{servi
   return <PatientShell>
     <div className="eyebrow">Guidage augmenté</div>
     <h1 className="mobile-title">Heni vous montre le chemin.</h1>
-    <p className="muted">Caméra réelle si disponible, flèches AR de démonstration et instructions calculées par le route graph.</p>
+    <p className="muted">Activez la caméra si disponible et suivez les repères visuels et les instructions de Heni.</p>
     <ARGuideClient serviceId={serviceId}/>
   </PatientShell>;
 }
