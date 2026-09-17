@@ -39,6 +39,7 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
   const {locale,rtl}=usePersistentLocale();
   const [currentRole,setCurrentRole]=useState<StaffRole|undefined>(role);
   const [switching,setSwitching]=useState(false);
+  const [loggingOut,setLoggingOut]=useState(false);
 
   useEffect(()=>{
     if(role){setCurrentRole(role);return}
@@ -59,6 +60,7 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
   const switchTitle=locale==="ar"?"بدّل مساحة العمل":locale==="en"?"Switch workspace":"Changer d’espace";
   const switchHint=locale==="ar"?"اختار الدور اللي تحب تشوف التطبيق بيه":locale==="en"?"Choose the role you want to use":"Choisissez le rôle que vous voulez utiliser";
   const navTitle=locale==="ar"?"شنوّة تحب تعمل؟":locale==="en"?"What do you want to do?":"Que voulez-vous faire ?";
+  const logoutLabel=locale==="ar"?"تسجيل الخروج":locale==="en"?"Log out":"Se déconnecter";
   const roleHint:Record<StaffRole,string>={
     doctor:locale==="ar"?"مرضى وعناية":locale==="en"?"Patients & care":"Patients & soins",
     administration:locale==="ar"?"مواعيد وتنظيم":locale==="en"?"Appointments & operations":"Rendez-vous & opérations",
@@ -77,6 +79,16 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
     }finally{setSwitching(false)}
   }
 
+  async function logout(){
+    if(loggingOut)return;
+    setLoggingOut(true);
+    try{await fetch("/api/v1/staff/session/role",{method:"DELETE"})}finally{
+      setCurrentRole(undefined);
+      router.replace("/");
+      router.refresh();
+    }
+  }
+
   const roleSwitcher=<div className="staff-role-switcher" aria-label={switchTitle}>{roles.map(item=><button key={item} type="button" className={currentRole===item?"active":""} onClick={()=>void switchRole(item)} disabled={switching}><span className="staff-role-icon">{item==="doctor"?"⚕":item==="administration"?"▦":"◇"}</span><span className="staff-role-copy"><strong>{t(locale,`roles.${item}`)}</strong><small>{roleHint[item]}</small></span>{currentRole===item&&<span className="staff-role-check">✓</span>}</button>)}</div>;
 
   return <div className={`app-shell staff-app-shell ${rtl?"rtl":""}`} dir={rtl?"rtl":"ltr"}>
@@ -85,7 +97,7 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
       <div className="staff-role-section"><div className="staff-role-section-title"><strong>{switchTitle}</strong><small>{switchHint}</small></div>{roleSwitcher}</div>
       <nav className="side-nav" aria-label={navTitle}>{visible.map(link=><Link key={link.href} className={`side-link ${pathname===link.href?"active":""}`} href={link.href}><span>{link.icon}</span>{t(locale,link.key)}</Link>)}</nav>
       <div className="sidebar-proof"><strong>{identity?.name??t(locale,"staff.role_overview")}</strong><small>{identity?.department??"Doctor · Administration · Super Admin"}</small></div>
-      <div className="staff-sidebar-shortcuts"><Link href="/patient">↔ Patient</Link><Link href="/present">▶ Presentation</Link></div>
+      <button className="staff-logout-btn" type="button" onClick={()=>void logout()} disabled={loggingOut}><span>↪</span><b>{loggingOut?"…":logoutLabel}</b></button>
       <div className="sidebar-foot">Hani Maak · Demo tenant<br/>{t(locale,"common.synthetic")}</div>
     </aside>
 
@@ -93,12 +105,12 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
       <div className="staff-mobile-head">
         <Link className="staff-mobile-home" href="/" aria-label={t(locale,"nav.home")}>⌂</Link>
         <div className="staff-mobile-title"><small>{locale==="ar"?"مساحة الموظفين":locale==="en"?"Staff workspace":"Espace staff"}</small><strong>{currentRole?t(locale,`roles.${currentRole}`):t(locale,"staff.title")}</strong></div>
-        <div className="staff-mobile-head-actions"><LocaleSwitcher/><details className="staff-mobile-menu"><summary aria-label="Staff menu">☰</summary><div className="staff-mobile-menu-panel"><div className="staff-menu-heading"><strong>{navTitle}</strong><small>{identity?.name??"Hani Maak"}</small></div>{visible.map(link=><Link key={link.href} className={pathname===link.href?"active":""} href={link.href}><span>{link.icon}</span><b>{t(locale,link.key)}</b></Link>)}<div className="staff-menu-divider"/><Link href="/patient"><span>♡</span><b>Patient</b></Link><Link href="/present"><span>▶</span><b>Presentation</b></Link></div></details></div>
+        <div className="staff-mobile-head-actions"><LocaleSwitcher/><details className="staff-mobile-menu"><summary aria-label="Staff menu">☰</summary><div className="staff-mobile-menu-panel"><div className="staff-menu-heading"><strong>{navTitle}</strong><small>{identity?.name??"Hani Maak"}</small></div>{visible.map(link=><Link key={link.href} className={pathname===link.href?"active":""} href={link.href}><span>{link.icon}</span><b>{t(locale,link.key)}</b></Link>)}<div className="staff-menu-divider"/><button className="staff-menu-logout" type="button" onClick={()=>void logout()} disabled={loggingOut}><span>↪</span><b>{logoutLabel}</b></button></div></details></div>
       </div>
 
       <section className="staff-mobile-rolebar"><div className="staff-mobile-role-intro"><strong>{switchTitle}</strong><small>{switchHint}</small></div>{roleSwitcher}</section>
 
-      <div className="staff-toolbar"><Link className="btn btn-secondary compact staff-desktop-home" href="/">⌂ {t(locale,"nav.home")}</Link><div className="staff-toolbar-context"><small>{locale==="ar"?"المساحة الحالية":locale==="en"?"Current workspace":"Espace actuel"}</small><strong>{currentRole?t(locale,`roles.${currentRole}`):t(locale,"staff.title")}</strong></div><LocaleSwitcher/><Link className="btn btn-secondary compact" href="/patient">↔ Patient</Link></div>
+      <div className="staff-toolbar"><Link className="btn btn-secondary compact staff-desktop-home" href="/">⌂ {t(locale,"nav.home")}</Link><div className="staff-toolbar-context"><small>{locale==="ar"?"المساحة الحالية":locale==="en"?"Current workspace":"Espace actuel"}</small><strong>{currentRole?t(locale,`roles.${currentRole}`):t(locale,"staff.title")}</strong></div><LocaleSwitcher/><button className="btn btn-secondary compact staff-toolbar-logout" type="button" onClick={()=>void logout()} disabled={loggingOut}>↪ {logoutLabel}</button></div>
       {children}
     </main>
 
@@ -106,7 +118,7 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
       <Link href="/"><span>⌂</span><small>{t(locale,"nav.home")}</small></Link>
       <Link href="/staff"><span>▣</span><small>{locale==="ar"?"نظرة عامة":locale==="en"?"Overview":"Aperçu"}</small></Link>
       {currentRole&&<Link href={roleMeta[currentRole].home}><span>{currentRole==="doctor"?"⚕":currentRole==="administration"?"▦":"◇"}</span><small>{t(locale,`roles.${currentRole}`)}</small></Link>}
-      <Link href="/patient"><span>♡</span><small>Patient</small></Link>
+      <button type="button" className="staff-mobile-logout" onClick={()=>void logout()} disabled={loggingOut}><span>↪</span><small>{logoutLabel}</small></button>
     </nav>
   </div>;
 }
