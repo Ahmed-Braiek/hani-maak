@@ -22,6 +22,7 @@ export function MapClient({serviceId:_serviceId="svc-imaging"}:{serviceId?:strin
     site:locale==="ar"?"مستشفى شارل نيكول - تونس":locale==="en"?"Charles Nicolle Hospital · Tunis":"Hôpital Charles Nicolle · Tunis",
     locate:locale==="ar"?"حدّد موقعي":locale==="en"?"Find my location":"Me localiser",
     locating:locale==="ar"?"نحدّد موقعك…":locale==="en"?"Locating…":"Localisation…",
+    open:locale==="ar"?"افتح الخريطة":locale==="en"?"Open map":"Ouvrir la carte",
     idle:locale==="ar"?"اضغط على «حدّد موقعي» باش نبيّنلك موقعك بالنسبة للمستشفى.":locale==="en"?"Tap “Find my location” to see where you are relative to the hospital.":"Appuyez sur « Me localiser » pour voir où vous êtes par rapport à l’hôpital.",
     denied:locale==="ar"?"الموقع موش مفعّل. تنجم تفعّلو من إعدادات المتصفح.":locale==="en"?"Location permission is off. You can enable it in your browser settings.":"La localisation est désactivée. Vous pouvez l’autoriser dans les réglages du navigateur.",
     unavailable:locale==="ar"?"الموقع موش متوفر على الجهاز هذا.":locale==="en"?"Location is not available on this device.":"La localisation n’est pas disponible sur cet appareil.",
@@ -41,14 +42,18 @@ export function MapClient({serviceId:_serviceId="svc-imaging"}:{serviceId?:strin
 
   const locationText=locationState==="found"?(distance!==null&&distance<.35?copy.near:`${copy.away} : ${distance?.toFixed(distance<10?1:0)} km`):locationState==="denied"?copy.denied:locationState==="unavailable"?copy.unavailable:copy.idle;
   const src="https://www.openstreetmap.org/export/embed.html?bbox=10.1532%2C36.7970%2C10.1690%2C36.8078&layer=mapnik&marker=36.802254%2C10.161104";
+  const mapHref="https://www.openstreetmap.org/?mlat=36.802254&mlon=10.161104#map=17/36.802254/10.161104";
 
   return <section className="patient-map-simple">
     <div className="patient-map-simple-head">
       <div><div className="eyebrow">{copy.heading}</div><h2>{copy.site}</h2></div>
-      <button className="btn btn-primary patient-locate-btn" type="button" onClick={useLocation} disabled={locating}>◎ {locating?copy.locating:copy.locate}</button>
+      <div className="patient-map-actions">
+        <a className="btn btn-secondary patient-map-open" href={mapHref} target="_blank" rel="noreferrer">↗ {copy.open}</a>
+        <button className="btn btn-primary patient-locate-btn" type="button" onClick={useLocation} disabled={locating}>◎ {locating?copy.locating:copy.locate}</button>
+      </div>
     </div>
     <div className="patient-map-frame-wrap">
-      <iframe className="patient-map-frame" title={copy.site} src={src} loading="lazy" referrerPolicy="no-referrer-when-downgrade"/>
+      <iframe className="patient-map-frame" title={copy.site} src={src} loading="eager" referrerPolicy="no-referrer-when-downgrade"/>
       <div className={`patient-location-pill ${locationState==="found"?"found":""}`}><span>◎</span><div><strong>{copy.here}</strong><small>{locationText}</small></div></div>
     </div>
   </section>;

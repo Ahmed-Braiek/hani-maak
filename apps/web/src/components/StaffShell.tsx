@@ -61,6 +61,7 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
   const switchHint=locale==="ar"?"اختار الدور اللي تحب تشوف التطبيق بيه":locale==="en"?"Choose the role you want to use":"Choisissez le rôle que vous voulez utiliser";
   const navTitle=locale==="ar"?"شنوّة تحب تعمل؟":locale==="en"?"What do you want to do?":"Que voulez-vous faire ?";
   const logoutLabel=locale==="ar"?"تسجيل الخروج":locale==="en"?"Log out":"Se déconnecter";
+  const workspaceLabel=locale==="ar"?"مساحة عمل الفريق":locale==="en"?"Staff workspace":"Espace équipe";
   const roleHint:Record<StaffRole,string>={
     doctor:locale==="ar"?"مرضى وعناية":locale==="en"?"Patients & care":"Patients & soins",
     administration:locale==="ar"?"مواعيد وتنظيم":locale==="en"?"Appointments & operations":"Rendez-vous & opérations",
@@ -98,13 +99,13 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
       <nav className="side-nav" aria-label={navTitle}>{visible.map(link=><Link key={link.href} className={`side-link ${pathname===link.href?"active":""}`} href={link.href}><span>{link.icon}</span>{t(locale,link.key)}</Link>)}</nav>
       <div className="sidebar-proof"><strong>{identity?.name??t(locale,"staff.role_overview")}</strong><small>{identity?.department??"Doctor · Administration · Super Admin"}</small></div>
       <button className="staff-logout-btn" type="button" onClick={()=>void logout()} disabled={loggingOut}><span>↪</span><b>{loggingOut?"…":logoutLabel}</b></button>
-      <div className="sidebar-foot">Hani Maak · Demo tenant<br/>{t(locale,"common.synthetic")}</div>
+      <div className="sidebar-foot">Hani Maak<br/>{workspaceLabel}</div>
     </aside>
 
     <main className="main staff-main">
       <div className="staff-mobile-head">
         <Link className="staff-mobile-home" href="/" aria-label={t(locale,"nav.home")}>⌂</Link>
-        <div className="staff-mobile-title"><small>{locale==="ar"?"مساحة الموظفين":locale==="en"?"Staff workspace":"Espace staff"}</small><strong>{currentRole?t(locale,`roles.${currentRole}`):t(locale,"staff.title")}</strong></div>
+        <div className="staff-mobile-title"><small>{workspaceLabel}</small><strong>{currentRole?t(locale,`roles.${currentRole}`):t(locale,"staff.title")}</strong></div>
         <div className="staff-mobile-head-actions"><LocaleSwitcher/><details className="staff-mobile-menu"><summary aria-label="Staff menu">☰</summary><div className="staff-mobile-menu-panel"><div className="staff-menu-heading"><strong>{navTitle}</strong><small>{identity?.name??"Hani Maak"}</small></div>{visible.map(link=><Link key={link.href} className={pathname===link.href?"active":""} href={link.href}><span>{link.icon}</span><b>{t(locale,link.key)}</b></Link>)}<div className="staff-menu-divider"/><button className="staff-menu-logout" type="button" onClick={()=>void logout()} disabled={loggingOut}><span>↪</span><b>{logoutLabel}</b></button></div></details></div>
       </div>
 

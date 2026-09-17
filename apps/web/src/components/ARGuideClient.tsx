@@ -28,7 +28,7 @@ export function ARGuideClient({serviceId="svc-imaging"}:{serviceId?:string}){
       }catch(e){if(!cancelled)setNote(e instanceof Error?e.message:"Route unavailable")}
 
       if(typeof navigator==="undefined"||!navigator.mediaDevices?.getUserMedia){
-        if(!cancelled){setCameraState("fallback");setNote("Caméra non disponible: mode AR simulé actif.")}
+        if(!cancelled){setCameraState("fallback");setNote("Caméra non disponible. Le guidage visuel reste actif.")}
         return;
       }
       try{
@@ -36,9 +36,9 @@ export function ARGuideClient({serviceId="svc-imaging"}:{serviceId?:string}){
         if(cancelled){stream.getTracks().forEach(t=>t.stop());return}
         streamRef.current=stream;
         if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play().catch(()=>undefined)}
-        setCameraState("live");setNote("Caméra active. Les flèches sont une couche AR de démonstration.");
+        setCameraState("live");setNote("Caméra active. Suivez les repères Heni.");
       }catch{
-        if(!cancelled){setCameraState("fallback");setNote("Permission caméra non accordée: mode AR simulé actif.")}
+        if(!cancelled){setCameraState("fallback");setNote("Accès caméra non accordé. Le guidage visuel reste actif.")}
       }
     }
     void boot();
@@ -78,7 +78,7 @@ export function ARGuideClient({serviceId="svc-imaging"}:{serviceId?:string}){
       <div className="ar-vignette"/>
       <div className="ar-topbar">
         <Link href="/patient/map" className="ar-round-btn" aria-label="Retour">←</Link>
-        <div className="ar-location-pill"><span className="map-live-dot"/> Charles Nicolle · prototype indoor</div>
+        <div className="ar-location-pill"><span className="map-live-dot"/> Charles Nicolle · guidage intérieur</div>
         <button className={`ar-round-btn ${voice?"on":""}`} onClick={()=>setVoice(v=>!v)} aria-label="Activer ou désactiver la voix">♫</button>
       </div>
 
@@ -93,14 +93,13 @@ export function ARGuideClient({serviceId="svc-imaging"}:{serviceId?:string}){
         <div className="ar-sheet-handle"/>
         <div className="row">
           <div><div className="eyebrow">Guidage AR · étape {data?idx+1:0}/{data?.route.nodes.length??0}</div><h2>{arrived?"Vous êtes arrivé.":current?.label?.fr??"Chargement…"}</h2></div>
-          <span className={`badge ${cameraState==="live"?"good":"warn"}`}>{cameraState==="live"?"caméra live":"simulation"}</span>
+          <span className={`badge ${cameraState==="live"?"good":"info"}`}>{cameraState==="live"?"caméra active":"repères visuels"}</span>
         </div>
         <p>{arrived?"Le parcours patient peut maintenant continuer vers l'accueil du service.":instruction}</p>
-        <div className="ar-proof-row"><span>♿ Accessible</span><span>⌁ Route locale</span><span>◉ Sans LLM géographique</span></div>
+        <div className="ar-proof-row"><span>♿ Accessible</span><span>⌁ Étapes guidées</span><span>◉ Heni avec vous</span></div>
         {!arrived?<button className="btn btn-primary btn-wide" onClick={next}>J'ai atteint ce repère →</button>:<Link className="btn btn-primary btn-wide" href="/patient/journey">Continuer mon parcours →</Link>}
         <small>{note}</small>
       </div>
     </div>
-    <div className="notice info"><strong>Ce mode AR est une démo fonctionnelle.</strong> Il utilise réellement la caméra du téléphone quand le navigateur l'autorise, puis superpose les instructions issues du route graph Hani Maak. Il ne prétend pas localiser le patient automatiquement à l'intérieur de l'hôpital.</div>
   </div>;
 }
