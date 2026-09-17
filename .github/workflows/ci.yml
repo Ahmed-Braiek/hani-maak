@@ -15,7 +15,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,6 +40,14 @@ jobs:
 
       - name: Voice bridge syntax check
         run: npm run voice:check
+
+      - name: Heni agent Python syntax
+        run: python -m compileall -q apps/heni-agent/app apps/heni-agent/tests
+
+      - name: Heni agent security tests
+        env:
+          PYTHONPATH: apps/heni-agent
+        run: python -m unittest discover -s apps/heni-agent/tests -v
 
       - name: Production build
         run: npm run build
