@@ -20,123 +20,78 @@ const cues:Cue[]=[
   {start:71,x:53,y:57,angle:0,label:{fr:"Bloc Médecine nucléaire",ar:"بلوك الطب النووي",en:"Nuclear Medicine block"},instruction:{fr:"Vous arrivez au bloc de Médecine nucléaire. Suivez maintenant l'accueil du service.",ar:"وصلت لبلوك الطب النووي. توّا اتبع استقبال المصلحة.",en:"You have reached the Nuclear Medicine block. Follow the service reception from here."}}
 ];
 
-const videoParts=Array.from({length:20},(_,i)=>`/demo/nuclear-walk/part-${String(i+1).padStart(2,"0")}.txt`);
+const PROJECT_URL="https://lhrngmuxmjpigycgonnh.supabase.co";
+const PUBLIC_VIDEO_URL=`${PROJECT_URL}/storage/v1/object/public/demo-assets/hani-nuclear-walk.mp4`;
+const LEGACY_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxocm5nbXV4bWpwaWd5Y2dvbm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2Mzg5MDYsImV4cCI6MjEwNTIxNDkwNn0.sQW4iZ4F1O_Rq0L3RODNQQHnIFf0j5yoZOD7bsxFhEI";
+const VIDEO_DURATION=77.05;
 
-function cueIndexFor(time:number){
-  let index=0;
-  for(let i=0;i<cues.length;i++)if(time>=cues[i].start)index=i;
-  return index;
-}
-
-function base64ToVideoUrl(value:string){
-  const binary=atob(value);
-  const bytes=new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-  return URL.createObjectURL(new Blob([bytes],{type:"video/mp4"}));
-}
+function cueIndexFor(time:number){let index=0;for(let i=0;i<cues.length;i++)if(time>=cues[i].start)index=i;return index}
 
 export function RecordedARWalkthrough(){
   const {locale,rtl}=usePersistentLocale();
   const videoRef=useRef<HTMLVideoElement>(null);
   const lastTime=useRef(0);
   const lastSpoken=useRef(-1);
-  const [videoUrl,setVideoUrl]=useState("");
-  const [loadError,setLoadError]=useState(false);
+  const fileRef=useRef<HTMLInputElement>(null);
   const [time,setTime]=useState(0);
   const [cueIndex,setCueIndex]=useState(0);
   const [voiceEnabled,setVoiceEnabled]=useState(true);
   const [voiceStarted,setVoiceStarted]=useState(false);
   const [speaking,setSpeaking]=useState(false);
   const [playing,setPlaying]=useState(false);
+  const [videoReady,setVideoReady]=useState(false);
+  const [videoMissing,setVideoMissing]=useState(false);
+  const [uploading,setUploading]=useState(false);
+  const [uploadError,setUploadError]=useState("");
 
-  useEffect(()=>{
-    let cancelled=false;
-    let objectUrl="";
-    Promise.all(videoParts.map(path=>fetch(path,{cache:"force-cache"}).then(response=>{if(!response.ok)throw new Error("video_part_missing");return response.text()})))
-      .then(parts=>{if(cancelled)return;objectUrl=base64ToVideoUrl(parts.join(""));setVideoUrl(objectUrl)})
-      .catch(()=>!cancelled&&setLoadError(true));
-    return()=>{cancelled=true;if(objectUrl)URL.revokeObjectURL(objectUrl);if(typeof window!=="undefined"&&"speechSynthesis" in window)window.speechSynthesis.cancel()};
-  },[]);
+  useEffect(()=>()=>{if(typeof window!=="undefined"&&"speechSynthesis" in window)window.speechSynthesis.cancel()},[]);
 
   const cue=cues[cueIndex];
   const nextCue=cues[Math.min(cueIndex+1,cues.length-1)];
-  const target=useMemo(()=>{
-    if(cueIndex===cues.length-1)return{x:cue.x,y:cue.y};
-    const span=Math.max(1,nextCue.start-cue.start);
-    const p=Math.max(0,Math.min(1,(time-cue.start)/span));
-    return{x:cue.x+(nextCue.x-cue.x)*p,y:cue.y+(nextCue.y-cue.y)*p};
-  },[cue,nextCue,time,cueIndex]);
-  const progress=Math.min(100,Math.max(0,time/77.05*100));
-
-  function phrase(item:Cue){return item.instruction[locale]}
-  function label(item:Cue){return item.label[locale]}
+  const target=useMemo(()=>{if(cueIndex===cues.length-1)return{x:cue.x,y:cue.y};const span=Math.max(1,nextCue.start-cue.start);const p=Math.max(0,Math.min(1,(time-cue.start)/span));return{x:cue.x+(nextCue.x-cue.x)*p,y:cue.y+(nextCue.y-cue.y)*p}},[cue,nextCue,time,cueIndex]);
+  const progress=Math.min(100,Math.max(0,time/VIDEO_DURATION*100));
+  const phrase=(item:Cue)=>item.instruction[locale];
+  const label=(item:Cue)=>item.label[locale];
 
   function speak(index:number,force=false){
     if((!voiceEnabled&&!force)||typeof window==="undefined"||!("speechSynthesis" in window))return;
-    const item=cues[index];
-    window.speechSynthesis.cancel();
-    const utterance=new SpeechSynthesisUtterance(phrase(item));
-    utterance.lang=locale==="ar"?"ar-TN":locale==="en"?"en-GB":"fr-FR";
-    utterance.rate=.92;
-    const voices=window.speechSynthesis.getVoices();
-    const preferred=voices.find(v=>v.lang.toLowerCase().startsWith(utterance.lang.slice(0,2).toLowerCase()));
-    if(preferred)utterance.voice=preferred;
-    utterance.onstart=()=>setSpeaking(true);
-    utterance.onend=()=>setSpeaking(false);
-    utterance.onerror=()=>setSpeaking(false);
-    lastSpoken.current=index;
-    window.speechSynthesis.speak(utterance);
+    const item=cues[index];window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(phrase(item));
+    utterance.lang=locale==="ar"?"ar-TN":locale==="en"?"en-GB":"fr-FR";utterance.rate=.92;
+    const voices=window.speechSynthesis.getVoices();const preferred=voices.find(v=>v.lang.toLowerCase().startsWith(utterance.lang.slice(0,2).toLowerCase()));if(preferred)utterance.voice=preferred;
+    utterance.onstart=()=>setSpeaking(true);utterance.onend=()=>setSpeaking(false);utterance.onerror=()=>setSpeaking(false);lastSpoken.current=index;window.speechSynthesis.speak(utterance);
   }
 
   function onTimeUpdate(){
-    const video=videoRef.current;if(!video)return;
-    const current=video.currentTime;
-    if(current+2<lastTime.current)lastSpoken.current=-1;
-    lastTime.current=current;
-    setTime(current);
-    const index=cueIndexFor(current);
-    if(index!==cueIndex)setCueIndex(index);
-    if(voiceStarted&&voiceEnabled&&lastSpoken.current!==index)speak(index);
+    const video=videoRef.current;if(!video)return;const current=video.currentTime;if(current+2<lastTime.current)lastSpoken.current=-1;lastTime.current=current;setTime(current);const index=cueIndexFor(current);if(index!==cueIndex)setCueIndex(index);if(voiceStarted&&voiceEnabled&&lastSpoken.current!==index)speak(index);
   }
 
   async function startVoiceWalk(){
-    const video=videoRef.current;if(!video)return;
-    setVoiceEnabled(true);setVoiceStarted(true);lastSpoken.current=-1;video.currentTime=0;setTime(0);setCueIndex(0);
-    await video.play().catch(()=>undefined);speak(0,true);
+    const video=videoRef.current;if(!video||!videoReady)return;setVoiceEnabled(true);setVoiceStarted(true);lastSpoken.current=-1;video.currentTime=0;setTime(0);setCueIndex(0);await video.play().catch(()=>undefined);speak(0,true);
   }
+  async function togglePlay(){const video=videoRef.current;if(!video)return;if(video.paused)await video.play().catch(()=>undefined);else video.pause()}
+  function restart(){const video=videoRef.current;if(!video)return;lastSpoken.current=-1;video.currentTime=0;setTime(0);setCueIndex(0);void video.play();if(voiceStarted&&voiceEnabled)speak(0)}
 
-  async function togglePlay(){
-    const video=videoRef.current;if(!video)return;
-    if(video.paused)await video.play().catch(()=>undefined);else video.pause();
+  async function uploadVideo(file:File){
+    if(file.type!=="video/mp4"){setUploadError(locale==="ar"?"اختار فيديو MP4.":locale==="en"?"Choose an MP4 video.":"Choisissez une vidéo MP4.");return}
+    setUploading(true);setUploadError("");
+    try{
+      const response=await fetch(`${PROJECT_URL}/storage/v1/object/demo-assets/hani-nuclear-walk.mp4`,{method:"POST",headers:{apikey:LEGACY_ANON_KEY,Authorization:`Bearer ${LEGACY_ANON_KEY}`,"Content-Type":"video/mp4","x-upsert":"false"},body:file});
+      if(!response.ok){const body=await response.text();if(response.status!==409)throw new Error(body||"upload_failed")}
+      setVideoMissing(false);setVideoReady(false);
+      const video=videoRef.current;if(video){video.src=`${PUBLIC_VIDEO_URL}?v=${Date.now()}`;video.load();await video.play().catch(()=>undefined)}
+    }catch{setUploadError(locale==="ar"?"ما نجّمش نرفع الفيديو. عاود حاول.":locale==="en"?"Video upload failed. Please try again.":"Échec du chargement de la vidéo. Réessayez.")}
+    finally{setUploading(false)}
   }
-
-  function restart(){
-    const video=videoRef.current;if(!video)return;
-    lastSpoken.current=-1;video.currentTime=0;setTime(0);setCueIndex(0);void video.play();if(voiceStarted&&voiceEnabled)speak(0);
-  }
-
-  if(loadError)return <div className="card ar-recorded-error"><strong>Recorded AR demo unavailable.</strong><p className="muted">The navigation prototype is still available.</p><Link className="btn btn-primary" href="/patient/map">Open map guidance</Link></div>;
 
   return <div className={`ar-recorded-shell ${rtl?"rtl":""}`} dir={rtl?"rtl":"ltr"}>
     <div className="ar-recorded-phone">
-      {!videoUrl?<div className="ar-recorded-loading"><HeniAvatar size={92}/><strong>{locale==="ar"?"نحضّر مسار الفيديو…":locale==="en"?"Preparing the walkthrough…":"Préparation du parcours vidéo…"}</strong></div>:<video ref={videoRef} src={videoUrl} className="ar-recorded-video" autoPlay muted loop playsInline preload="auto" onTimeUpdate={onTimeUpdate} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}/>} 
+      <video ref={videoRef} src={PUBLIC_VIDEO_URL} className="ar-recorded-video" autoPlay muted loop playsInline preload="auto" onLoadedData={()=>{setVideoReady(true);setVideoMissing(false)}} onError={()=>{setVideoReady(false);setVideoMissing(true)}} onTimeUpdate={onTimeUpdate} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}/>
+      {(!videoReady||videoMissing)&&<div className="ar-recorded-loading"><HeniAvatar size={92}/>{videoMissing?<><strong>{locale==="ar"?"حمّل فيديو المستشفى باش نبدأو الجولة":locale==="en"?"Load the hospital video to start the AR walk":"Chargez la vidéo de l'hôpital pour démarrer la visite AR"}</strong><p>{locale==="ar"?"مرّة واحدة فقط. بعد الرفع، الفيديو يبقى متوفر للديمو ويخدم في loop.":locale==="en"?"One-time setup. After upload, the video stays available for the demo and loops automatically.":"Configuration unique. Après l'envoi, la vidéo reste disponible pour la démo et tourne en boucle."}</p><input ref={fileRef} type="file" accept="video/mp4" hidden onChange={event=>{const file=event.target.files?.[0];if(file)void uploadVideo(file)}}/><button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={uploading}>{uploading?(locale==="ar"?"نرفع…":locale==="en"?"Uploading…":"Envoi…"):(locale==="ar"?"اختار فيديو المستشفى":locale==="en"?"Choose hospital video":"Choisir la vidéo de l'hôpital")}</button>{uploadError&&<small className="ar-upload-error">{uploadError}</small>}</>:<strong>{locale==="ar"?"نحضّر مسار الفيديو…":locale==="en"?"Preparing the walkthrough…":"Préparation du parcours vidéo…"}</strong>}</div>}
       <div className="ar-recorded-shade"/>
-      <div className="ar-recorded-top">
-        <Link className="ar-recorded-round" href="/" aria-label="Home">⌂</Link>
-        <div className="ar-recorded-destination"><span/> <div><small>{locale==="ar"?"الوجهة":locale==="en"?"Destination":"Destination"}</small><strong>{locale==="ar"?"بلوك الطب النووي":locale==="en"?"Nuclear Medicine block":"Bloc Médecine nucléaire"}</strong></div></div>
-        <Link className="ar-recorded-round" href="/patient/map" aria-label="Map">⌖</Link>
-      </div>
-
+      <div className="ar-recorded-top"><Link className="ar-recorded-round" href="/" aria-label="Home">⌂</Link><div className="ar-recorded-destination"><span/><div><small>{locale==="ar"?"الوجهة":locale==="en"?"Destination":"Destination"}</small><strong>{locale==="ar"?"بلوك الطب النووي":locale==="en"?"Nuclear Medicine block":"Bloc Médecine nucléaire"}</strong></div></div><Link className="ar-recorded-round" href="/patient/map" aria-label="Map">⌖</Link></div>
       <div className="ar-recorded-heni"><HeniAvatar size={70} speaking={speaking}/><div><strong>Heni · هاني</strong><span>{speaking?(locale==="ar"?"نحكي معاك…":locale==="en"?"Guiding you…":"Je vous guide…"):label(cue)}</span></div></div>
-
       <div className="ar-recorded-target" style={{left:`${target.x}%`,top:`${target.y}%`}} aria-hidden="true"><div className="ar-recorded-reticle"><i/><i/><i/><i/></div><div className="ar-recorded-arrow" style={{transform:`rotate(${cue.angle}deg)`}}>↑</div><b>{label(cue)}</b></div>
-
-      <div className="ar-recorded-bottom">
-        <div className="ar-recorded-progress"><span style={{width:`${progress}%`}}/></div>
-        <div className="ar-recorded-step"><span>{String(cueIndex+1).padStart(2,"0")} / {String(cues.length).padStart(2,"0")}</span><strong>{label(cue)}</strong></div>
-        <p>{phrase(cue)}</p>
-        {!voiceStarted?<button className="btn btn-primary btn-wide ar-start-voice" onClick={()=>void startVoiceWalk()}>▶ {locale==="ar"?"ابدأ الجولة مع صوت هاني":locale==="en"?"Start the walk with Heni voice":"Démarrer la visite avec la voix de Heni"}</button>:<div className="ar-recorded-controls"><button onClick={()=>void togglePlay()}>{playing?"Ⅱ":"▶"}</button><button onClick={restart}>↻</button><button className={voiceEnabled?"active":""} onClick={()=>{setVoiceEnabled(v=>!v);if(voiceEnabled&&typeof window!=="undefined"&&"speechSynthesis" in window){window.speechSynthesis.cancel();setSpeaking(false)}}}>{voiceEnabled?"♫":"♩"}</button></div>}
-      </div>
+      <div className="ar-recorded-bottom"><div className="ar-recorded-progress"><span style={{width:`${progress}%`}}/></div><div className="ar-recorded-step"><span>{String(cueIndex+1).padStart(2,"0")} / {String(cues.length).padStart(2,"0")}</span><strong>{label(cue)}</strong></div><p>{phrase(cue)}</p>{!voiceStarted?<button className="btn btn-primary btn-wide ar-start-voice" onClick={()=>void startVoiceWalk()} disabled={!videoReady}>▶ {locale==="ar"?"ابدأ الجولة مع صوت هاني":locale==="en"?"Start the walk with Heni voice":"Démarrer la visite avec la voix de Heni"}</button>:<div className="ar-recorded-controls"><button onClick={()=>void togglePlay()}>{playing?"Ⅱ":"▶"}</button><button onClick={restart}>↻</button><button className={voiceEnabled?"active":""} onClick={()=>{setVoiceEnabled(v=>!v);if(voiceEnabled&&typeof window!=="undefined"&&"speechSynthesis" in window){window.speechSynthesis.cancel();setSpeaking(false)}}}>{voiceEnabled?"♫":"♩"}</button></div>}</div>
     </div>
     <div className="notice info ar-recorded-truth"><strong>{locale==="ar"?"ديمو AR مسجّل":locale==="en"?"Recorded AR demo":"Démo AR enregistrée"}.</strong> {locale==="ar"?"الفيديو من الفريق، أمّا الهدف والصوت والتوقيت طبقة تجريبية وماهمش تموضع داخلي معتمد.":locale==="en"?"The video was provided by the team; the target, voice timing and overlay are prototype guidance, not validated indoor positioning.":"La vidéo a été fournie par l'équipe ; la cible, la voix et le timing sont une couche de guidage prototype, pas un positionnement intérieur validé."}</div>
   </div>
