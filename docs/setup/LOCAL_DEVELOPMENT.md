@@ -2,9 +2,11 @@
 
 ## Requirements
 
-- Node.js 20.9 or newer
+- Node.js 22.6 or newer
 - npm 10 or newer
 - Current Chrome/Chromium recommended for browser microphone demonstrations
+
+Node 22.6+ is required because repository test/demo scripts execute TypeScript directly with Node's type-stripping support.
 
 ## Setup
 
