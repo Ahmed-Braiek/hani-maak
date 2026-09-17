@@ -1,3 +1,24 @@
-import {NextResponse} from "next/server";import {validStaffRole} from "@/lib/staff-auth";
-export async function POST(req:Request){const body=await req.json().catch(()=>null);const role=body?.role;if(!validStaffRole(role))return NextResponse.json({error:"invalid_role"},{status:400});const response=NextResponse.json({ok:true,role});response.cookies.set("hani_staff_role",role,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*8});return response}
-export async function DELETE(){const response=NextResponse.json({ok:true});response.cookies.set("hani_staff_role","",{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:0});return response}
+import {cookies} from "next/headers";
+import {NextResponse} from "next/server";
+import {validStaffRole} from "@/lib/staff-auth";
+
+export async function GET(){
+  const store=await cookies();
+  const raw=store.get("hani_staff_role")?.value;
+  return NextResponse.json({role:validStaffRole(raw)?raw:null});
+}
+
+export async function POST(req:Request){
+  const body=await req.json().catch(()=>null);
+  const role=body?.role;
+  if(!validStaffRole(role))return NextResponse.json({error:"invalid_role"},{status:400});
+  const response=NextResponse.json({ok:true,role});
+  response.cookies.set("hani_staff_role",role,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*8});
+  return response;
+}
+
+export async function DELETE(){
+  const response=NextResponse.json({ok:true});
+  response.cookies.set("hani_staff_role","",{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:0});
+  return response;
+}
