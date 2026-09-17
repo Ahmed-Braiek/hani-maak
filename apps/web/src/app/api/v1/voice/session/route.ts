@@ -1,10 +1,2 @@
-import {NextResponse} from "next/server";
-import {newVoiceSession} from "@/lib/operations";
-
-export async function POST(req:Request){
-  const b=await req.json().catch(()=>({}));
-  return NextResponse.json(
-    await newVoiceSession(b.locale??"ar",b.patientId??"patient-hedi",String(b.source??"voice_lab")),
-    {status:201}
-  );
-}
+import {NextResponse} from "next/server";import {newVoiceSession} from "@/lib/operations";
+export async function POST(req:Request){try{const b=await req.json().catch(()=>({}));const result=await newVoiceSession(b.locale??"ar",b.patientId??"patient-hedi",String(b.source??"voice_lab"));return NextResponse.json(result,{status:201})}catch(e:any){console.error("voice session start failed",e);const storage=String(e?.message??"").includes("Persistent storage");return NextResponse.json({error:storage?"persistent_storage_unavailable":"voice_session_start_failed"},{status:storage?503:500})}}

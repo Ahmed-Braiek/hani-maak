@@ -1,15 +1,2 @@
-import {NextResponse} from "next/server";
-import {recordCallExchange,voiceTurn} from "@/lib/operations";
-
-export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
-  try{
-    const {id}=await params;
-    const b=await req.json();
-    const text=String(b.text??"");
-    const result=await voiceTurn(id,text);
-    await recordCallExchange(id,text,String(result.message??""));
-    return NextResponse.json(result);
-  }catch(e:any){
-    return NextResponse.json({error:e.message},{status:400});
-  }
-}
+import {NextResponse} from "next/server";import {recordCallExchange,voiceTurn} from "@/lib/operations";
+export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){try{const {id}=await params;const b=await req.json().catch(()=>({}));const text=String(b.text??"").trim();if(!text)return NextResponse.json({error:"message_required"},{status:400});const result=await voiceTurn(id,text);await recordCallExchange(id,text,String(result.message??""));return NextResponse.json(result)}catch(e:any){console.error("voice turn failed",e);const message=String(e?.message??"");const status=message.includes("not found")?404:message.includes("Persistent storage")?503:400;return NextResponse.json({error:status===503?"persistent_storage_unavailable":status===404?"call_session_not_found":"voice_turn_failed"},{status})}}
