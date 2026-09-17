@@ -6,7 +6,6 @@ import hmac
 import json
 import time
 from typing import Any
-from urllib.parse import urlparse
 
 from .config import settings
 
@@ -30,7 +29,7 @@ def verify_internal_key(value: str | None) -> bool:
     return secure_compare(value or "", settings.shared_secret)
 
 
-def sign_voice_token(payload: dict[str, Any], ttl_seconds: int = 120) -> str:
+def _sign_payload(payload: dict[str, Any], ttl_seconds: int) -> str:
     now = int(time.time())
     body = dict(payload)
     body.setdefault("iat", now)
@@ -40,7 +39,7 @@ def sign_voice_token(payload: dict[str, Any], ttl_seconds: int = 120) -> str:
     return f"{encoded}.{_b64url_encode(signature)}"
 
 
-def verify_voice_token(token: str) -> dict[str, Any] | None:
+def _verify_payload(token: str) -> dict[str, Any] | None:
     try:
         encoded, supplied_sig = token.split(".", 1)
         expected = hmac.new(settings.shared_secret.encode("utf-8"), encoded.encode("ascii"), hashlib.sha256).digest()
@@ -55,14 +54,40 @@ def verify_voice_token(token: str) -> dict[str, Any] | None:
         return None
 
 
+def sign_voice_token(payload: dict[str, Any], ttl_seconds: int = 120) -> str:
+    return _sign_payload({"kind": "voice", **payload}, ttl_seconds)
+
+
+def verify_voice_token(token: str) -> dict[str, Any] | None:
+    payload = _verify_payload(token)
+    if not payload or payload.get("kind") not in {None, "voice"}:
+        return None
+    return payload
+
+
+def sign_confirmation_token(pending_action: dict[str, Any], patient_id: str, ttl_seconds: int = 300) -> str:
+    return _sign_payload(
+        {
+            "kind": "confirmation",
+            "patientId": patient_id,
+            "pending": pending_action,
+        },
+        ttl_seconds,
+    )
+
+
+def verify_confirmation_token(token: str | None, patient_id: str) -> dict[str, Any] | None:
+    if not token:
+        return None
+    payload = _verify_payload(token)
+    if not payload or payload.get("kind") != "confirmation" or payload.get("patientId") != patient_id:
+        return None
+    pending = payload.get("pending")
+    return pending if isinstance(pending, dict) else None
+
+
 def origin_allowed(origin: str | None) -> bool:
     if not origin:
         return False
     normalized = origin.rstrip("/")
     return normalized in settings.allowed_origins
-
-
-def websocket_url_for(base_url: str) -> str:
-    parsed = urlparse(base_url)
-    scheme = "wss" if parsed.scheme == "https" else "ws"
-    return f"{scheme}://{parsed.netloc}"
