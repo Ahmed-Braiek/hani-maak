@@ -21,7 +21,7 @@
     "fresh": "npm run clean && npm run demo:reset && npm run dev"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.6.0"
   },
   "type": "module"
 }
