@@ -37,6 +37,7 @@ class ChatRequest(BaseModel):
     patientId: str = Field(min_length=1, max_length=120)
     source: str = "website"
     sessionId: str | None = None
+    confirmationToken: str | None = Field(default=None, max_length=12000)
     history: list[ChatMessage] = Field(default_factory=list, max_length=20)
 
 
@@ -61,6 +62,7 @@ async def chat(body: ChatRequest, x_heni_agent_key: str | None = Header(default=
         source=body.source,
         session_id=body.sessionId,
         history=[item.model_dump() for item in body.history],
+        confirmation_token=body.confirmationToken,
     )
 
 
