@@ -1,4 +1,4 @@
-import { isClinicalBoundary } from "./heni/safety";
+import { isClinicalBoundary } from "./heni/safety.ts";
 
 export type VoiceIntent = "book" | "cancel" | "reschedule" | "directions" | "instructions" | "next_steps" | "human_help" | "unknown";
 
