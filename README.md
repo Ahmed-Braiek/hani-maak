@@ -1,151 +1,234 @@
-# Hani Maak — هاني معاك
+# Hani Maak - هاني معاك
 
-Competition-ready Next.js prototype for the Future Health Connectathon 2026. Hani Maak is a patient-journey layer — **Access → Guidance → Continuity** — rather than a standalone appointment screen.
+> **Access -> Guidance -> Continuity** for the patient journey around a healthcare appointment.
 
-This package is intentionally designed to remain impressive **without requiring paid or external AI/telephony/database providers on competition day**. The deterministic demo backend, browser voice mode, animated Heni companion, route engine, AR-style camera guidance, patient app and staff console all run from the repository.
+Hani Maak is a multilingual, white-label patient-journey platform designed for healthcare providers. It helps patients discover services, book and manage appointments, prepare correctly, navigate the facility, understand the next administrative step, and stay connected after the visit - through both a mobile experience and Heni, the conversational assistant.
 
-## 1. Run locally
+**Live competition build:** https://hani-maak.vercel.app/
 
-Prerequisites: Node.js 20.9+ and npm 10+.
+> Competition prototype for the Future Health Connectathon 2026. Demo patients and clinical examples are synthetic. The Charles Nicolle geographic context is real; prototype indoor routing is not presented as an authoritative hospital floor plan.
+
+## Why Hani Maak
+
+Most appointment systems stop after scheduling. Patients still need to know where to go, what to bring, what happens next, and who to contact when they are confused. Healthcare staff repeatedly answer the same administrative questions while still needing strict boundaries around clinical responsibility and sensitive data.
+
+Hani Maak connects the steps around the appointment without making the AI the source of truth.
+
+## Product at a glance
+
+| Area | What the prototype demonstrates |
+| --- | --- |
+| Patient | Service discovery, booking, appointment management, journey steps, multilingual UI, hospital map, recorded AR guidance |
+| Heni Chat | Floating assistant with Tunisian Derja / French / English support, deterministic actions, safety boundaries, model-provider abstraction |
+| Heni Voice | Browser voice fallback plus an optional realtime/PSTN bridge with constrained administrative tools |
+| Doctor | Clinical patient workspace and clinical-note access through explicit permissions |
+| Administration | Appointments, services, schedules and patient operations without full clinical access |
+| Super Admin | Roles, accounts, audit visibility, maps, white-label and platform configuration |
+| Platform | Audited domain actions, deterministic scheduling and routing, optional Supabase persistence, synthetic demo reset |
+
+## Heni AI
+
+Heni is a **first-class product module**, not a generic chatbot added on top of the UI.
+
+Heni's default spoken style is natural Tunisian Derja. French code-switching is expected and English is supported. The assistant follows the user's language when they switch during a conversation.
+
+The architecture is intentionally provider-aware but not provider-locked:
+
+- `development` mode keeps the tested deterministic competition behavior available without paid AI services.
+- a server-side model provider can be enabled for conversational turns;
+- `HENI_FINE_TUNED_MODEL_ID` can select a validated future fine-tuned model without changing the patient UI;
+- action truth remains in deterministic application tools, not in model memory;
+- realtime speech is isolated in the voice bridge so the speech provider can evolve independently.
+
+### Heni safety boundary
+
+Heni may automate administrative tasks and surface provider-authored information. It does **not** diagnose, prescribe, change medication doses, determine clinical urgency, or certify medication safety. Clinical-boundary requests are redirected to human support.
+
+State-changing actions require explicit confirmation, and the application backend remains the authority for availability, appointments, permissions, routing and journey state.
+
+## Architecture
+
+**Core principle: deterministic core, probabilistic interface.**
+
+```mermaid
+flowchart TD
+    P[Patient mobile UI] --> API[Next.js API / domain layer]
+    D[Doctor workspace] --> API
+    A[Administration] --> API
+    S[Super Admin] --> API
+    HC[Heni Chat] --> HO[Heni orchestration]
+    HV[Heni Voice] --> VB[Realtime voice bridge]
+    HO --> API
+    VB --> API
+    HO --> MP[Replaceable model provider]
+    VB --> RP[Realtime speech provider]
+    API --> SCH[Scheduling engine]
+    API --> J[Journey engine]
+    API --> R[Deterministic route graph]
+    API --> RBAC[RBAC / policy checks]
+    API --> AUD[Audit events]
+    API --> DB[(Demo JSON or Supabase path)]
+```
+
+AI interprets language and can request approved actions. It does not own the underlying healthcare workflow state.
+
+## User roles and access model
+
+- **Patient** - sees their journey, appointments, guidance and approved instructions.
+- **Doctor** - receives the medical access required by the doctor workspace, including clinical information and notes.
+- **Administration** - manages scheduling and operational data without full clinical access.
+- **Super Admin** - manages platform configuration, accounts, roles, AI settings, maps, integrations and white-label behavior; clinical access is not granted by default merely because the user is a platform administrator.
+
+Authorization is enforced at server/API boundaries for protected staff operations, not only by hiding menu items.
+
+## Technology stack
+
+- **Frontend / application:** Next.js 16.3.5 App Router, React 19.2, TypeScript 5.9
+- **Runtime:** Node.js 20.9+
+- **Persistence:** local JSON demo repository or optional Supabase/Postgres path
+- **Voice bridge:** Fastify 5, WebSockets, optional Twilio media streaming and realtime AI provider
+- **Deployment:** Vercel for the web application
+- **Testing:** Node test runner plus deterministic Heni/voice evaluation scenarios
+- **Maps / guidance:** deterministic facility graph plus web map context and recorded AR-style walkthrough
+
+## Repository structure
+
+```text
+hani-maak/
+├── apps/
+│   ├── web/                 # Patient app, staff consoles, APIs, Heni Chat and browser Voice Lab
+│   └── voice-bridge/        # Optional realtime / PSTN speech bridge
+├── ai/                      # Fine-tuning and model-governance documentation; synthetic examples only
+├── docs/                    # Architecture, security, setup, testing and competition documentation
+├── evals/                   # Deterministic Heni intent/safety evaluation set and results
+├── scripts/                 # Demo reset and evaluation scripts
+├── supabase/                # Production-oriented schema and competition persistence path
+├── tests/                   # Domain, RBAC and Heni safety tests
+├── .github/                 # CI, issue forms, PR template and repository governance
+└── README.md
+```
+
+The repository remains a small monorepo because the product currently has two real deployable applications. We deliberately avoid creating empty microservices or architecture layers purely for appearance.
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20.9+
+- npm 10+
 
 ```bash
+git clone https://github.com/Ahmed-Braiek/hani-maak.git
+cd hani-maak
 cp .env.example .env.local
 npm install
-npm run clean
 npm run demo:reset
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+Open `http://localhost:3000`.
 
-Recommended competition browser: current Chrome/Chromium. It provides the best chance of browser SpeechRecognition support. Typing always remains available if microphone recognition is not supported.
+### Useful routes
 
-Demo shortcuts:
-- `/` — competition landing page
-- `/present` — presentation sequence
-- `/patient` — patient mobile journey (synthetic patient Amel)
-- `/patient/services` — service discovery and booking entry
-- `/patient/map` — deterministic hospital guidance demo
-- `/patient/map/ar` — camera-based AR guidance prototype
-- `/patient/medicine` — bounded medicine-package clarification prototype
-- `/voice-lab` — working browser voice conversation with Heni
-- `/staff` — operations console
-- `/staff/calls` — saved conversation + MCP/tool activity
-- `/ar` — Arabic/RTL patient home
+- `/patient` - patient journey home
+- `/patient/services` - service discovery and booking
+- `/patient/journey` - appointment-to-follow-up journey
+- `/patient/map` - hospital map, localization and AR entry point
+- `/patient/map/ar?demo=nuclear-medicine` - recorded nuclear-medicine walkthrough
+- `/voice-lab` - browser Heni voice fallback
+- `/staff` - role-oriented staff console
+- `/present` - competition presentation mode
 
-## 2. Competition demo mode
+## Environment configuration
 
-The default app runs without external credentials. It uses a JSON-backed repository under `apps/web/data/demo-db.json` with synthetic identities, generated schedule rules, an auditable tool log, saved demo conversations and a manually-authored facility route graph.
+`.env.example` documents the supported environment variables. Secrets are server-side only and must never be committed.
 
-After replacing an older copy of the project, clear the previous Next.js cache once:
-
-```bash
-npm run clean
-```
-
-Before every presentation:
-
-```bash
-npm run demo:reset
-```
-
-The hospital demo uses **Hôpital Charles Nicolle, Tunis** as the real geographic reference context. The indoor/campus geometry is explicitly labeled **Prototype route — not validated by the hospital**. Do not present the demo route as an authoritative hospital floor plan.
-
-## 3. Heni — floating assistant
-
-Heni appears at the bottom-right across the application. It is implemented locally as an animated SVG avatar with:
-- idle breathing and blinking,
-- listening state,
-- speaking/head/hand movement,
-- mouth animation while browser speech synthesis is active,
-- typed chat,
-- optional browser microphone input,
-- spoken replies,
-- the same constrained server-side administrative tools used by the Voice Lab.
-
-Heni is not a clinical agent. Questions that cross the clinical boundary create a staff escalation instead of generating treatment advice.
-
-## 4. Voice Lab — no provider required
-
-`/voice-lab` is the competition-safe voice demonstration.
-
-It uses:
-1. Browser SpeechRecognition when supported.
-2. Browser SpeechSynthesis for Heni's audible reply.
-3. The Hani Maak deterministic conversation state machine.
-4. Real application tools for schedule lookup, booking, instructions, navigation and escalation.
-5. Saved call sessions and tool events visible in `/staff/calls`.
-
-If browser speech recognition is unavailable, type exactly the same phrases: all backend actions still work and are saved.
-
-The React `useEffect` initialization was rewritten using an inner async bootstrap function plus cleanup, avoiding Promise-returning effects under React 19 / Next.js 16.
-
-## 5. Hospital guidance and AR prototype
-
-`/patient/map` contains a fully local hospital-route presentation:
-- real Charles Nicolle reference address and coordinates,
-- locally rendered campus-style context,
-- deterministic route graph,
-- numbered waypoints,
-- remaining-distance estimate,
-- accessibility metadata,
-- manual waypoint progression,
-- optional browser geolocation,
-- optional link to external OpenStreetMap context when Internet exists.
-
-`/patient/map/ar` uses the phone/browser camera via `getUserMedia()` when permission is granted. It overlays Heni, route instructions, direction arrow, distance and waypoint progression over the camera view. If the camera is unavailable, it automatically switches to a simulated corridor so the presentation remains functional.
-
-Camera access works on `localhost` and HTTPS origins. It normally will not work on an insecure remote HTTP URL.
-
-## 6. Optional providers later
-
-The core competition story does not require them, but the repository keeps integration paths for:
-- Supabase/Postgres (`supabase/schema.sql` and `supabase/competition-state.sql`),
-- real telephony / realtime AI through the separate voice bridge,
-- external notifications,
-- external map services.
-
-The local JSON repository is the default source of truth so provider provisioning cannot block the demo.
-
-## 7. Architecture
+For the zero-setup competition path, keep:
 
 ```text
-Patient UI ──────────────────┐
-Floating Heni chat ──────────┤
-Browser Voice Lab ───────────┼─ Next.js API ─ Domain services ─ Demo repository
-Staff Console ────────────────┘                   │
-                                                  ├ scheduling engine
-                                                  ├ journey engine
-                                                  ├ deterministic route graph
-                                                  ├ safety/intent policy
-                                                  └ audited tool gateway
+DEMO_MODE=true
+HANI_DATA_BACKEND=file
+HENI_AI_PROVIDER=development
 ```
 
-The conversational layer never owns appointment truth. A state-changing action must pass through the deterministic domain layer and voice actions require explicit confirmation.
+For shared competition persistence, use Supabase with the documented server-side secret. For model-backed Heni Chat, configure `HENI_AI_PROVIDER`, `HENI_CHAT_MODEL` or a validated `HENI_FINE_TUNED_MODEL_ID`, and a server-side provider key.
 
-## 8. Safety boundary
+See [`docs/setup/LOCAL_DEVELOPMENT.md`](docs/setup/LOCAL_DEVELOPMENT.md) and [`docs/ai/HENI.md`](docs/ai/HENI.md).
 
-Hani Maak automates administrative tasks and exposes provider-authored information. It does not diagnose, prescribe, change doses, determine urgency, or certify medication safety. Clinical-boundary questions generate a human escalation.
-
-## 9. Tests and evaluation
+## Testing and verification
 
 ```bash
 npm test
 npm run evals
+npm run typecheck
+npm run voice:check
+npm run build
 ```
 
-Current packaged QA:
-- 4/4 domain tests pass.
-- 150-case deterministic voice intent/safety evaluation: 100% intent classification and 100% clinical-boundary classification on the curated synthetic dataset.
-- TypeScript/TSX source syntax parsed successfully in packaging QA.
+Or run the complete repository verification sequence:
 
-These are prototype test metrics, not claims about clinical outcomes or live Tunisian-Arabic speech-recognition accuracy.
+```bash
+npm run verify
+```
 
-## 10. Source specification
+The deterministic evaluation dataset is a prototype engineering check, not a claim of clinical accuracy or live speech-recognition accuracy.
 
-The source PRD is included at `docs/Hani-Maak-PRD-v2.0.pdf`.
-Read:
-- `docs/COMPETITION_RUNBOOK.md` before presenting,
-- `docs/ARCHITECTURE.md` for technical jury questions,
-- `docs/KNOWN_LIMITATIONS.md` for truthful prototype boundaries,
-- `docs/FEATURE_MATRIX.md` for implementation coverage.
+## Security and privacy
+
+Security is part of the product architecture because Hani Maak may eventually process sensitive healthcare information.
+
+Current principles include:
+
+- least-privilege role/permission design;
+- separate administrative and clinical access;
+- server-side secret handling;
+- explicit confirmation for voice-driven mutations;
+- audit events for important actions;
+- deterministic tool ownership of appointment and route truth;
+- no public repository of private medical training data;
+- human escalation at the clinical boundary;
+- no unnecessary sensitive information in logs or GitHub issues.
+
+The competition build uses synthetic patient data. It is **not represented as HIPAA, GDPR, ISO 27001, or other certified/compliant production infrastructure**. Production authentication, provider agreements, data-retention policy, security monitoring, validated hospital data and formal compliance work remain deployment requirements.
+
+Read [`SECURITY.md`](SECURITY.md) and [`docs/security/SECURITY_ARCHITECTURE.md`](docs/security/SECURITY_ARCHITECTURE.md).
+
+## Documentation
+
+Start with [`docs/README.md`](docs/README.md).
+
+Key references:
+
+- [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md)
+- [`docs/ai/HENI.md`](docs/ai/HENI.md)
+- [`docs/roles-and-permissions/RBAC.md`](docs/roles-and-permissions/RBAC.md)
+- [`docs/testing/TESTING_STRATEGY.md`](docs/testing/TESTING_STRATEGY.md)
+- [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md)
+- [`docs/COMPETITION_RUNBOOK.md`](docs/COMPETITION_RUNBOOK.md)
+
+## Roadmap
+
+Near-term production work is intentionally concrete:
+
+1. validate and connect the selected fine-tuned Heni model against the documented multilingual/safety evaluation suite;
+2. complete production identity/authentication and database-enforced tenant/RBAC policies;
+3. production-harden realtime speech, telephony verification, rate limiting and observability;
+4. validate facility maps/routes with a healthcare-provider partner before clinical-site use;
+5. integrate authorized HIS/EHR/FHIR systems only where a provider supplies governance and API access.
+
+## Contributing, support and security reporting
+
+- Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Support routes: [`SUPPORT.md`](SUPPORT.md)
+- Security reporting: [`SECURITY.md`](SECURITY.md)
+- Change history from this point forward: [`CHANGELOG.md`](CHANGELOG.md)
+
+Do not include real patient information, credentials or security-sensitive details in public issues or pull requests.
+
+## License status
+
+This repository is not currently offered under an open-source license. See [`LICENSE.md`](LICENSE.md) for the current project notice. The project owners can replace it with an explicit license later if the legal/distribution model changes.
+
+## Maintainer
+
+Repository maintained through the `Ahmed-Braiek/hani-maak` project. Additional contribution attribution should follow the Git history rather than being invented manually.
