@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hani-maak.example/schemas/heni-training-example.schema.json",
+  "title": "Heni synthetic/training example",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "synthetic", "locale", "role", "input", "desired_response", "safety"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "synthetic": { "type": "boolean" },
+    "locale": { "type": "string", "enum": ["ar", "fr", "en"] },
+    "style": { "type": "string" },
+    "role": { "type": "string", "enum": ["patient", "doctor", "administration", "super_admin"] },
+    "input": { "type": "string", "minLength": 1 },
+    "desired_response": { "type": "string", "minLength": 1 },
+    "intent": { "type": "string" },
+    "safety": { "type": "string", "enum": ["allowed", "refuse", "escalate"] },
+    "tool_expected": { "type": "boolean" },
+    "notes": { "type": "string" }
+  }
+}
