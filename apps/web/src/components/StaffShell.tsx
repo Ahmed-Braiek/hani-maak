@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import {useEffect} from "react";
 import {usePathname} from "next/navigation";
 import {Logo} from "./Logo";
 import {LocaleSwitcher} from "./LocaleSwitcher";
@@ -28,7 +29,7 @@ const links:{href:string;key:string;icon:string;permission?:Permission;roles?:St
   {href:"/staff/settings",key:"nav.settings",icon:"⚙",permission:"system_settings.manage",roles:["super_admin"]}
 ];
 
-export function StaffShell({children,role}:{children:React.ReactNode;role?:StaffRole}){const pathname=usePathname();const {locale,rtl}=usePersistentLocale();const identity=role?demoIdentity[role]:undefined;const visible=links.filter(link=>{if(!identity)return !link.roles&&(!link.permission||["appointments.view","patients.view_general","services.view","analytics.view"].includes(link.permission));if(link.roles&&!link.roles.includes(identity.role))return false;return !link.permission||hasPermission(identity,link.permission)});return <div className={`app-shell ${rtl?"rtl":""}`} dir={rtl?"rtl":"ltr"}>
+export function StaffShell({children,role}:{children:React.ReactNode;role?:StaffRole}){const pathname=usePathname();const {locale,rtl}=usePersistentLocale();const identity=role?demoIdentity[role]:undefined;useEffect(()=>{if(!role)return;void fetch("/api/v1/staff/session/role",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({role})})},[role]);const visible=links.filter(link=>{if(!identity)return !link.roles&&(!link.permission||["appointments.view","patients.view_general","services.view","analytics.view"].includes(link.permission));if(link.roles&&!link.roles.includes(identity.role))return false;return !link.permission||hasPermission(identity,link.permission)});return <div className={`app-shell ${rtl?"rtl":""}`} dir={rtl?"rtl":"ltr"}>
     <aside className="sidebar">
       <Logo/>
       <div className="staff-mode-chip"><span/> {role?t(locale,`roles.${role==="super_admin"?"super_admin":role}`):t(locale,"staff.title")}</div>
