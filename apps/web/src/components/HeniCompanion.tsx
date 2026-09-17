@@ -21,7 +21,7 @@ function pcm16FromFloat(input:Float32Array,inputRate:number,outputRate=16000){
 export function HeniCompanion(){
   const {locale,rtl}=usePersistentLocale();const tr=(key:string)=>tx(locale,key);const prompts=[tr("heni.prompt1"),tr("heni.prompt2"),tr("heni.prompt3"),tr("heni.prompt4")];
   const [open,setOpen]=useState(false);const [sessionId,setSessionId]=useState("");const [messages,setMessages]=useState<Message[]>([{role:"heni",text:tr("heni.hello")}]);const [input,setInput]=useState("");const [busy,setBusy]=useState(false);const [speaking,setSpeaking]=useState(false);const [voiceState,setVoiceState]=useState<VoiceState>("idle");const [micSupported,setMicSupported]=useState(true);
-  const endRef=useRef<HTMLDivElement>(null);const mountedRef=useRef(true);const busyRef=useRef(false);const wsRef=useRef<WebSocket|null>(null);const streamRef=useRef<MediaStream|null>(null);const audioContextRef=useRef<AudioContext|null>(null);const sourceNodeRef=useRef<MediaStreamAudioSourceNode|null>(null);const processorRef=useRef<ScriptProcessorNode|null>(null);const silentGainRef=useRef<GainNode|null>(null);const playbackSourcesRef=useRef(new Set<AudioBufferSourceNode>());const nextPlaybackRef=useRef(0);const lastTranscriptRoleRef=useRef<"user"|"heni"|null>(null);const liveToolRef=useRef<string|undefined>();
+  const endRef=useRef<HTMLDivElement>(null);const mountedRef=useRef(true);const busyRef=useRef(false);const wsRef=useRef<WebSocket|null>(null);const streamRef=useRef<MediaStream|null>(null);const audioContextRef=useRef<AudioContext|null>(null);const sourceNodeRef=useRef<MediaStreamAudioSourceNode|null>(null);const processorRef=useRef<ScriptProcessorNode|null>(null);const silentGainRef=useRef<GainNode|null>(null);const playbackSourcesRef=useRef(new Set<AudioBufferSourceNode>());const nextPlaybackRef=useRef(0);const lastTranscriptRoleRef=useRef<"user"|"heni"|null>(null);const liveToolRef=useRef<string|undefined>(undefined);
   const listening=voiceState==="live";
   const liveLabel=locale==="ar"?"محادثة صوتية مباشرة":locale==="en"?"Live voice":"Voix en direct";
   const connectingLabel=locale==="ar"?"نربط هاني…":locale==="en"?"Connecting Heni…":"Connexion à Heni…";
@@ -37,7 +37,7 @@ export function HeniCompanion(){
     lastTranscriptRoleRef.current=null;liveToolRef.current=undefined;if(mountedRef.current)setVoiceState("idle");
   },[stopPlayback]);
 
-  useEffect(()=>{mountedRef.current=true;setMicSupported(Boolean(typeof window!=="undefined"&&navigator.mediaDevices?.getUserMedia&&"WebSocket" in window&&"AudioContext" in window));return()=>{mountedRef.current=false;cleanupVoice(true);if(typeof window!=="undefined"&&"speechSynthesis" in window)window.speechSynthesis.cancel()}},[cleanupVoice]);
+  useEffect(()=>{mountedRef.current=true;setMicSupported(Boolean(typeof window!=="undefined"&&navigator.mediaDevices&&"WebSocket" in window&&"AudioContext" in window));return()=>{mountedRef.current=false;cleanupVoice(true);if(typeof window!=="undefined"&&"speechSynthesis" in window)window.speechSynthesis.cancel()}},[cleanupVoice]);
   useEffect(()=>{setSessionId("");setMessages([{role:"heni",text:tx(locale,"heni.hello")}]);setInput("");cleanupVoice(true)},[locale,cleanupVoice]);
   useEffect(()=>{if(open)endRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"})},[messages,open,busy,voiceState]);
 
