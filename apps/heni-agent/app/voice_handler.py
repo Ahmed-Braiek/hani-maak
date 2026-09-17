@@ -34,6 +34,27 @@ def _live_config() -> dict:
     }
 
 
+def _opening_turn(locale: str) -> types.Content:
+    if locale == "fr":
+        text = (
+            "Commence maintenant l'appel. Salue brièvement le patient en français, "
+            "présente-toi comme Heni et demande comment tu peux l'aider. "
+            "Parle naturellement, sans mentionner ce message."
+        )
+    elif locale == "en":
+        text = (
+            "Start the live call now. Briefly greet the patient in English, "
+            "introduce yourself as Heni and ask how you can help. "
+            "Sound natural and do not mention this instruction."
+        )
+    else:
+        text = (
+            "ابدأ المكالمة توّا. سلّم على المريض بتونسي طبيعي، عرّف روحك هاني "
+            "واسألو شنوة تنجم تعاونُه فيه. خليك مختصر وما تذكرش التعليمة هاذي."
+        )
+    return types.Content(role="user", parts=[types.Part(text=text)])
+
+
 async def handle_voice_connection(ws: WebSocket) -> None:
     origin = ws.headers.get("origin")
     if not origin_allowed(origin):
@@ -51,10 +72,11 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         await ws.close(code=4401, reason="patient_missing")
         return
 
+    locale = str(claims.get("locale") or "ar")
     session = get_or_create_session(
         str(claims.get("sid") or "") or None,
         patient_id=patient_id,
-        locale=str(claims.get("locale") or "ar"),
+        locale=locale,
         source="voice",
     )
 
@@ -65,7 +87,13 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         async with _client.aio.live.connect(model=settings.live_model, config=_live_config()) as live:
             sender = asyncio.create_task(_pump_client_to_live(ws, live, session))
             receiver = asyncio.create_task(_pump_live_to_client(ws, live, session))
-            done, pending = await asyncio.wait({sender, receiver}, return_when=asyncio.FIRST_COMPLETED)
+
+            # Make the experience feel like a real call: Heni greets first.
+            await live.send_client_content(turns=_opening_turn(locale), turn_complete=True)
+
+            done, pending = await asyncio.wait(
+                {sender, receiver}, return_when=asyncio.FIRST_COMPLETED
+            )
             for task in pending:
                 task.cancel()
             for task in done:
