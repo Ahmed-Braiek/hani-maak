@@ -1,0 +1,1 @@
+import {redirect} from "next/navigation";import {requireRole} from "@/lib/staff-auth";export default async function Layout({children}:{children:React.ReactNode}){try{await requireRole("administration")}catch{redirect("/staff/denied")}return children}
