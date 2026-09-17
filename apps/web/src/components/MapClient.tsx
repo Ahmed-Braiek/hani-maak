@@ -1,5 +1,55 @@
 "use client";
-import Link from "next/link";import {useEffect,useMemo,useState} from "react";import {usePersistentLocale} from "@/lib/locale-client";import {t} from "@/lib/i18n";import {tx} from "@/lib/i18n-namespaces";
-type RouteNode={id:string;code?:string;label:{fr:string;ar?:string;en?:string};x:number;y:number;type:string;floor:number};type RouteEdge={from:string;to:string;distanceM:number;instruction:{fr:string;ar?:string;en?:string}};type RoutePayload={service:{id:string;name:{fr:string;ar?:string;en?:string};department:string};route:{nodes:RouteNode[];edges:RouteEdge[];distanceM:number};provenance:string};
-export function MapClient({serviceId="svc-imaging"}:{serviceId?:string}){const {locale}=usePersistentLocale();const tr=(key:string)=>tx(locale,key);const [data,setData]=useState<RoutePayload|null>(null);const [idx,setIdx]=useState(0);const [error,setError]=useState("");const [locating,setLocating]=useState(false);const [geoNote,setGeoNote]=useState(tr("map.location_start"));useEffect(()=>{setGeoNote(tx(locale,"map.location_start"))},[locale]);useEffect(()=>{let cancelled=false;(async()=>{try{setError("");const response=await fetch(`/api/v1/navigation/route?serviceId=${encodeURIComponent(serviceId)}&from=node-main-gate&accessible=true`,{cache:"no-store"});const payload=await response.json();if(!response.ok)throw new Error();if(!cancelled){setData(payload);setIdx(0)}}catch{if(!cancelled)setError(t(locale,"map.unavailable"))}})();return()=>{cancelled=true}},[serviceId,locale]);const current=useMemo(()=>data?.route.nodes[idx],[data,idx]);const edge=useMemo(()=>data?.route.edges[Math.min(Math.max(0,idx-1),Math.max(0,(data?.route.edges.length??1)-1))],[data,idx]);function label(n?:RouteNode){return n?.label?.[locale]??n?.label?.fr??""}function instruction(e?:RouteEdge){return e?.instruction?.[locale]??e?.instruction?.fr??t(locale,"map.continue")}function useLocation(){if(typeof navigator==="undefined"||!navigator.geolocation){setGeoNote(tr("map.location_unavailable"));return}setLocating(true);navigator.geolocation.getCurrentPosition(pos=>{const near=Math.abs(pos.coords.latitude-36.802254)<.01&&Math.abs(pos.coords.longitude-10.161104)<.01;setGeoNote(tr(near?"map.location_near":"map.location_far"));setLocating(false)},()=>{setGeoNote(tr("map.location_denied"));setLocating(false)},{enableHighAccuracy:true,timeout:5000,maximumAge:30000})}if(error)return <div className="notice"><strong>{t(locale,"map.unavailable")}</strong><br/>{error}</div>;if(!data)return <div className="card map-loading"><div className="skeleton wide"/><div className="skeleton"/><div className="skeleton short"/></div>;const pts=data.route.nodes.map(n=>`${n.x},${n.y}`).join(" ");const completed=data.route.nodes.slice(0,idx+1).map(n=>`${n.x},${n.y}`).join(" ");const progress=Math.round(((idx+1)/data.route.nodes.length)*100);const remaining=idx===0?data.route.distanceM:Math.max(0,data.route.distanceM-Math.round(data.route.distanceM*idx/Math.max(1,data.route.nodes.length-1)));
-return <div className="stack"><div className="map-proof-bar"><div><span className="map-live-dot"/> <strong>{t(locale,"map.real_context")}:</strong> {tr("map.site")}</div><span>36.802254, 10.161104</span></div><div className="notice info"><strong>{t(locale,"map.prototype")}</strong></div><div className="hospital-map-shell"><div className="hospital-map-toolbar"><div><div className="eyebrow">{tr("map.site")}</div><strong>{data.service.name[locale]??data.service.name.fr}</strong></div><div className="map-actions"><button className="btn btn-secondary compact" onClick={useLocation} disabled={locating}>{locating?t(locale,"common.loading"):`◎ ${t(locale,"map.position")}`}</button><Link className="btn btn-primary compact" href={`/patient/map/ar?serviceId=${encodeURIComponent(serviceId)}`}>◈ {t(locale,"map.ar")}</Link></div></div><div className="hospital-campus-map" role="img" aria-label={t(locale,"map.title")}><svg className="campus-base" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="campusGreen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#edf8f4"/><stop offset="1" stopColor="#dcece7"/></linearGradient></defs><rect x="0" y="0" width="100" height="100" fill="url(#campusGreen)"/><path d="M0 86 C24 80 45 91 100 80" stroke="#c7d8d3" strokeWidth="8" fill="none"/><path d="M0 86 C24 80 45 91 100 80" stroke="#fff" strokeWidth="4" fill="none"/><g fill="#fff" stroke="#c7dcd6" strokeWidth=".7"><rect x="18" y="48" width="18" height="14" rx="2"/><rect x="37" y="34" width="22" height="14" rx="2"/><rect x="61" y="18" width="26" height="16" rx="2"/><rect x="64" y="53" width="24" height="16" rx="2"/></g><polyline points={pts} fill="none" stroke="#94c6bd" strokeWidth="2.7" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2"/><polyline points={completed} fill="none" stroke="#0f766e" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>{data.route.nodes.map((n,i)=><div title={label(n)} key={n.id} className={`route-node ${i===data.route.nodes.length-1?"dest":""} ${i===idx?"current":""} ${i<idx?"done":""}`} style={{left:`${n.x}%`,top:`${n.y}%`}}><span>{i+1}</span></div>)}<div className="map-compass">N<br/><span>↑</span></div><div className="map-floor-chip">{tr("map.floor")} {current?.floor??0}</div></div><div className="map-progress-strip"><span style={{width:`${progress}%`}}/></div><div className="map-bottom enhanced"><div className="row"><div><div className="eyebrow">{t(locale,"map.step")} {idx+1} / {data.route.nodes.length}</div><h3>{label(current)}</h3></div><span className="badge info">≈ {remaining} {t(locale,"map.remaining")}</span></div><p className="map-instruction">{idx===0?t(locale,"map.start"):instruction(edge)}</p><div className="map-waypoint-meta"><span>♿ {t(locale,"map.accessible")}</span><span>◷ ~{Math.max(1,Math.ceil(data.route.distanceM/70))} {tr("map.minutes")}</span><span>✓ {t(locale,"map.deterministic")}</span></div>{idx<data.route.nodes.length-1?<button className="btn btn-primary btn-wide map-next" onClick={()=>setIdx(x=>Math.min(x+1,data.route.nodes.length-1))}>{t(locale,"map.arrived")} <span>{locale==="ar"?"←":"→"}</span></button>:<div className="notice safe arrival"><strong>✓ {t(locale,"map.destination")}</strong></div>}</div></div><div className="card card-flat location-card"><div className="row-start"><div className="location-icon">◎</div><div><strong>{tr("map.smart_start")}</strong><p className="muted tiny">{geoNote}</p></div></div></div><div className="card card-flat external-map-card"><div className="row"><div><div className="eyebrow">{tr("map.outdoor")}</div><strong>{tr("map.address")}</strong></div><span className="badge">{tr("map.optional")}</span></div><a className="btn btn-secondary btn-wide" target="_blank" rel="noreferrer" href="https://www.openstreetmap.org/?mlat=36.802254&mlon=10.161104#map=17/36.802254/10.161104">{tr("map.open_outdoor")}</a></div></div>}
+
+import {useMemo,useState} from "react";
+import {usePersistentLocale} from "@/lib/locale-client";
+
+const HOSPITAL={lat:36.802254,lng:10.161104};
+
+function distanceKm(lat1:number,lng1:number,lat2:number,lng2:number){
+  const r=6371;const rad=(n:number)=>n*Math.PI/180;const dLat=rad(lat2-lat1);const dLng=rad(lng2-lng1);
+  const a=Math.sin(dLat/2)**2+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLng/2)**2;
+  return 2*r*Math.asin(Math.sqrt(a));
+}
+
+export function MapClient({_serviceId="svc-imaging"}:{serviceId?:string;_serviceId?:string}){
+  const {locale}=usePersistentLocale();
+  const [locating,setLocating]=useState(false);
+  const [locationState,setLocationState]=useState<"idle"|"found"|"denied"|"unavailable">("idle");
+  const [distance,setDistance]=useState<number|null>(null);
+
+  const copy=useMemo(()=>({
+    heading:locale==="ar"?"موقع المستشفى":locale==="en"?"Hospital location":"Localisation de l’hôpital",
+    site:locale==="ar"?"مستشفى شارل نيكول - تونس":locale==="en"?"Charles Nicolle Hospital · Tunis":"Hôpital Charles Nicolle · Tunis",
+    locate:locale==="ar"?"حدّد موقعي":locale==="en"?"Find my location":"Me localiser",
+    locating:locale==="ar"?"نحدّد موقعك…":locale==="en"?"Locating…":"Localisation…",
+    idle:locale==="ar"?"اضغط على «حدّد موقعي» باش نبيّنلك موقعك بالنسبة للمستشفى.":locale==="en"?"Tap “Find my location” to see where you are relative to the hospital.":"Appuyez sur « Me localiser » pour voir où vous êtes par rapport à l’hôpital.",
+    denied:locale==="ar"?"الموقع موش مفعّل. تنجم تفعّلو من إعدادات المتصفح.":locale==="en"?"Location permission is off. You can enable it in your browser settings.":"La localisation est désactivée. Vous pouvez l’autoriser dans les réglages du navigateur.",
+    unavailable:locale==="ar"?"الموقع موش متوفر على الجهاز هذا.":locale==="en"?"Location is not available on this device.":"La localisation n’est pas disponible sur cet appareil.",
+    here:locale==="ar"?"موقعك":locale==="en"?"Your location":"Votre position",
+    near:locale==="ar"?"أنت قريب من المستشفى.":locale==="en"?"You are close to the hospital.":"Vous êtes proche de l’hôpital.",
+    away:locale==="ar"?"المسافة التقريبية للمستشفى":locale==="en"?"Approximate distance to the hospital":"Distance approximative jusqu’à l’hôpital"
+  }),[locale]);
+
+  function useLocation(){
+    if(typeof navigator==="undefined"||!navigator.geolocation){setLocationState("unavailable");return}
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const km=distanceKm(pos.coords.latitude,pos.coords.longitude,HOSPITAL.lat,HOSPITAL.lng);
+      setDistance(km);setLocationState("found");setLocating(false);
+    },()=>{setLocationState("denied");setLocating(false)},{enableHighAccuracy:true,timeout:6000,maximumAge:30000});
+  }
+
+  const locationText=locationState==="found"?(distance!==null&&distance<.35?copy.near:`${copy.away} : ${distance?.toFixed(distance<10?1:0)} km`):locationState==="denied"?copy.denied:locationState==="unavailable"?copy.unavailable:copy.idle;
+  const src="https://www.openstreetmap.org/export/embed.html?bbox=10.1532%2C36.7970%2C10.1690%2C36.8078&layer=mapnik&marker=36.802254%2C10.161104";
+
+  return <section className="patient-map-simple">
+    <div className="patient-map-simple-head">
+      <div><div className="eyebrow">{copy.heading}</div><h2>{copy.site}</h2></div>
+      <button className="btn btn-primary patient-locate-btn" type="button" onClick={useLocation} disabled={locating}>◎ {locating?copy.locating:copy.locate}</button>
+    </div>
+    <div className="patient-map-frame-wrap">
+      <iframe className="patient-map-frame" title={copy.site} src={src} loading="lazy" referrerPolicy="no-referrer-when-downgrade"/>
+      <div className={`patient-location-pill ${locationState==="found"?"found":""}`}><span>◎</span><div><strong>{copy.here}</strong><small>{locationText}</small></div></div>
+    </div>
+  </section>;
+}
