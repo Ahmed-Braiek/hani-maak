@@ -1,1 +1,1 @@
-import {NextResponse} from "next/server";import {staffSnapshot} from "@/lib/operations";export const dynamic="force-dynamic";export async function GET(){return NextResponse.json(await staffSnapshot())}
+import {NextResponse} from "next/server";import {staffSnapshot} from "@/lib/operations";import {requireStaff} from "@/lib/staff-auth";export const dynamic="force-dynamic";export async function GET(){try{await requireStaff();return NextResponse.json(await staffSnapshot())}catch{return NextResponse.json({error:"forbidden"},{status:403})}}

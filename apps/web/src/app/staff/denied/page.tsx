@@ -1,0 +1,2 @@
+import Link from "next/link";import {getServerLocale} from "@/lib/i18n-server";import {t} from "@/lib/i18n";
+export default async function Denied(){const locale=await getServerLocale();return <main className="container" style={{padding:"80px 20px"}}><div className="card" style={{maxWidth:620,margin:"0 auto"}}><div className="eyebrow">403</div><h1>{t(locale,"common.access_denied")}</h1><p className="muted">{t(locale,"common.access_denied_hint")}</p><Link className="btn btn-primary" href="/staff">{t(locale,"common.back")}</Link></div></main>}

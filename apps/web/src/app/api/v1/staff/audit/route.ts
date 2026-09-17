@@ -1,0 +1,1 @@
+import {NextResponse} from "next/server";import {readDb} from "@/lib/db";import {requirePermission} from "@/lib/staff-auth";export async function GET(){try{await requirePermission("audit.view");const db=await readDb();return NextResponse.json({events:db.auditLog.slice(0,200)})}catch{return NextResponse.json({error:"forbidden"},{status:403})}}
