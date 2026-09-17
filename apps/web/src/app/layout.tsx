@@ -2,6 +2,7 @@ import type {Metadata,Viewport} from "next";
 import type {CSSProperties} from "react";
 import "./globals.css";
 import "./competition-fixes.css";
+import "./staff-phase.css";
 import {readDb} from "@/lib/db";
 import {HeniCompanion} from "@/components/HeniCompanion";
 
