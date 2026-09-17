@@ -34,7 +34,7 @@ Heni's default spoken style is natural Tunisian Derja. French code-switching is 
 
 The architecture is intentionally provider-aware but not provider-locked:
 
-- `development` mode keeps the tested deterministic competition behavior available without paid AI services.
+- `development` mode keeps the tested deterministic competition behavior available without paid AI services;
 - a server-side model provider can be enabled for conversational turns;
 - `HENI_FINE_TUNED_MODEL_ID` can select a validated future fine-tuned model without changing the patient UI;
 - action truth remains in deterministic application tools, not in model memory;
@@ -84,7 +84,7 @@ Authorization is enforced at server/API boundaries for protected staff operation
 ## Technology stack
 
 - **Frontend / application:** Next.js 16.3.5 App Router, React 19.2, TypeScript 5.9
-- **Runtime:** Node.js 20.9+
+- **Runtime:** Node.js 22.6+
 - **Persistence:** local JSON demo repository or optional Supabase/Postgres path
 - **Voice bridge:** Fastify 5, WebSockets, optional Twilio media streaming and realtime AI provider
 - **Deployment:** Vercel for the web application
@@ -114,7 +114,7 @@ The repository remains a small monorepo because the product currently has two re
 
 ### Prerequisites
 
-- Node.js 20.9+
+- Node.js 22.6+
 - npm 10+
 
 ```bash
