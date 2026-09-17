@@ -1,0 +1,1 @@
+import {StaffShell} from "@/components/StaffShell";import {WhiteLabelClient} from "@/components/WhiteLabelClient";import {readDb} from "@/lib/db";export const dynamic="force-dynamic";export default async function WhiteLabel(){const db=await readDb();return <StaffShell role="super_admin"><WhiteLabelClient tenant={db.tenant}/></StaffShell>}
