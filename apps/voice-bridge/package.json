@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --experimental-strip-types src/server.ts"
+    "dev": "node --experimental-strip-types src/server.ts",
+    "start": "node --experimental-strip-types src/server.ts",
+    "check": "node --experimental-strip-types --check src/server.ts"
   },
   "dependencies": {
     "fastify": "^5.0.0",
