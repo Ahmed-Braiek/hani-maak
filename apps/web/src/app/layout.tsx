@@ -3,6 +3,7 @@ import type {CSSProperties} from "react";
 import "./globals.css";
 import "./competition-fixes.css";
 import "./staff-phase.css";
+import "./mobile-ar-polish.css";
 import {readDb} from "@/lib/db";
 import {HeniCompanion} from "@/components/HeniCompanion";
 import {getServerLocale,dirForLocale} from "@/lib/i18n-server";
