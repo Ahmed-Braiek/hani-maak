@@ -9,6 +9,7 @@ from starlette.websockets import WebSocketState
 
 from .config import settings
 from .google_client import create_google_client
+from .language import detect_likely_locale, detect_requested_locale
 from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
 from .security import origin_allowed, verify_voice_token
 from .session_store import get_or_create_session, touch_session
