@@ -44,7 +44,8 @@ HENI_ENV=production
 GEMINI_API_KEY=...
 HENI_TEXT_MODEL=gemini-3.8-flash
 HENI_LIVE_MODEL=gemini-3.8-live
-HENI_VOICE_NAME=Kore
+HENI_VOICE_NAME=Gacrux
+# Gacrux is the default mature Heni voice; voice choice remains configurable after listening tests.
 HANI_BACKEND_BASE_URL=https://hani-maak.vercel.app
 HENI_AGENT_SHARED_SECRET=<same long random value configured on the web project>
 HENI_ALLOWED_ORIGINS=https://hani-maak.vercel.app
