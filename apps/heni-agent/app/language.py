@@ -10,8 +10,8 @@ def _norm(text: str) -> str:
 def detect_requested_locale(text: str) -> str | None:
     value = _norm(text)
     if any(term in value for term in (
-        "parle en arabe", "parlez en arabe", "parle arabe", "parlez arabe", "en arabe",
-        "arabic", "tunisian", "tunisien", "tunisienne", "derja", "darija",
+        "parle en arabe", "parlez en arabe", "parle en arab", "parlez en arab", "parle arabe", "parlez arabe", "en arabe",
+        "arabic", "arab", "tunisian", "tunisaian", "tunisia", "tunisien", "tunisienne", "derja", "darija",
         "بالعربي", "بالتونسي", "بالدارجة", "عربي", "تونسي",
     )):
         return "ar"
