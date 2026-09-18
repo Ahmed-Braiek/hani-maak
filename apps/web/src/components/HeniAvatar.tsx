@@ -18,24 +18,24 @@ export function HeniAvatar({
       <svg viewBox="0 0 120 120" role="img" aria-hidden="true">
         <defs>
           <linearGradient id="heni-bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#e8f6ff" />
-            <stop offset="1" stopColor="#b9e0fb" />
+            <stop offset="0" stopColor="#dff8f1" />
+            <stop offset="1" stopColor="#a6e1d5" />
           </linearGradient>
           <linearGradient id="heni-shirt" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#0849b4" />
-            <stop offset="1" stopColor="#063b91" />
+            <stop offset="0" stopColor="#0f766e" />
+            <stop offset="1" stopColor="#075b56" />
           </linearGradient>
           <linearGradient id="heni-skin" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#e9b58e" />
             <stop offset="1" stopColor="#c9825f" />
           </linearGradient>
           <filter id="heni-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#063b91" floodOpacity=".18" />
+            <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#0b413b" floodOpacity=".18" />
           </filter>
         </defs>
 
         <circle cx="60" cy="60" r="57" fill="url(#heni-bg)" />
-        <circle className="heni-pulse" cx="60" cy="60" r="54" fill="none" stroke="#0849b4" strokeWidth="2" opacity=".22" />
+        <circle className="heni-pulse" cx="60" cy="60" r="54" fill="none" stroke="#0f766e" strokeWidth="2" opacity=".22" />
 
         <g className="heni-body" filter="url(#heni-shadow)">
           <path d="M24 118c2-24 12-37 36-37s34 13 36 37" fill="url(#heni-shirt)" />
@@ -52,8 +52,8 @@ export function HeniAvatar({
             <g className="heni-eyes">
               <path d="M44 52c3-3 8-3 11 0" fill="none" stroke="#263b39" strokeWidth="2.2" strokeLinecap="round" />
               <path d="M66 52c3-3 8-3 11 0" fill="none" stroke="#263b39" strokeWidth="2.2" strokeLinecap="round" />
-              <ellipse className="heni-eye heni-eye-left" cx="50" cy="56" rx="2.5" ry="3.1" fill="#10233f" />
-              <ellipse className="heni-eye heni-eye-right" cx="72" cy="56" rx="2.5" ry="3.1" fill="#10233f" />
+              <ellipse className="heni-eye heni-eye-left" cx="50" cy="56" rx="2.5" ry="3.1" fill="#17312d" />
+              <ellipse className="heni-eye heni-eye-right" cx="72" cy="56" rx="2.5" ry="3.1" fill="#17312d" />
             </g>
 
             <path d="M59 57c-1 5-2 9-1 12 2 1 4 1 6 0" fill="none" stroke="#a76047" strokeWidth="1.5" strokeLinecap="round" />
@@ -75,7 +75,7 @@ export function HeniAvatar({
 
         <g opacity=".95">
           <circle cx="91" cy="91" r="14" fill="#fff" />
-          <path d="M84 91h14M91 84v14" stroke="#0849b4" strokeWidth="3" strokeLinecap="round" />
+          <path d="M84 91h14M91 84v14" stroke="#0f766e" strokeWidth="3" strokeLinecap="round" />
         </g>
       </svg>
       <span className="heni-status-dot" />

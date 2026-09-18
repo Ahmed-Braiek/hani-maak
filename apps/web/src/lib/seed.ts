@@ -64,7 +64,7 @@ const content: ContentTemplate[] = [
 export function createSeedDb(): DemoDb {
   const seededAt = new Date().toISOString();
   return {
-    tenant:{id:TENANT_ID,slug:"charles-nicolle-demo",displayName:"Hani Maak — Charles Nicolle Demo",timezone:"Africa/Tunis",defaultLocale:"fr",supportedLocales:["fr","ar","en"],address:"Boulevard 9 Avril 1938, Tunis 1006",phone:"Demo",demoMode:true,brand:{primary:"#0849b4",accent:"#189bed",logoText:"Heni Maak"}},
+    tenant:{id:TENANT_ID,slug:"charles-nicolle-demo",displayName:"Hani Maak — Charles Nicolle Demo",timezone:"Africa/Tunis",defaultLocale:"fr",supportedLocales:["fr","ar","en"],address:"Boulevard 9 Avril 1938, Tunis 1006",phone:"Demo",demoMode:true,brand:{primary:"#0f766e",accent:"#ef6c4d",logoText:"HM"}},
     patients:[
       {id:"patient-amal",tenantId:TENANT_ID,firstName:"Amel",lastName:"Ben Salah",age:61,phone:"+216 20 000 101",email:"amel.demo@example.com",preferredLocale:"fr",preferredChannel:"app",consentStatus:"demo",dataProvenance:"demo_seeded"},
       {id:"patient-hedi",tenantId:TENANT_ID,firstName:"Hédi",lastName:"Trabelsi",age:68,phone:"+216 20 000 102",preferredLocale:"ar",preferredChannel:"phone",consentStatus:"demo",dataProvenance:"demo_seeded"},

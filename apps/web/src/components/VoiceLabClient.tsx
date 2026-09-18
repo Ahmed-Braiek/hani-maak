@@ -2,7 +2,6 @@
 
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {HeniAvatar} from "./HeniAvatar";
-import {Logo} from "./Logo";
 import {usePersistentLocale} from "@/lib/locale-client";
 
 type Mode="call"|"chat";
@@ -442,10 +441,7 @@ export function VoiceLabClient(){
     {mode==="call"?<div className="live-call-shell">
       <section className="live-call-stage">
         <div className="live-call-statusbar">
-          <div className="live-call-brand">
-            <span className="live-call-brand-logo"><Logo compact/></span>
-            <div className="live-call-brand-copy"><div className="eyebrow">{c.callMode}</div><strong>{stateLabel}</strong></div>
-          </div>
+          <div><div className="eyebrow">{c.callMode}</div><strong>{stateLabel}</strong></div>
           <div className={`live-call-pill ${state==="live"?"online":state==="connecting"?"connecting":""}`}><span/>{state==="live"?c.live:state==="connecting"?c.connecting:state==="ended"?c.ended:c.ready}</div>
         </div>
 

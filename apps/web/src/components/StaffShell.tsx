@@ -101,13 +101,10 @@ export function StaffShell({children,role}:{children:React.ReactNode;role?:Staff
     <main className="main staff-main">
       <div className="staff-mobile-head">
         <Link className="staff-mobile-home" href="/" aria-label={t(locale,"nav.home")}>⌂</Link>
-        <Link className="staff-mobile-brand" href="/staff" aria-label={t(locale,"staff.title")}>
-          <Logo compact/>
-          <span className="staff-mobile-context">
-            <small>{workspaceLabel}</small>
-            <strong>{currentRole?t(locale,`roles.${currentRole}`):t(locale,"staff.title")}</strong>
-          </span>
-        </Link>
+        <div className="staff-mobile-title">
+          <small>{workspaceLabel}</small>
+          <strong>{currentRole?t(locale,`roles.${currentRole}`):t(locale,"staff.title")}</strong>
+        </div>
         <div className="staff-mobile-head-actions">
           <LocaleSwitcher/>
           <details className="staff-mobile-menu">

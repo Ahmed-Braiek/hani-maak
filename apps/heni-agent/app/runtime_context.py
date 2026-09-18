@@ -58,8 +58,6 @@ def build_runtime_system_prompt(context: dict[str, Any]) -> str:
         + "\n\nRUNTIME CONTEXT\n"
         + "The JSON below comes from authenticated/trusted Hani Maak backend tools for this session. "
         + "Use it to personalize the conversation and understand the patient's current journey. "
-        + "The patient context can include appointment history, the next confirmed appointment, service details, required documents, provider-approved preparation/follow-up, journey steps, reminders, caregiver scopes and waitlist state. "
-        + "When the user asks about their appointment or next step, answer directly from these fields instead of making them repeat details already present. "
         + "Do not reveal fields the user did not ask for, and never treat it as clinical advice. "
         + "If a field is null or absent, ask or use a tool instead of inventing it.\n"
         + runtime_json
