@@ -136,8 +136,23 @@ Open `http://localhost:3000`.
 - `/patient/map` - hospital map, localization and AR entry point
 - `/patient/map/ar?demo=nuclear-medicine` - recorded nuclear-medicine walkthrough
 - `/voice-lab` - browser Heni voice fallback
-- `/staff` - role-oriented staff console
+- `/staff` - authenticated role-oriented staff console (redirects to `/staff-login` when signed out)
+- `/staff-login` - role-aware staff sign-in with public competition demo accounts
+- `/staff-signup` - staff access request flow; requests remain pending until approval
 - `/present` - competition presentation mode
+
+
+### Competition staff accounts
+
+The public competition build includes three intentionally public demo accounts so reviewers can verify authentication and role separation end to end. These credentials are **not production secrets** and must never be reused for a hospital deployment.
+
+| Role | Username | Password |
+| --- | --- | --- |
+| Doctor | `doctor.demo` | `HaniDoctor2026!` |
+| Administration | `admin.demo` | `HaniAdmin2026!` |
+| Super Admin | `super.demo` | `HaniSuper2026!` |
+
+Open `/staff` while signed out to be redirected to the sign-in screen. Role changes inside the authenticated console remain available only in competition demo mode. Account requests created from `/staff-signup` stay pending and do not receive permissions automatically.
 
 ## Environment configuration
 
@@ -179,6 +194,9 @@ Security is part of the product architecture because Hani Maak may eventually pr
 
 Current principles include:
 
+- signed HttpOnly staff sessions in front of the staff console;
+- demo sign-in credentials that are intentionally public for competition review, never treated as production secrets;
+- self-signup requests that never grant a privileged role automatically;
 - least-privilege role/permission design;
 - separate administrative and clinical access;
 - server-side secret handling;
