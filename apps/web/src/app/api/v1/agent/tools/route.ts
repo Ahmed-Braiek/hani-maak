@@ -4,6 +4,7 @@ import {mutateDb,readDb} from "@/lib/db";
 import {cancelAppointment,createAppointment,patientSnapshot,rescheduleAppointment,routeTo} from "@/lib/operations";
 import {getAvailableSlots,tunisDateString} from "@/lib/scheduling";
 import {TENANT_ID} from "@/lib/seed";
+import {publicHospitalKnowledge} from "@/lib/public-knowledge";
 import type {Locale} from "@/lib/types";
 
 export const dynamic="force-dynamic";
@@ -46,8 +47,27 @@ export async function POST(req:Request){
 
     if(tool==="get_patient_context"){
       const snapshot=await patientSnapshot(patientId);
-      const service=snapshot.activeAppointment?db.services.find(item=>item.id===snapshot.activeAppointment?.serviceId):undefined;
-      return NextResponse.json({success:true,patient:{id:snapshot.patient.id,firstName:snapshot.patient.firstName,preferredLocale:snapshot.patient.preferredLocale},activeAppointment:snapshot.activeAppointment?{id:snapshot.activeAppointment.id,state:snapshot.activeAppointment.state,startAt:snapshot.activeAppointment.startAt,serviceId:snapshot.activeAppointment.serviceId,serviceName:service?localized(service.name,locale):undefined}:null,journey:snapshot.journey?{id:snapshot.journey.id,state:snapshot.journey.state,steps:snapshot.journey.steps.map(step=>({type:step.type,state:step.state,title:localized(step.title,locale),body:step.body?localized(step.body,locale):undefined}))}:null});
+      const ownAppointments=snapshot.appointments.map(appointment=>{
+        const service=db.services.find(item=>item.id===appointment.serviceId);
+        return {id:appointment.id,state:appointment.state,startAt:appointment.startAt,endAt:appointment.endAt,serviceId:appointment.serviceId,serviceName:service?localized(service.name,locale):undefined,channel:appointment.channel};
+      });
+      const active=snapshot.activeAppointment;
+      const activeService=active?db.services.find(item=>item.id===active.serviceId):undefined;
+      const nextStep=snapshot.journey?.steps.find(step=>step.state==="active")??snapshot.journey?.steps.find(step=>step.state==="upcoming");
+      return NextResponse.json({success:true,patient:{id:snapshot.patient.id,firstName:snapshot.patient.firstName,lastName:snapshot.patient.lastName,displayName:`${snapshot.patient.firstName} ${snapshot.patient.lastName}`,preferredLocale:snapshot.patient.preferredLocale,preferredChannel:snapshot.patient.preferredChannel},appointments:ownAppointments,activeAppointment:active?{id:active.id,state:active.state,startAt:active.startAt,endAt:active.endAt,serviceId:active.serviceId,serviceName:activeService?localized(activeService.name,locale):undefined}:null,nextStep:nextStep?{type:nextStep.type,state:nextStep.state,title:localized(nextStep.title,locale),body:nextStep.body?localized(nextStep.body,locale):undefined,dueAt:nextStep.dueAt??null}:null,journey:snapshot.journey?{id:snapshot.journey.id,state:snapshot.journey.state,steps:snapshot.journey.steps.map(step=>({id:step.id,type:step.type,state:step.state,title:localized(step.title,locale),body:step.body?localized(step.body,locale):undefined,dueAt:step.dueAt??null}))}:null});
+    }
+
+    if(tool==="get_public_hospital_info"){
+      return NextResponse.json({success:true,...publicHospitalKnowledge(locale)});
+    }
+
+    if(tool==="list_my_appointments"){
+      const includePast=args.includePast===true;
+      const appointments=db.appointments.filter(item=>item.patientId===patientId).filter(item=>includePast||!["cancelled","completed"].includes(item.state)).sort((a,b)=>a.startAt.localeCompare(b.startAt)).map(appointment=>{
+        const service=db.services.find(item=>item.id===appointment.serviceId);
+        return {id:appointment.id,state:appointment.state,startAt:appointment.startAt,endAt:appointment.endAt,serviceId:appointment.serviceId,serviceName:service?localized(service.name,locale):undefined,channel:appointment.channel};
+      });
+      return NextResponse.json({success:true,appointments,timezone:"Africa/Tunis"});
     }
 
     if(tool==="find_services"){
