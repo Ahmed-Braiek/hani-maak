@@ -32,6 +32,7 @@ export type HeniModelReply = {
 export type HeniChatResponse = {
   message: string;
   sessionId: string;
+  locale?: HeniLocale;
   provider: HeniProviderName | "deterministic";
   model?: string;
   tool?: string;

@@ -2,7 +2,7 @@ import { mutateDb, readDb } from "./db";
 import { DEMO_PATIENT_ID, TENANT_ID } from "./seed";
 import { appointmentEnd, assertSlotAvailable, getAvailableSlots, tunisDateString } from "./scheduling";
 import { shortestRoute } from "./routing";
-import { choiceIndex, detectClinicalBoundary, detectIntent, detectPeriod, isAffirmative, type VoiceIntent } from "./voice";
+import { choiceIndex, detectClinicalBoundary, detectIntent, detectLikelyLocale, detectPeriod, detectRequestedLocale, isAffirmative, isDoctorNameQuestion, isLanguageSwitchOnly, type VoiceIntent } from "./voice";
 import type { Appointment, AuditEvent, CallSession, DemoDb, Journey, Locale, ProductEvent, Service } from "./types";
 
 const id=(p:string)=>`${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
@@ -56,6 +56,7 @@ export async function routeTo(serviceId:string,from="node-main-gate",accessible=
 
 function tool(db:DemoDb,callId:string,name:string,args:Record<string,unknown>,result:Record<string,unknown>,status:"success"|"error"|"rejected"="success",latencyMs=90){db.toolEvents.unshift({id:id("tool"),tenantId:TENANT_ID,callSessionId:callId,toolName:name,arguments:args,result,status,latencyMs,createdAt:now()});audit(db,`ai.tool.${name}`,"call_session",callId,"ai",callId,{status});}
 function replyAr(fr:string, ar:string, locale:Locale){return locale==="ar"?ar:fr;}
+function reply3(fr:string,ar:string,en:string,locale:Locale){return locale==="ar"?ar:locale==="en"?en:fr;}
 export async function newVoiceSession(locale:Locale="ar",patientId="patient-hedi",source="voice_lab"){return mutateDb(db=>{const p=db.patients.find(x=>x.id===patientId);const greeting=replyAr("Bonjour, je suis Hani Maak, l'assistant automatisé. Comment puis-je vous aider ?","عسلامة، أنا هاني معاك، مساعد آلي للإدارة. شنوة نجم نعاونك؟",locale);const c:CallSession={id:id("call"),tenantId:TENANT_ID,patientId,caller:p?.phone??"demo-browser",locale,startedAt:now(),outcome:"active",state:"INTENT_CAPTURE",context:{source,transcript:[{role:"assistant",text:greeting,at:now()}]},transcriptConsent:false};db.callSessions.unshift(c);event(db,"voice_call_started",{channel:source});return{session:c,message:greeting};});}
 
 export async function recordCallExchange(callSessionId:string,userText:string,assistantText:string){return mutateDb(db=>{const c=db.callSessions.find(x=>x.id===callSessionId);if(!c)throw new Error("Call session not found");const current=Array.isArray((c.context as any).transcript)?(c.context as any).transcript:[];const transcript=[...current,{role:"user",text:userText.slice(0,500),at:now()},{role:"assistant",text:assistantText.slice(0,800),at:now()}].slice(-40);c.context={...c.context,transcript};return transcript;});}
@@ -63,7 +64,11 @@ export async function recordCallExchange(callSessionId:string,userText:string,as
 export async function voiceTurn(callSessionId:string,userText:string){
   if(!userText.trim())throw new Error("Empty message");
   return mutateDb(db=>{
-    const c=db.callSessions.find(x=>x.id===callSessionId);if(!c)throw new Error("Call session not found");const locale=c.locale; const ctx=c.context as Record<string,any>;
+    const c=db.callSessions.find(x=>x.id===callSessionId);if(!c)throw new Error("Call session not found");let locale=c.locale; const ctx=c.context as Record<string,any>;
+    const requestedLocale=detectRequestedLocale(userText);const likelyLocale=detectLikelyLocale(userText);
+    if(requestedLocale){c.locale=requestedLocale;locale=requestedLocale;}else if(c.state==="INTENT_CAPTURE"&&likelyLocale&&likelyLocale!==c.locale){c.locale=likelyLocale;locale=likelyLocale;}
+    if(requestedLocale&&isLanguageSwitchOnly(userText)){return{session:c,message:reply3("Bien sûr. Je continue dans la langue demandée.","أكيد. من توّا نحكي معاك بالتونسي.","Of course. I will continue in English.",locale),locale};}
+    if(isDoctorNameQuestion(userText)){return{session:c,message:reply3("Je n’ai pas de nom de médecin vérifié pour ce service dans les données disponibles. Je peux demander à un membre de l’équipe de vous aider.","ما عنديش اسم طبيب مؤكّد للمصلحة هاذي في المعطيات المتوفرة. نجم نطلبلك موظف يعاونك.","I do not have a verified doctor name for this service in the available data. I can ask a staff member to help you.",locale),locale};}
     if(detectClinicalBoundary(userText)){const esc={id:id("esc"),tenantId:TENANT_ID,patientId:c.patientId,source:"voice" as const,category:"clinical_boundary" as const,summary:`Clinical-boundary request: ${userText.slice(0,120)}`,priority:"high" as const,state:"open" as const,createdAt:now()};db.escalations.unshift(esc);tool(db,c.id,"create_staff_escalation",{category:"clinical_boundary"},{escalationId:esc.id});c.state="HUMAN_HELP";c.outcome="escalated";return{session:c,message:replyAr("Je ne peux pas modifier un traitement ou une dose. Je peux transmettre votre demande à un professionnel de santé.","ما نجمش نبدّل العلاج ولا الجرعة. نجم نبعث طلبك لمهني صحي باش يعاونك.",locale),tool:"create_staff_escalation"};}
     const intent=detectIntent(userText);
     if(intent==="human_help"){const esc={id:id("esc"),tenantId:TENANT_ID,patientId:c.patientId,source:"voice" as const,category:"human_requested" as const,summary:"Caller requested a human.",priority:"normal" as const,state:"open" as const,createdAt:now()};db.escalations.unshift(esc);tool(db,c.id,"create_staff_escalation",{category:"human_requested"},{escalationId:esc.id});c.state="HUMAN_HELP";c.outcome="escalated";return{session:c,message:replyAr("D'accord. J'ai créé une demande pour qu'un membre de l'équipe vous aide.","حاضر. عملت طلب باش موظف يعاونك.",locale),tool:"create_staff_escalation"};}

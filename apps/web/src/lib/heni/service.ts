@@ -37,13 +37,14 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
   const patientId = input.patientId || fallbackPatient;
   const source = input.source || "heni_chat";
   const message = String(input.message || "").trim();
+  const persistTranscript = source !== "floating_heni";
   const safety = evaluateHeniSafety(message);
   let sessionId = input.sessionId || await createSession(locale, patientId, source);
 
   if (safety.category === "privacy") {
     const reply = privacyReply(locale);
-    await recordCallExchange(sessionId, message, reply);
-    return { message: reply, sessionId, provider: "deterministic", safety };
+    if (persistTranscript) await recordCallExchange(sessionId, message, reply);
+    return { message: reply, sessionId, locale, provider: "deterministic", safety };
   }
 
   const intent = detectIntent(message);
@@ -60,8 +61,8 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
         history: Array.isArray(input.history) ? input.history.slice(-10) : [],
         systemPrompt: buildHeniSystemPrompt({ locale, role })
       });
-      await recordCallExchange(sessionId, message, result.text);
-      return { message: result.text, sessionId, provider: result.provider, model: result.model, safety };
+      if (persistTranscript) await recordCallExchange(sessionId, message, result.text);
+      return { message: result.text, sessionId, locale, provider: result.provider, model: result.model, safety };
     } catch {
       // Provider failure must not take down the patient journey. Fall back to the tested deterministic path.
     }
@@ -69,10 +70,11 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
 
   try {
     const result = await runDeterministic(sessionId, message);
-    await recordCallExchange(sessionId, message, String(result.message || ""));
+    if (persistTranscript) await recordCallExchange(sessionId, message, String(result.message || ""));
     return {
       message: String(result.message || ""),
       sessionId,
+      locale: result.session?.locale ?? locale,
       provider: "deterministic",
       tool: result.tool,
       escalated: result.session?.outcome === "escalated",
@@ -83,10 +85,11 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
     if (!text.toLowerCase().includes("not found")) throw error;
     sessionId = await createSession(locale, patientId, source);
     const result = await runDeterministic(sessionId, message);
-    await recordCallExchange(sessionId, message, String(result.message || ""));
+    if (persistTranscript) await recordCallExchange(sessionId, message, String(result.message || ""));
     return {
       message: String(result.message || ""),
       sessionId,
+      locale: result.session?.locale ?? locale,
       provider: "deterministic",
       tool: result.tool,
       escalated: result.session?.outcome === "escalated",

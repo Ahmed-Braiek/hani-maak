@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -19,19 +20,21 @@ async def fetch_runtime_context(session) -> dict[str, Any]:
     This data is refreshed on every turn/session. It is deliberately not learned
     by the model and is never accepted from browser-provided patient fields.
     """
-    patient = await call_hani_tool(
-        "get_patient_context",
-        {},
-        patient_id=session.patient_id,
-        locale=session.locale,
-        source=session.source,
-    )
-    hospital = await call_hani_tool(
-        "get_public_hospital_info",
-        {},
-        patient_id=session.patient_id,
-        locale=session.locale,
-        source=session.source,
+    patient, hospital = await asyncio.gather(
+        call_hani_tool(
+            "get_patient_context",
+            {},
+            patient_id=session.patient_id,
+            locale=session.locale,
+            source=session.source,
+        ),
+        call_hani_tool(
+            "get_public_hospital_info",
+            {},
+            patient_id=session.patient_id,
+            locale=session.locale,
+            source=session.source,
+        ),
     )
     return {
         "patient": _usable(patient),

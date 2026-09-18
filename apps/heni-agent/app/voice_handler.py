@@ -156,6 +156,10 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     text = content.input_transcription.text.strip()
                     if text:
                         session.last_user_text = text
+                        detected_locale = detect_requested_locale(text) or detect_likely_locale(text)
+                        if detected_locale and detected_locale != session.locale:
+                            session.locale = detected_locale
+                            await ws.send_json({"type": "locale", "locale": detected_locale})
                         await ws.send_json({"type": "transcript", "role": "user", "text": text})
                 if content.output_transcription and content.output_transcription.text:
                     await ws.send_json({
