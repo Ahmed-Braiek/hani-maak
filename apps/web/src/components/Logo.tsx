@@ -1,1 +1,11 @@
-export function Logo({compact=false}:{compact?:boolean}){return <div className="brand"><span className="brandmark" aria-hidden>هـ</span>{!compact&&<span>Hani Maak <span style={{fontWeight:600,opacity:.7}}>هاني معاك</span></span>}</div>}
+export function Logo({compact=false}:{compact?:boolean}){
+  return <span className={`brand-logo ${compact?"compact":""}`}>
+    <img
+      src="/brand/heni-logo-blue.webp"
+      alt="Heni Maak — هاني معاك"
+      width={520}
+      height={139}
+      draggable={false}
+    />
+  </span>;
+}
