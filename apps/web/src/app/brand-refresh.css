@@ -7,6 +7,7 @@
   --brand:#0849b4;
   --brand-2:#063b91;
   --brand-bright:#189bed;
+  --brand-gray:#919192;
   --brand-rgb:8,73,180;
   --accent:#189bed;
   --ink:#10233f;
@@ -306,3 +307,24 @@ body{
   box-shadow:0 0 0 5px rgba(8,73,180,.16),0 0 18px rgba(24,155,237,.30)!important;
 }
 .heni-avatar.is-speaking .heni-pulse,.heni-avatar.is-listening .heni-pulse{stroke:#189bed!important}
+
+
+/* Staff authentication */
+.staff-access-page{
+  background:
+    radial-gradient(circle at 12% 0,rgba(24,155,237,.16),transparent 34%),
+    radial-gradient(circle at 96% 90%,rgba(8,73,180,.08),transparent 28%),
+    #f5f9ff!important;
+}
+.staff-access-story h1{color:#0c2f68}
+.staff-auth-proof{border-color:#cddff1;background:rgba(255,255,255,.84);color:#31547c}
+.staff-auth-proof>span{background:#e5f3ff;color:#0849b4}
+.staff-demo-grid>button{border-color:#d7e4f2;background:rgba(255,255,255,.90)}
+.staff-demo-grid>button:hover,.staff-demo-grid>button.active{border-color:#9bc7ed;box-shadow:0 10px 28px rgba(8,73,180,.10)}
+.staff-demo-icon{background:#e8f4ff;color:#0849b4}
+.staff-access-card{border-color:#d6e3f2;box-shadow:0 28px 75px rgba(8,73,180,.13)}
+.staff-access-tabs{background:#edf4fc}.staff-access-tabs button{color:#64758b}
+.staff-access-security{background:#f6f9fd}.staff-access-security p{color:#60758c}.staff-access-security>span{background:#e7f3ff}
+
+/* Use the supplied gray as a neutral brand token without reducing body-text contrast. */
+.brand-neutral,.brand-meta{color:#919192}
