@@ -32,6 +32,7 @@ class Settings:
     debug_enabled: bool = _bool("HENI_DEBUG", False)
     session_ttl_seconds: int = int(os.getenv("HENI_SESSION_TTL_SECONDS", "1800"))
     backend_timeout_seconds: float = float(os.getenv("HENI_BACKEND_TIMEOUT_SECONDS", "12"))
+    model_timeout_seconds: float = float(os.getenv("HENI_MODEL_TIMEOUT_SECONDS", "8"))
 
     @property
     def is_production(self) -> bool:
