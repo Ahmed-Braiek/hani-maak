@@ -9,7 +9,7 @@ from starlette.websockets import WebSocketState
 
 from .config import settings
 from .google_client import create_google_client
-from .heni_prompt import HENI_SYSTEM_PROMPT
+from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
 from .security import origin_allowed, verify_voice_token
 from .session_store import get_or_create_session, touch_session
 from .tools.declarations import TOOL_DECLARATIONS
@@ -18,11 +18,11 @@ from .tools.execute import execute_tool
 _client = create_google_client()
 
 
-def _live_config() -> dict:
+def _live_config(system_prompt: str) -> dict:
     blocking_tools = [{**tool, "behavior": "BLOCKING"} for tool in TOOL_DECLARATIONS]
     return {
         "response_modalities": ["AUDIO"],
-        "system_instruction": HENI_SYSTEM_PROMPT,
+        "system_instruction": system_prompt,
         "tools": [{"function_declarations": blocking_tools}],
         "input_audio_transcription": {},
         "output_audio_transcription": {},
@@ -84,7 +84,9 @@ async def handle_voice_connection(ws: WebSocket) -> None:
     await ws.send_json({"type": "session", "sessionId": session.id})
 
     try:
-        async with _client.aio.live.connect(model=settings.live_model, config=_live_config()) as live:
+        runtime_context = await fetch_runtime_context(session)
+        system_prompt = build_runtime_system_prompt(runtime_context)
+        async with _client.aio.live.connect(model=settings.live_model, config=_live_config(system_prompt)) as live:
             sender = asyncio.create_task(_pump_client_to_live(ws, live, session))
             receiver = asyncio.create_task(_pump_live_to_client(ws, live, session))
 
