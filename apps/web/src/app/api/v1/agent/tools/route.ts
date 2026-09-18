@@ -47,14 +47,90 @@ export async function POST(req:Request){
 
     if(tool==="get_patient_context"){
       const snapshot=await patientSnapshot(patientId);
-      const ownAppointments=snapshot.appointments.map(appointment=>{
-        const service=db.services.find(item=>item.id===appointment.serviceId);
-        return {id:appointment.id,state:appointment.state,startAt:appointment.startAt,endAt:appointment.endAt,serviceId:appointment.serviceId,serviceName:service?localized(service.name,locale):undefined,channel:appointment.channel};
-      });
+      const serviceContext=(serviceId:string)=>{
+        const service=db.services.find(item=>item.id===serviceId);
+        if(!service)return null;
+        const prep=service.preparationTemplateId?db.contentTemplates.find(item=>item.id===service.preparationTemplateId&&item.published):undefined;
+        const follow=service.followupTemplateId?db.contentTemplates.find(item=>item.id===service.followupTemplateId&&item.published):undefined;
+        return {
+          id:service.id,
+          name:localized(service.name,locale),
+          description:localized(service.description,locale),
+          department:service.department,
+          bookingMode:service.bookingMode,
+          slotDurationMin:service.slotDurationMin,
+          documents:service.documents,
+          preparation:prep?{title:localized(prep.title,locale),body:localized(prep.body,locale)}:null,
+          followUp:follow?{title:localized(follow.title,locale),body:localized(follow.body,locale)}:null
+        };
+      };
+      const ownAppointments=snapshot.appointments.map(appointment=>({
+        id:appointment.id,
+        state:appointment.state,
+        startAt:appointment.startAt,
+        endAt:appointment.endAt,
+        serviceId:appointment.serviceId,
+        service:serviceContext(appointment.serviceId),
+        channel:appointment.channel,
+        cancellationReason:appointment.cancellationReason??null
+      }));
+      const ownJourneys=db.journeys
+        .filter(item=>item.patientId===patientId)
+        .map(journey=>({
+          id:journey.id,
+          appointmentId:journey.appointmentId,
+          serviceId:journey.serviceId,
+          state:journey.state,
+          steps:journey.steps.map(step=>({
+            id:step.id,
+            type:step.type,
+            sequence:step.sequence,
+            state:step.state,
+            title:localized(step.title,locale),
+            body:step.body?localized(step.body,locale):undefined,
+            dueAt:step.dueAt??null,
+            completedAt:step.completedAt??null
+          }))
+        }));
       const active=snapshot.activeAppointment;
-      const activeService=active?db.services.find(item=>item.id===active.serviceId):undefined;
-      const nextStep=snapshot.journey?.steps.find(step=>step.state==="active")??snapshot.journey?.steps.find(step=>step.state==="upcoming");
-      return NextResponse.json({success:true,patient:{id:snapshot.patient.id,firstName:snapshot.patient.firstName,lastName:snapshot.patient.lastName,displayName:`${snapshot.patient.firstName} ${snapshot.patient.lastName}`,preferredLocale:snapshot.patient.preferredLocale,preferredChannel:snapshot.patient.preferredChannel},appointments:ownAppointments,activeAppointment:active?{id:active.id,state:active.state,startAt:active.startAt,endAt:active.endAt,serviceId:active.serviceId,serviceName:activeService?localized(activeService.name,locale):undefined}:null,nextStep:nextStep?{type:nextStep.type,state:nextStep.state,title:localized(nextStep.title,locale),body:nextStep.body?localized(nextStep.body,locale):undefined,dueAt:nextStep.dueAt??null}:null,journey:snapshot.journey?{id:snapshot.journey.id,state:snapshot.journey.state,steps:snapshot.journey.steps.map(step=>({id:step.id,type:step.type,state:step.state,title:localized(step.title,locale),body:step.body?localized(step.body,locale):undefined,dueAt:step.dueAt??null}))}:null});
+      const activeJourney=active?ownJourneys.find(item=>item.appointmentId===active.id)??null:null;
+      const nextStep=activeJourney?.steps.find(step=>step.state==="active")??activeJourney?.steps.find(step=>step.state==="upcoming")??null;
+      const now=new Date();
+      const upcomingAppointments=ownAppointments.filter(item=>item.state==="confirmed"&&new Date(item.startAt).getTime()>=now.getTime()).sort((a,b)=>a.startAt.localeCompare(b.startAt));
+      const recentAppointments=[...ownAppointments].sort((a,b)=>b.startAt.localeCompare(a.startAt)).slice(0,8);
+      const notifications=snapshot.notifications.slice().sort((a,b)=>a.scheduledAt.localeCompare(b.scheduledAt)).slice(0,8).map(item=>({id:item.id,channel:item.channel,message:item.message,state:item.state,scheduledAt:item.scheduledAt}));
+      return NextResponse.json({
+        success:true,
+        timezone:"Africa/Tunis",
+        currentTime:new Date().toISOString(),
+        patient:{
+          id:snapshot.patient.id,
+          firstName:snapshot.patient.firstName,
+          lastName:snapshot.patient.lastName,
+          displayName:`${snapshot.patient.firstName} ${snapshot.patient.lastName}`,
+          age:snapshot.patient.age??null,
+          preferredLocale:snapshot.patient.preferredLocale,
+          preferredChannel:snapshot.patient.preferredChannel,
+          consentStatus:snapshot.patient.consentStatus
+        },
+        appointmentSummary:{
+          total:ownAppointments.length,
+          confirmed:ownAppointments.filter(item=>item.state==="confirmed").length,
+          completed:ownAppointments.filter(item=>item.state==="completed").length,
+          cancelled:ownAppointments.filter(item=>item.state==="cancelled").length,
+          next:upcomingAppointments[0]??null
+        },
+        appointments:ownAppointments,
+        upcomingAppointments,
+        recentAppointments,
+        activeAppointment:active?{id:active.id,state:active.state,startAt:active.startAt,endAt:active.endAt,serviceId:active.serviceId,service:serviceContext(active.serviceId),channel:active.channel}:null,
+        nextStep,
+        activeJourney,
+        journeys:ownJourneys,
+        notifications,
+        caregiverDelegations:snapshot.caregiverDelegations.map(item=>({id:item.id,caregiverName:item.caregiverName,scopes:item.scopes,expiresAt:item.expiresAt??null,revokedAt:item.revokedAt??null})),
+        waitlistEntries:snapshot.waitlistEntries.map(item=>({id:item.id,serviceId:item.serviceId,service:serviceContext(item.serviceId),preferredPeriod:item.preferredPeriod??null,fromDate:item.fromDate,toDate:item.toDate,state:item.state,currentAppointmentId:item.currentAppointmentId??null}))
+      });
     }
 
     if(tool==="get_public_hospital_info"){
