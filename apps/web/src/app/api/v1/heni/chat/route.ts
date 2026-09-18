@@ -32,7 +32,7 @@ export async function POST(req:Request){
     if(!message)return NextResponse.json({error:"message_required"},{status:400});
     if(message.length>2000)return NextResponse.json({error:"message_too_long"},{status:413});
     const role=await resolveRole(body?.role);
-    if(role==="patient"&&process.env.HENI_AGENT_BASE_URL&&process.env.HENI_AGENT_SHARED_SECRET){const result=await externalPatientTurn({...body,message});if(result)return NextResponse.json(result)}
+    if(role==="patient"&&process.env.HENI_AGENT_BASE_URL&&process.env.HENI_AGENT_SHARED_SECRET){try{const result=await externalPatientTurn({...body,message});if(result)return NextResponse.json(result)}catch(error){console.error("External Heni agent unavailable; using deterministic fallback",error instanceof Error?error.message:"unknown")}}
     const result=await chatWithHeni({message,locale:body?.locale,patientId:body?.patientId,role,source:body?.source,sessionId:body?.sessionId,history:Array.isArray(body?.history)?body.history:[]});return NextResponse.json(result);
   }catch(error){console.error("Heni chat failed",error instanceof Error?error.message:"unknown");return NextResponse.json({error:"heni_chat_unavailable"},{status:503})}
 }
