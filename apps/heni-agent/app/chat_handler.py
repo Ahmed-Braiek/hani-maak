@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -7,6 +8,14 @@ from google.genai import types
 
 from .config import settings
 from .google_client import create_google_client
+from .language import (
+    detect_likely_locale,
+    detect_requested_locale,
+    is_doctor_name_question,
+    is_human_help_request,
+    is_language_switch_only,
+    locale_message,
+)
 from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
 from .security import sign_confirmation_token, verify_confirmation_token
 from .session_store import get_or_create_session, touch_session
@@ -26,6 +35,29 @@ def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
     return contents
 
 
+async def _generate(*, contents: list[types.Content], config: types.GenerateContentConfig):
+    return await asyncio.wait_for(
+        _client.aio.models.generate_content(
+            model=settings.text_model,
+            contents=contents,
+            config=config,
+        ),
+        timeout=settings.model_timeout_seconds,
+    )
+
+
+def _base_result(message: str, session, *, tool: str | None = None, tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    return {
+        "message": message,
+        "sessionId": session.id,
+        "locale": session.locale,
+        "confirmationToken": None,
+        "tools": tools or [],
+        "tool": tool,
+        "model": settings.text_model,
+    }
+
+
 async def run_chat_turn(
     *,
     message: str,
@@ -43,29 +75,77 @@ async def run_chat_turn(
         source=source,
     )
     touch_session(session.id)
-    # HTTP requests can land on different Vercel instances. Restore pending write
-    # state only from a signed token rather than trusting process memory or the browser.
+
     session.pending_action = verify_confirmation_token(confirmation_token, patient_id)
     session.last_user_text = message
+
+    requested_locale = detect_requested_locale(message)
+    likely_locale = detect_likely_locale(message)
+    if requested_locale:
+        session.locale = requested_locale
+    elif not history and likely_locale:
+        session.locale = likely_locale
+
+    if requested_locale and is_language_switch_only(message):
+        return _base_result(
+            locale_message(
+                session.locale,
+                ar="أكيد. من توّا نحكي معاك بالتونسي، وتنجم تخلّط فرنسي عادي.",
+                fr="Bien sûr. Je continue en français.",
+                en="Of course. I will continue in English.",
+            ),
+            session,
+        )
+
+    if is_human_help_request(message):
+        result = await execute_tool(
+            "request_human_help",
+            {"reasonCategory": "human_requested", "summary": message[:220]},
+            session,
+        )
+        if result.get("success"):
+            answer = locale_message(
+                session.locale,
+                ar="حاضر. بعثت طلب للفريق باش موظف يعاونك. إذا تحب، قولي في كلمة شنية المساعدة اللي تحتاجها.",
+                fr="D’accord. J’ai envoyé une demande à l’équipe pour qu’un membre du personnel vous aide. Vous pouvez me dire en une phrase ce dont vous avez besoin.",
+                en="Done. I sent a request to the team for a staff member to help you. You can tell me in one sentence what you need.",
+            )
+        else:
+            answer = locale_message(
+                session.locale,
+                ar="ما نجّمتش نبعث الطلب توّا. جرّب مرّة أخرى، وإذا الأمر مستعجل اتصل مباشرة بالاستقبال أو بموظف في المكان.",
+                fr="Je n’ai pas pu envoyer la demande pour le moment. Réessayez, et si c’est urgent contactez directement l’accueil ou un membre du personnel sur place.",
+                en="I could not send the request right now. Please try again, and if it is urgent contact reception or on-site staff directly.",
+            )
+        return _base_result(answer, session, tool="request_human_help", tools=[{"name": "request_human_help", "args": {"reasonCategory": "human_requested"}, "result": result}])
+
+    if is_doctor_name_question(message):
+        return _base_result(
+            locale_message(
+                session.locale,
+                ar="ما عنديش اسم طبيب مؤكّد للمصلحة هاذي في المعطيات المتوفرة، وما نحبّش نعطيك اسم من غير تأكيد. نجم نبعثلك طلب لموظف باش يعطيك المعلومة الصحيحة.",
+                fr="Je n’ai pas de nom de médecin vérifié pour ce service dans les données disponibles, donc je préfère ne pas en inventer un. Je peux demander à un membre du personnel de vous donner l’information correcte.",
+                en="I do not have a verified doctor name for this service in the available data, so I will not invent one. I can ask a staff member to provide the correct information.",
+            ),
+            session,
+        )
 
     contents = _content_from_history(history)
     contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
 
     runtime_context = await fetch_runtime_context(session)
     config = types.GenerateContentConfig(
-        system_instruction=build_runtime_system_prompt(runtime_context),
+        system_instruction=build_runtime_system_prompt(runtime_context)
+        + f"\n\nCURRENT CONVERSATION LANGUAGE: {session.locale}. Reply in this language unless the user's current message clearly switches language.",
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
-        max_output_tokens=360,
+        max_output_tokens=240,
+        temperature=0.25,
     )
 
-    response = await _client.aio.models.generate_content(
-        model=settings.text_model,
-        contents=contents,
-        config=config,
-    )
+    response = await _generate(contents=contents, config=config)
 
     tool_events: list[dict[str, Any]] = []
-    for _ in range(6):
+    for _ in range(3):
         calls = response.function_calls or []
         if not calls:
             break
@@ -88,15 +168,16 @@ async def run_chat_turn(
                 )
             )
         contents.append(types.Content(role="user", parts=response_parts))
-        response = await _client.aio.models.generate_content(
-            model=settings.text_model,
-            contents=contents,
-            config=config,
-        )
+        response = await _generate(contents=contents, config=config)
 
     reply = (response.text or "").strip()
     if not reply:
-        reply = "سامحني، ما نجّمتش نكمّل الإجابة توّا. نجم نطلبلك مساعدة من الموظفين."
+        reply = locale_message(
+            session.locale,
+            ar="سامحني، ما نجّمتش نكمّل الإجابة توّا. تنجم تعاود السؤال أو نطلبلك مساعدة من موظف.",
+            fr="Désolé, je n’ai pas pu terminer la réponse. Vous pouvez reformuler ou me demander de contacter un membre du personnel.",
+            en="Sorry, I could not complete the answer. You can rephrase or ask me to contact a staff member.",
+        )
 
     pending_token = (
         sign_confirmation_token(session.pending_action, patient_id)
@@ -106,6 +187,7 @@ async def run_chat_turn(
     return {
         "message": reply,
         "sessionId": session.id,
+        "locale": session.locale,
         "confirmationToken": pending_token,
         "tools": tool_events,
         "tool": tool_events[-1]["name"] if tool_events else None,
