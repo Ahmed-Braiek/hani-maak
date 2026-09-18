@@ -1,5 +1,7 @@
-import {redirect} from "next/navigation";
+import {StaffAccessClient} from "@/components/StaffAccessClient";
+
+export const metadata={title:"Request staff access · Hani Maak"};
 
 export default function StaffSignupPage(){
-  redirect("/staff-login?mode=signup");
+  return <StaffAccessClient initialMode="signup"/>;
 }
