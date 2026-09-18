@@ -187,3 +187,35 @@
 .heni-chat-quick-list button{border-color:#dde8f4;background:#fbfdff;color:#29496e}.heni-chat-quick-list button:hover{border-color:#a7cbea;background:#f1f8ff}
 .heni-chat-privacy{background:#f6faff;border-color:#e0eaf5}.heni-chat-privacy p{color:#61778f}
 @media(max-width:620px){.voice-live-page{background:#f5f9ff}}
+
+
+/* Voice route layout repair — official Heni identity */
+.voice-live-page{width:min(1180px,calc(100% - 24px))!important;margin:0 auto!important;padding:12px 0 64px!important;background:transparent!important}
+.voice-live-topbar{min-height:68px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin:0 0 14px!important;padding:9px 12px!important;border:1px solid #d7e4f3!important;border-radius:20px!important;background:rgba(255,255,255,.98)!important;box-shadow:0 12px 34px rgba(8,73,180,.08)!important;backdrop-filter:blur(18px)!important}
+.voice-live-topbar .brand-logo{flex:0 0 auto!important}.voice-live-topbar .brand-logo img{display:block!important;width:172px!important;height:auto!important;opacity:1!important}
+.heni-hub{gap:14px!important}.heni-hub-intro{padding:18px 20px!important}
+.live-call-shell{grid-template-columns:minmax(0,1.5fr) minmax(300px,.7fr)!important;gap:14px!important}
+.live-call-stage{min-height:620px!important;padding:18px!important;border-radius:28px!important;overflow:hidden!important}
+.live-call-statusbar{position:relative!important;z-index:4!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#fff!important;box-shadow:none!important}
+.live-call-brand{display:flex;align-items:center;gap:11px;min-width:0}
+.live-call-brand-logo{flex:0 0 auto;display:flex;align-items:center;justify-content:center;min-width:122px;min-height:44px;padding:5px 8px;border:1px solid rgba(255,255,255,.24);border-radius:13px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.16)}
+.live-call-brand-logo .brand-logo.compact img{display:block!important;width:108px!important;height:auto!important;opacity:1!important}
+.live-call-brand-copy{display:grid;gap:2px;min-width:0}.live-call-statusbar .eyebrow{margin:0!important;color:#8fd2ff!important;font-size:.62rem!important;letter-spacing:.08em!important}.live-call-statusbar strong{color:#fff!important;font-size:.78rem!important}
+.live-call-pill{flex:0 0 auto!important;background:rgba(255,255,255,.10)!important;border:1px solid rgba(255,255,255,.18)!important;color:#e8f5ff!important;box-shadow:none!important}.live-call-pill.online{background:rgba(24,155,237,.17)!important;border-color:rgba(96,198,255,.35)!important}
+.live-call-center{min-height:430px!important;padding:12px 0 6px!important}.live-call-avatar-wrap{width:220px!important;height:220px!important}.live-call-avatar-wrap .heni-avatar{width:174px!important;height:174px!important}
+.live-call-identity h2{color:#fff!important}.live-call-identity p{color:#b7d7f4!important}
+.live-call-start{min-width:210px!important;min-height:56px!important;background:linear-gradient(135deg,#0849b4,#189bed)!important;color:#fff!important;border:1px solid rgba(255,255,255,.18)!important}
+.live-call-caption{margin-top:4px!important;border-color:rgba(255,255,255,.15)!important;background:rgba(2,27,66,.42)!important}.live-call-caption span{color:#83cfff!important}.live-call-caption strong{color:#fff!important}
+.live-call-side{gap:12px!important}.live-call-panel{border-color:#d8e5f4!important;border-radius:22px!important}.live-call-safety{border-color:#d8e5f4!important;background:#f7fbff!important;color:#526b89!important}
+@media(max-width:900px){.voice-live-page{width:min(100% - 18px,760px)!important}.live-call-shell{grid-template-columns:1fr!important}.live-call-stage{min-height:590px!important}.live-call-side{grid-template-columns:1fr 1fr!important}.live-call-panel:first-child{grid-column:1/-1!important}}
+@media(max-width:620px){
+  .voice-live-page{width:100%!important;padding:0 0 86px!important}.voice-live-topbar{position:sticky!important;top:0!important;z-index:80!important;min-height:62px!important;margin:0!important;padding:8px 10px!important;border-width:0 0 1px!important;border-radius:0!important}.voice-live-topbar .brand-logo img{width:128px!important}.voice-live-nav{gap:6px!important}.voice-live-nav .btn:first-child{display:none!important}.voice-live-nav .btn{min-height:38px!important;padding:7px 10px!important;font-size:.68rem!important}
+  .heni-hub{gap:10px!important}.heni-hub-intro{margin:10px 10px 0!important;padding:13px 14px!important;border-radius:18px!important}.heni-hub-intro h1{font-size:1.18rem!important}.heni-hub-intro p{font-size:.7rem!important;line-height:1.45!important}
+  .heni-mode-picker{grid-template-columns:1fr 1fr!important;padding:0 10px!important;gap:8px!important}.heni-mode-picker>button{min-height:72px!important;padding:9px!important;border-radius:17px!important}
+  .live-call-shell,.heni-chat-experience{padding:0 10px!important}.live-call-stage{min-height:545px!important;padding:12px!important;border-radius:22px!important}
+  .live-call-statusbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:center!important}.live-call-brand{gap:8px!important}.live-call-brand-logo{min-width:94px!important;min-height:38px!important;padding:4px 6px!important;border-radius:11px!important}.live-call-brand-logo .brand-logo.compact img{width:84px!important}.live-call-brand-copy .eyebrow{font-size:.54rem!important}.live-call-statusbar strong{font-size:.66rem!important}.live-call-pill{font-size:.54rem!important;padding:6px 8px!important}
+  .live-call-center{min-height:360px!important;padding:8px 0 2px!important}.live-call-avatar-wrap{width:178px!important;height:178px!important;margin-top:8px!important}.live-call-avatar-wrap .heni-avatar{width:144px!important;height:144px!important}.live-call-identity h2{font-size:1.2rem!important}.live-call-identity p{font-size:.68rem!important}
+  .live-call-start{min-width:184px!important;min-height:50px!important;margin-top:18px!important;border-radius:16px!important}.live-call-wave{height:30px!important;margin-top:16px!important}.live-call-caption{padding:10px 11px!important;border-radius:15px!important}.live-call-caption strong{font-size:.76rem!important}
+  .live-call-side{grid-template-columns:1fr!important;padding:0!important}.live-call-panel:first-child{grid-column:auto!important}.live-call-transcript{height:220px!important}.live-call-panel{border-radius:18px!important}
+}
+@media(max-width:390px){.voice-live-topbar .brand-logo img{width:116px!important}.live-call-brand-copy{display:none!important}.live-call-brand-logo{min-width:98px!important}.live-call-brand-logo .brand-logo.compact img{width:88px!important}.live-call-stage{min-height:520px!important}}

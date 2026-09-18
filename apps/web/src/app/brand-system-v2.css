@@ -361,3 +361,9 @@ h1,h2,h3,h4{color:var(--hm-ink)}
 .heni-status-dot{background:#189bed!important;border-color:#fff!important}
 .heni-avatar.is-listening .heni-status-dot{background:#0849b4!important}
 .heni-avatar.is-speaking .heni-status-dot{background:#189bed!important}
+
+
+/* Voice contrast guard: the call header stays on the dark stage. */
+.voice-live-page .live-call-statusbar{background:transparent!important;color:#fff!important;border:0!important;box-shadow:none!important}
+.voice-live-page .live-call-statusbar .eyebrow{color:#8fd2ff!important}.voice-live-page .live-call-statusbar strong{color:#fff!important}
+.voice-live-page .live-call-pill{background:rgba(255,255,255,.10)!important;color:#e8f5ff!important}
