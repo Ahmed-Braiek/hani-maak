@@ -8,7 +8,7 @@ import {tx} from "@/lib/i18n-namespaces";
 type Message={role:"heni"|"user";text:string;tool?:string};
 type VoiceState="idle"|"connecting"|"live";
 type ConversationLocale="ar"|"fr"|"en";
-type VoiceControl={type?:string;sessionId?:string;role?:"user"|"model";text?:string;name?:string;message?:string};
+type VoiceControl={type?:string;sessionId?:string;role?:"user"|"model";text?:string;name?:string;message?:string;locale?:ConversationLocale};
 
 async function safeJson(res:Response){const text=await res.text();if(!text)return{};try{return JSON.parse(text)}catch{throw new Error("invalid_json_response")}}
 
@@ -62,7 +62,7 @@ export function HeniCompanion(){
       if(wsRef.current!==ws)throw new Error("voice_cancelled");
       const source=context.createMediaStreamSource(stream);const processor=context.createScriptProcessor(4096,1,1);const gain=context.createGain();gain.gain.value=0;source.connect(processor);processor.connect(gain);gain.connect(context.destination);sourceNodeRef.current=source;processorRef.current=processor;silentGainRef.current=gain;
       processor.onaudioprocess=event=>{if(ws.readyState!==WebSocket.OPEN)return;const pcm=pcm16FromFloat(event.inputBuffer.getChannelData(0),context.sampleRate,16000);if(pcm.byteLength)ws.send(pcm.buffer)};
-      ws.onmessage=event=>{if(event.data instanceof ArrayBuffer){playPcm(event.data);return}if(typeof event.data!=="string")return;try{const message=JSON.parse(event.data) as VoiceControl;if(message.type==="session"&&message.sessionId)setSessionId(message.sessionId);else if(message.type==="transcript"&&message.text)appendTranscript(message.role==="user"?"user":"heni",message.text);else if(message.type==="tool_call"&&message.name)liveToolRef.current=message.name;else if(message.type==="turn_complete"){lastTranscriptRoleRef.current=null;liveToolRef.current=undefined}else if(message.type==="interrupted"){stopPlayback();lastTranscriptRoleRef.current=null}else if(message.type==="error")setMessages(current=>[...current,{role:"heni",text:liveError}])}catch{}};
+      ws.onmessage=event=>{if(event.data instanceof ArrayBuffer){playPcm(event.data);return}if(typeof event.data!=="string")return;try{const message=JSON.parse(event.data) as VoiceControl;if(message.type==="session"&&message.sessionId)setSessionId(message.sessionId);else if(message.type==="locale"&&message.locale)setConversationLocale(message.locale);else if(message.type==="transcript"&&message.text)appendTranscript(message.role==="user"?"user":"heni",message.text);else if(message.type==="tool_call"&&message.name)liveToolRef.current=message.name;else if(message.type==="turn_complete"){lastTranscriptRoleRef.current=null;liveToolRef.current=undefined}else if(message.type==="interrupted"){stopPlayback();lastTranscriptRoleRef.current=null}else if(message.type==="error")setMessages(current=>[...current,{role:"heni",text:liveError}])}catch{}};
       ws.onclose=()=>{if(wsRef.current===ws)cleanupVoice(false)};ws.onerror=()=>{if(wsRef.current===ws)setMessages(current=>[...current,{role:"heni",text:liveError}])};
       setVoiceState("live");
     }catch{cleanupVoice(true);if(mountedRef.current)setMessages(current=>[...current,{role:"heni",text:liveError}])}
