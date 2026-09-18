@@ -294,3 +294,15 @@ body{
   .patient-home-icon{width:37px;height:37px}
   .topbar>.brand-logo img{width:132px}
 }
+
+
+/* Heni states stay inside the official blue spectrum */
+.heni-avatar.is-speaking .heni-status-dot{
+  background:#189bed!important;
+  box-shadow:0 0 0 5px rgba(24,155,237,.18),0 0 18px rgba(24,155,237,.38)!important;
+}
+.heni-avatar.is-listening .heni-status-dot{
+  background:#0849b4!important;
+  box-shadow:0 0 0 5px rgba(8,73,180,.16),0 0 18px rgba(24,155,237,.30)!important;
+}
+.heni-avatar.is-speaking .heni-pulse,.heni-avatar.is-listening .heni-pulse{stroke:#189bed!important}
