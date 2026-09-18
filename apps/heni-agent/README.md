@@ -8,6 +8,15 @@
 - `WS /ws/voice?token=...` — real-time PCM16 speech-to-speech. The browser receives a short-lived signed token from the Hani Maak website; the Google key never reaches the browser.
 - `GET /health` — deployment health check.
 
+## Patient-aware grounding
+
+Before each text turn and live voice session, the agent asks the Hani Maak backend for:
+- the current authorized patient's non-clinical profile;
+- their own appointments and current journey/next step;
+- verified public Hôpital Charles Nicolle contact information.
+
+This context is refreshed rather than memorized. Browser-supplied patient IDs are not trusted by the Hani Maak proxy. Tool network failures are converted to structured results so a temporary backend problem does not crash the whole Heni turn.
+
 ## Safety architecture
 
 - Heni is administrative/navigation-only; no diagnosis, prescribing, dose changes or autonomous clinical triage.
