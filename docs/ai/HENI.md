@@ -57,6 +57,20 @@ See [`FINE_TUNING.md`](FINE_TUNING.md).
 
 Booking/cancel/reschedule require explicit user confirmation before the write occurs. Model text cannot self-declare that the caller confirmed an action. Production hardening should bind confirmation to a server-issued action/session token so the confirmation is independently verifiable.
 
+## Runtime patient context
+
+Heni receives current patient context from the backend on every chat turn and at the start of each realtime voice session. The browser cannot nominate another patient. In the competition build this resolves to the current synthetic demo patient; production must bind the same mechanism to authenticated patient identity.
+
+The runtime context includes the patient's own non-clinical profile, appointment summaries, current journey and next step. Heni should use the patient's first name naturally when helpful, but should not repeat phone numbers, identifiers or other personal fields unless the user actually needs them.
+
+The agent also receives a small verified public-hospital context for Hôpital Charles Nicolle (address/contact data sourced from the Tunisian Ministry of Health). Operational facts such as current slots, appointment state, approved preparation and indoor navigation still come only from Hani Maak domain tools.
+
+### Action behavior
+
+Heni has explicit tools for patient context, public hospital information, service search/details, listing the patient's own appointments, availability, booking, rescheduling, cancellation, journey state, navigation, approved instructions and human escalation. Booking/reschedule/cancel remain two-phase writes: the first call stages the exact action, and a matching second call is allowed only after explicit user confirmation.
+
+Transport/model failures must degrade safely. A failed external-agent request falls back to the deterministic Heni path, while a failed backend tool returns a structured unavailable result to the model rather than terminating the conversation.
+
 ## Dynamic knowledge
 
 The following should come from backend/domain tools rather than prompt text or training memory:
