@@ -43,7 +43,7 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
   if (safety.category === "privacy") {
     const reply = privacyReply(locale);
     await recordCallExchange(sessionId, message, reply);
-    return { message: reply, sessionId, provider: "deterministic", safety };
+    return { message: reply, sessionId, locale, provider: "deterministic", safety };
   }
 
   const intent = detectIntent(message);
@@ -61,7 +61,7 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
         systemPrompt: buildHeniSystemPrompt({ locale, role })
       });
       await recordCallExchange(sessionId, message, result.text);
-      return { message: result.text, sessionId, provider: result.provider, model: result.model, safety };
+      return { message: result.text, sessionId, locale, provider: result.provider, model: result.model, safety };
     } catch {
       // Provider failure must not take down the patient journey. Fall back to the tested deterministic path.
     }
@@ -73,6 +73,7 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
     return {
       message: String(result.message || ""),
       sessionId,
+      locale: result.session?.locale ?? locale,
       provider: "deterministic",
       tool: result.tool,
       escalated: result.session?.outcome === "escalated",
@@ -87,6 +88,7 @@ export async function chatWithHeni(input: HeniChatRequest): Promise<HeniChatResp
     return {
       message: String(result.message || ""),
       sessionId,
+      locale: result.session?.locale ?? locale,
       provider: "deterministic",
       tool: result.tool,
       escalated: result.session?.outcome === "escalated",
