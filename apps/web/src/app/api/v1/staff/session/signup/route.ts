@@ -16,19 +16,25 @@ export async function POST(req:Request){
   if(password.length<8)return NextResponse.json({error:"weak_password"},{status:400});
 
   // Security rule: self-signup never grants a privileged role automatically.
-  // The password is deliberately NOT persisted in this competition workflow.
-  await mutateDb(db=>{
-    db.auditLog.unshift({
-      id:`audit-access-${Date.now().toString(36)}`,
-      tenantId:TENANT_ID,
-      actorType:"system",
-      action:"staff.access_requested",
-      resourceType:"staff_access_request",
-      resourceId:username,
-      metadata:{displayName,username,requestedRole:role,status:"pending_approval"},
-      createdAt:new Date().toISOString()
+  // The supplied password is validated for UX but deliberately NOT persisted in this competition workflow.
+  let auditStored=false;
+  try{
+    await mutateDb(db=>{
+      db.auditLog.unshift({
+        id:`audit-access-${Date.now().toString(36)}`,
+        tenantId:TENANT_ID,
+        actorType:"system",
+        action:"staff.access_requested",
+        resourceType:"staff_access_request",
+        resourceId:username,
+        metadata:{displayName,username,requestedRole:role,status:"pending_approval"},
+        createdAt:new Date().toISOString()
+      });
     });
-  });
+    auditStored=true;
+  }catch(error){
+    console.warn("staff access request audit unavailable",error instanceof Error?error.message:"unknown");
+  }
 
-  return NextResponse.json({ok:true,status:"pending_approval"},{status:202});
+  return NextResponse.json({ok:true,status:"pending_approval",auditStored},{status:202});
 }
