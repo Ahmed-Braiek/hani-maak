@@ -11,6 +11,7 @@ import "./feature-cleanup-v3.css";
 import "./staff-auth.css";
 import "./heni-expressive.css";
 import "./brand-refresh.css";
+import "./brand-system-v2.css";
 import {readDb} from "@/lib/db";
 import {HeniCompanion} from "@/components/HeniCompanion";
 import {getServerLocale,dirForLocale} from "@/lib/i18n-server";
@@ -18,7 +19,8 @@ import {getServerLocale,dirForLocale} from "@/lib/i18n-server";
 export const metadata:Metadata={
   title:"Heni Maak — Patient Journey Infrastructure",
   description:"Access. Guidance. Continuity. A patient journey platform for healthcare providers.",
-  applicationName:"Heni Maak"
+  applicationName:"Heni Maak",
+  icons:{icon:"/hani-icon.svg",shortcut:"/hani-icon.svg",apple:"/hani-icon.svg"}
 };
 export const viewport:Viewport={width:"device-width",initialScale:1,themeColor:"#0849b4"};
 export const dynamic="force-dynamic";
