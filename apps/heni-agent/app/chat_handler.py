@@ -7,7 +7,7 @@ from google.genai import types
 
 from .config import settings
 from .google_client import create_google_client
-from .heni_prompt import HENI_SYSTEM_PROMPT
+from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
 from .security import sign_confirmation_token, verify_confirmation_token
 from .session_store import get_or_create_session, touch_session
 from .tools.declarations import TOOL_DECLARATIONS
@@ -51,10 +51,11 @@ async def run_chat_turn(
     contents = _content_from_history(history)
     contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
 
+    runtime_context = await fetch_runtime_context(session)
     config = types.GenerateContentConfig(
-        system_instruction=HENI_SYSTEM_PROMPT,
+        system_instruction=build_runtime_system_prompt(runtime_context),
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
-        max_output_tokens=320,
+        max_output_tokens=360,
     )
 
     response = await _client.aio.models.generate_content(

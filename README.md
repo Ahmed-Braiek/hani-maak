@@ -46,6 +46,12 @@ Heni may automate administrative tasks and surface provider-authored information
 
 State-changing actions require explicit confirmation, and the application backend remains the authority for availability, appointments, permissions, routing and journey state.
 
+### Patient-aware Heni runtime
+
+Every Heni text turn and live voice session now refreshes a trusted runtime context from the Hani Maak backend before the model responds. That context contains only the current authorized patient's non-clinical profile, their own appointments/journey state, plus verified public hospital information. Mutable facts are not memorized in the prompt or fine-tuning dataset.
+
+Heni can list the patient's appointments, distinguish "I already have a rendez-vous" from "I want to book one", check availability, book/reschedule/cancel with code-enforced confirmation, retrieve approved instructions, provide platform navigation context and create a human escalation. If the external model or tool transport is temporarily unavailable, the website falls back to the deterministic Heni flow instead of breaking the patient conversation.
+
 ## Architecture
 
 **Core principle: deterministic core, probabilistic interface.**

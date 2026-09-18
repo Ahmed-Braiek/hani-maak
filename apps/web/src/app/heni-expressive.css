@@ -1,0 +1,46 @@
+/* Heni expressive avatar — body language stays subtle enough for healthcare UX. */
+.heni-avatar{position:relative;isolation:isolate}
+.heni-avatar svg{display:block;width:100%;height:100%;overflow:visible}
+.heni-avatar .heni-body{transform-box:fill-box;transform-origin:center bottom;animation:heni-breathe 3.8s ease-in-out infinite}
+.heni-avatar .heni-head{transform-box:fill-box;transform-origin:center 72%;animation:heni-idle-head 5.6s ease-in-out infinite}
+.heni-avatar .heni-eye{transform-box:fill-box;transform-origin:center;animation:heni-blink 5.2s infinite}
+.heni-avatar .heni-hand-left,.heni-avatar .heni-hand-right{transform-box:fill-box;transform-origin:center top}
+.heni-avatar .heni-mouth-open{opacity:0;transform-box:fill-box;transform-origin:center}
+.heni-avatar .heni-mouth-closed{opacity:1}
+.heni-avatar .heni-pulse{transform-box:fill-box;transform-origin:center;transition:.25s ease}
+.heni-avatar .heni-status-dot{box-shadow:0 0 0 4px rgba(57,200,142,.16);transition:.2s ease}
+
+.heni-avatar.is-speaking .heni-head{animation:heni-speaking-head .72s ease-in-out infinite}
+.heni-avatar.is-speaking .heni-body{animation:heni-speaking-body 1.15s ease-in-out infinite}
+.heni-avatar.is-speaking .heni-hand-right{animation:heni-right-gesture 1.05s ease-in-out infinite}
+.heni-avatar.is-speaking .heni-hand-left{animation:heni-left-gesture 1.35s ease-in-out infinite}
+.heni-avatar.is-speaking .heni-mouth-open{opacity:1;animation:heni-mouth-talk .28s ease-in-out infinite alternate}
+.heni-avatar.is-speaking .heni-mouth-closed{opacity:.18}
+.heni-avatar.is-speaking .heni-pulse{animation:heni-ring-talk 1.05s ease-out infinite}
+.heni-avatar.is-speaking .heni-status-dot{background:#39c88e;box-shadow:0 0 0 5px rgba(57,200,142,.2),0 0 18px rgba(57,200,142,.42)}
+
+.heni-avatar.is-listening .heni-head{animation:heni-listen-head 1.9s ease-in-out infinite}
+.heni-avatar.is-listening .heni-body{animation:heni-listen-body 2.2s ease-in-out infinite}
+.heni-avatar.is-listening .heni-hand-left{animation:heni-listen-hand 1.9s ease-in-out infinite}
+.heni-avatar.is-listening .heni-eye{animation:heni-listen-eyes 1.9s ease-in-out infinite}
+.heni-avatar.is-listening .heni-pulse{animation:heni-ring-listen 1.15s ease-out infinite}
+.heni-avatar.is-listening .heni-status-dot{background:#ef8f56;box-shadow:0 0 0 5px rgba(239,143,86,.18),0 0 18px rgba(239,143,86,.34)}
+
+@keyframes heni-breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1.4px) scale(1.008)}}
+@keyframes heni-idle-head{0%,72%,100%{transform:rotate(0deg) translateY(0)}78%{transform:rotate(-1.8deg) translateY(-.5px)}86%{transform:rotate(1.2deg) translateY(0)}}
+@keyframes heni-blink{0%,44%,48%,100%{transform:scaleY(1)}45%,47%{transform:scaleY(.12)}}
+@keyframes heni-speaking-head{0%,100%{transform:rotate(-1deg) translateY(0)}50%{transform:rotate(1.6deg) translateY(-1.8px)}}
+@keyframes heni-speaking-body{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-1.2px) rotate(.5deg)}}
+@keyframes heni-right-gesture{0%,100%{transform:rotate(0deg) translate(0,0)}45%{transform:rotate(-12deg) translate(-1px,-4px)}70%{transform:rotate(-5deg) translate(0,-2px)}}
+@keyframes heni-left-gesture{0%,100%{transform:rotate(0deg)}50%{transform:rotate(6deg) translateY(-2px)}}
+@keyframes heni-mouth-talk{from{transform:scaleX(.82) scaleY(.72)}to{transform:scaleX(1.08) scaleY(1.35)}}
+@keyframes heni-ring-talk{0%{opacity:.45;transform:scale(.96)}70%{opacity:.08;transform:scale(1.08)}100%{opacity:0;transform:scale(1.11)}}
+@keyframes heni-listen-head{0%,100%{transform:rotate(-2deg) translateY(-.4px)}50%{transform:rotate(-4deg) translateY(-1.8px)}}
+@keyframes heni-listen-body{0%,100%{transform:translateX(0)}50%{transform:translateX(-1.2px)}}
+@keyframes heni-listen-hand{0%,100%{transform:rotate(0deg) translateY(0)}50%{transform:rotate(10deg) translateY(-3px)}}
+@keyframes heni-listen-eyes{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes heni-ring-listen{0%{opacity:.44;transform:scale(.95)}75%{opacity:.08;transform:scale(1.1)}100%{opacity:0;transform:scale(1.13)}}
+
+@media(prefers-reduced-motion:reduce){
+  .heni-avatar .heni-body,.heni-avatar .heni-head,.heni-avatar .heni-eye,.heni-avatar .heni-hand-left,.heni-avatar .heni-hand-right,.heni-avatar .heni-mouth-open,.heni-avatar .heni-pulse{animation:none!important}
+}

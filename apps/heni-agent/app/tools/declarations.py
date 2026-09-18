@@ -3,7 +3,12 @@
 TOOL_DECLARATIONS = [
     {
         "name": "get_patient_context",
-        "description": "Get the current authorized patient/session context and current administrative journey state.",
+        "description": "Get the current authorized patient's non-clinical profile, appointments and administrative journey state.",
+        "parameters": {"type": "OBJECT", "properties": {}},
+    },
+    {
+        "name": "get_public_hospital_info",
+        "description": "Get verified public Hôpital Charles Nicolle address, contact and hospital-level information maintained by Hani Maak.",
         "parameters": {"type": "OBJECT", "properties": {}},
     },
     {
@@ -72,6 +77,16 @@ TOOL_DECLARATIONS = [
                 "reason": {"type": "STRING"},
             },
             "required": ["appointmentId"],
+        },
+    },
+    {
+        "name": "list_my_appointments",
+        "description": "List the authorized patient's own appointments with service names and states. Use this when the user says they already have a rendez-vous.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "includePast": {"type": "BOOLEAN", "description": "Include completed/cancelled appointments when true"}
+            },
         },
     },
     {
