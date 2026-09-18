@@ -346,3 +346,18 @@ h1,h2,h3,h4{color:var(--hm-ink)}
   .ar-recorded-heni .heni-avatar{width:46px!important;height:46px!important}
   .ar-recorded-bottom p{-webkit-line-clamp:1}
 }
+
+/* Role selection is intentionally obvious for non-technical staff. */
+.role-card{position:relative;overflow:hidden}
+.role-card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#0849b4,#189bed)}
+.role-doctor:before{background:linear-gradient(90deg,#0849b4,#3aa9ef)}
+.role-administration:before{background:linear-gradient(90deg,#1269c9,#189bed)}
+.role-super_admin:before{background:linear-gradient(90deg,#063783,#0849b4)}
+.role-card-actions .btn{min-height:48px}
+.role-card h2{color:#0b3471}
+.role-scope strong{color:#55708f!important}
+
+/* Branded status details without introducing extra accent colors. */
+.heni-status-dot{background:#189bed!important;border-color:#fff!important}
+.heni-avatar.is-listening .heni-status-dot{background:#0849b4!important}
+.heni-avatar.is-speaking .heni-status-dot{background:#189bed!important}
