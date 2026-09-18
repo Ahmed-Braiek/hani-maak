@@ -13,8 +13,8 @@ export function detectClinicalBoundary(text: string) {
 export function detectRequestedLocale(text: string): ConversationLocale | undefined {
   const x = norm(text);
   if (has(x, [
-    "parle en arabe","parlez en arabe","parle arabe","parlez arabe","en arabe","arabic",
-    "tunisian","tunisien","tunisienne","derja","darija","تونسي","تونسية","بالدارجة","بالتونسي","بالعربي","عربي"
+    "parle en arabe","parlez en arabe","parle en arab","parlez en arab","parle arabe","parlez arabe","en arabe","arabic","arab",
+    "tunisian","tunisaian","tunisia","tunisien","tunisienne","derja","darija","تونسي","تونسية","بالدارجة","بالتونسي","بالعربي","عربي"
   ])) return "ar";
   if (has(x, ["parle francais","parlez francais","en francais","français","french","بالفرنسي"])) return "fr";
   if (has(x, ["speak english","in english","anglais","english","بالانجليزي","بالإنجليزي"])) return "en";
