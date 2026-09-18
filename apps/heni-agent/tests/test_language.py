@@ -1,3 +1,5 @@
+import unittest
+
 from app.language import (
     detect_likely_locale,
     detect_requested_locale,
@@ -7,30 +9,31 @@ from app.language import (
 )
 
 
-def test_requested_language_switches():
-    assert detect_requested_locale("parlez en arab") == "ar"
-    assert detect_requested_locale("tu peux parler tunisien") == "ar"
-    assert detect_requested_locale("speak English") == "en"
-    assert detect_requested_locale("parlez français") == "fr"
+class LanguageTests(unittest.TestCase):
+    def test_requested_language_switches(self):
+        self.assertEqual(detect_requested_locale("parlez en arab"), "ar")
+        self.assertEqual(detect_requested_locale("tu peux parler tunisien"), "ar")
+        self.assertEqual(detect_requested_locale("speak English"), "en")
+        self.assertEqual(detect_requested_locale("parlez français"), "fr")
+
+    def test_tunisian_romanized_language_detection(self):
+        self.assertEqual(detect_likely_locale("nheb naamel rendez vous"), "ar")
+        self.assertEqual(detect_likely_locale("3andi rendez-vous ghodwa"), "ar")
+
+    def test_human_help_variants(self):
+        self.assertTrue(is_human_help_request("aide humain"))
+        self.assertTrue(is_human_help_request("l'aide humaine"))
+        self.assertTrue(is_human_help_request("نحب موظف يعاوني"))
+
+    def test_language_switch_only_vs_combined_request(self):
+        self.assertTrue(is_language_switch_only("parlez en arab"))
+        self.assertFalse(is_language_switch_only("aide humain et parlez en arab"))
+
+    def test_doctor_name_question(self):
+        self.assertTrue(is_doctor_name_question("quel est le nom de docteur"))
+        self.assertTrue(is_doctor_name_question("what is the doctor name"))
+        self.assertTrue(is_doctor_name_question("اسم الطبيب شنو"))
 
 
-def test_tunisian_romanized_language_detection():
-    assert detect_likely_locale("nheb naamel rendez vous") == "ar"
-    assert detect_likely_locale("3andi rendez-vous ghodwa") == "ar"
-
-
-def test_human_help_variants():
-    assert is_human_help_request("aide humain")
-    assert is_human_help_request("l'aide humaine")
-    assert is_human_help_request("نحب موظف يعاوني")
-
-
-def test_language_switch_only_vs_combined_request():
-    assert is_language_switch_only("parlez en arab")
-    assert not is_language_switch_only("aide humain et parlez en arab")
-
-
-def test_doctor_name_question():
-    assert is_doctor_name_question("quel est le nom de docteur")
-    assert is_doctor_name_question("what is the doctor name")
-    assert is_doctor_name_question("اسم الطبيب شنو")
+if __name__ == "__main__":
+    unittest.main()
