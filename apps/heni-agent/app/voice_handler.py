@@ -155,12 +155,17 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                 if content.input_transcription and content.input_transcription.text:
                     text = content.input_transcription.text.strip()
                     if text:
+                        # Deliver the transcript first. Language detection must never be
+                        # able to tear down an otherwise healthy realtime call.
                         session.last_user_text = text
-                        detected_locale = detect_requested_locale(text) or detect_likely_locale(text)
-                        if detected_locale and detected_locale != session.locale:
-                            session.locale = detected_locale
-                            await ws.send_json({"type": "locale", "locale": detected_locale})
                         await ws.send_json({"type": "transcript", "role": "user", "text": text})
+                        try:
+                            detected_locale = detect_requested_locale(text) or detect_likely_locale(text)
+                            if detected_locale and detected_locale != session.locale:
+                                session.locale = detected_locale
+                                await ws.send_json({"type": "locale", "locale": detected_locale})
+                        except Exception as locale_error:
+                            print("voice locale detection failed", type(locale_error).__name__)
                 if content.output_transcription and content.output_transcription.text:
                     await ws.send_json({
                         "type": "transcript",
