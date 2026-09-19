@@ -9,6 +9,7 @@ from starlette.websockets import WebSocketState
 
 from .config import settings
 from .google_client import create_google_client
+from .language import detect_likely_locale, detect_requested_locale
 from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
 from .security import origin_allowed, verify_voice_token
 from .session_store import get_or_create_session, touch_session
@@ -36,22 +37,11 @@ def _live_config(system_prompt: str) -> dict:
 
 def _opening_turn(locale: str) -> types.Content:
     if locale == "fr":
-        text = (
-            "Commence maintenant l'appel. Salue brièvement le patient en français, "
-            "présente-toi comme Heni et demande comment tu peux l'aider. "
-            "Parle naturellement, sans mentionner ce message."
-        )
+        text = "Commence l'appel. Salue brièvement le patient en français, présente-toi comme Heni et demande comment tu peux l'aider. Sois naturel."
     elif locale == "en":
-        text = (
-            "Start the live call now. Briefly greet the patient in English, "
-            "introduce yourself as Heni and ask how you can help. "
-            "Sound natural and do not mention this instruction."
-        )
+        text = "Start the call. Briefly greet the patient in English, introduce yourself as Heni and ask how you can help. Sound natural."
     else:
-        text = (
-            "ابدأ المكالمة توّا. سلّم على المريض بتونسي طبيعي، عرّف روحك هاني "
-            "واسألو شنوة تنجم تعاونُه فيه. خليك مختصر وما تذكرش التعليمة هاذي."
-        )
+        text = "ابدأ المكالمة توّا. سلّم على المريض بتونسي طبيعي، عرّف روحك هاني واسألو شنوة تنجم تعاونُه فيه. خليك مختصر."
     return types.Content(role="user", parts=[types.Part(text=text)])
 
 
@@ -61,8 +51,7 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         await ws.close(code=4403, reason="origin_not_allowed")
         return
 
-    token = ws.query_params.get("token", "")
-    claims = verify_voice_token(token)
+    claims = verify_voice_token(ws.query_params.get("token", ""))
     if not claims:
         await ws.close(code=4401, reason="invalid_or_expired_token")
         return
@@ -81,7 +70,7 @@ async def handle_voice_connection(ws: WebSocket) -> None:
     )
 
     await ws.accept()
-    await ws.send_json({"type": "session", "sessionId": session.id})
+    await ws.send_json({"type": "session", "sessionId": session.id, "locale": session.locale})
 
     try:
         runtime_context = await fetch_runtime_context(session)
@@ -89,13 +78,8 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         async with _client.aio.live.connect(model=settings.live_model, config=_live_config(system_prompt)) as live:
             sender = asyncio.create_task(_pump_client_to_live(ws, live, session))
             receiver = asyncio.create_task(_pump_live_to_client(ws, live, session))
-
-            # Make the experience feel like a real call: Heni greets first.
             await live.send_client_content(turns=_opening_turn(locale), turn_complete=True)
-
-            done, pending = await asyncio.wait(
-                {sender, receiver}, return_when=asyncio.FIRST_COMPLETED
-            )
+            done, pending = await asyncio.wait({sender, receiver}, return_when=asyncio.FIRST_COMPLETED)
             for task in pending:
                 task.cancel()
             for task in done:
@@ -119,9 +103,7 @@ async def _pump_client_to_live(ws: WebSocket, live, session) -> None:
         if message.get("type") == "websocket.disconnect":
             return
         if message.get("bytes") is not None:
-            await live.send_realtime_input(
-                audio=types.Blob(data=message["bytes"], mime_type="audio/pcm;rate=16000")
-            )
+            await live.send_realtime_input(audio=types.Blob(data=message["bytes"], mime_type="audio/pcm;rate=16000"))
             continue
         if message.get("text") is None:
             continue
@@ -130,10 +112,9 @@ async def _pump_client_to_live(ws: WebSocket, live, session) -> None:
             control = json.loads(message["text"])
         except ValueError:
             continue
-        kind = control.get("type")
-        if kind == "audio_stream_end":
+        if control.get("type") == "audio_stream_end":
             await live.send_realtime_input(audio_stream_end=True)
-        elif kind == "debug_text" and settings.debug_enabled:
+        elif control.get("type") == "debug_text" and settings.debug_enabled:
             text = str(control.get("text") or "").strip()
             if text:
                 session.last_user_text = text
@@ -156,17 +137,18 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     text = content.input_transcription.text.strip()
                     if text:
                         session.last_user_text = text
-                        detected_locale = detect_requested_locale(text) or detect_likely_locale(text)
-                        if detected_locale and detected_locale != session.locale:
-                            session.locale = detected_locale
-                            await ws.send_json({"type": "locale", "locale": detected_locale})
                         await ws.send_json({"type": "transcript", "role": "user", "text": text})
+                        try:
+                            detected_locale = detect_requested_locale(text) or detect_likely_locale(text)
+                            if detected_locale and detected_locale != session.locale:
+                                session.locale = detected_locale
+                                await ws.send_json({"type": "locale", "locale": detected_locale})
+                        except Exception as locale_error:
+                            print("voice locale detection failed", type(locale_error).__name__)
                 if content.output_transcription and content.output_transcription.text:
-                    await ws.send_json({
-                        "type": "transcript",
-                        "role": "model",
-                        "text": content.output_transcription.text.strip(),
-                    })
+                    text = content.output_transcription.text.strip()
+                    if text:
+                        await ws.send_json({"type": "transcript", "role": "model", "text": text})
                 if content.turn_complete:
                     await ws.send_json({"type": "turn_complete"})
 
@@ -175,11 +157,8 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                 for call in chunk.tool_call.function_calls:
                     await ws.send_json({"type": "tool_call", "name": call.name, "args": call.args or {}})
                     result = await execute_tool(call.name, call.args or {}, session)
-                    responses.append(
-                        types.FunctionResponse(
-                            id=call.id,
-                            name=call.name,
-                            response={"result": result},
-                        )
-                    )
+                    action = result.get("uiAction") if isinstance(result, dict) else None
+                    if isinstance(action, dict):
+                        await ws.send_json({"type": "ui_action", "action": action})
+                    responses.append(types.FunctionResponse(id=call.id, name=call.name, response={"result": result}))
                 await live.send_tool_response(function_responses=responses)

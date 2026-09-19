@@ -15,11 +15,7 @@ def _usable(result: dict[str, Any]) -> dict[str, Any] | None:
 
 
 async def fetch_runtime_context(session) -> dict[str, Any]:
-    """Load current patient and public hospital context from the Hani Maak backend.
-
-    This data is refreshed on every turn/session. It is deliberately not learned
-    by the model and is never accepted from browser-provided patient fields.
-    """
+    """Load fresh authorized patient and public hospital context on every turn/session."""
     patient, hospital = await asyncio.gather(
         call_hani_tool(
             "get_patient_context",
@@ -57,8 +53,11 @@ def build_runtime_system_prompt(context: dict[str, Any]) -> str:
         HENI_SYSTEM_PROMPT
         + "\n\nRUNTIME CONTEXT\n"
         + "The JSON below comes from authenticated/trusted Hani Maak backend tools for this session. "
-        + "Use it to personalize the conversation and understand the patient's current journey. "
-        + "Do not reveal fields the user did not ask for, and never treat it as clinical advice. "
-        + "If a field is null or absent, ask or use a tool instead of inventing it.\n"
+        + "Use it actively so the patient does not have to repeat known information. "
+        + "Patient context may include appointment history, upcoming appointment, service details, required documents, "
+        + "provider-approved preparation/follow-up, journey steps, reminders, caregiver scopes and waitlist state. "
+        + "When asked about what is next, summarize the relevant current step directly. "
+        + "Do not expose unrelated personal fields, and never turn administrative context into clinical advice. "
+        + "If a field is absent, use a tool or ask instead of inventing it.\n"
         + runtime_json
     )
