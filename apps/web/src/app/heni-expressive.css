@@ -44,3 +44,9 @@
 @media(prefers-reduced-motion:reduce){
   .heni-avatar .heni-body,.heni-avatar .heni-head,.heni-avatar .heni-eye,.heni-avatar .heni-hand-left,.heni-avatar .heni-hand-right,.heni-avatar .heni-mouth-open,.heni-avatar .heni-pulse{animation:none!important}
 }
+
+
+.heni-agent-actions{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 10px}
+.heni-agent-actions a{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:9px 12px;border:1px solid rgba(15,118,110,.16);border-radius:13px;background:linear-gradient(135deg,#edf8f6,#fff);color:#0f5f58;text-decoration:none;font-size:.74rem;font-weight:800;box-shadow:0 8px 18px rgba(15,118,110,.08)}
+.heni-agent-actions a:hover{border-color:rgba(15,118,110,.3);transform:translateY(-1px)}
+.heni-agent-actions a span{width:22px;height:22px;display:grid;place-items:center;border-radius:7px;background:#0f766e;color:#fff;font-size:.72rem}
