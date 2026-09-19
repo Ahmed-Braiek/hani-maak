@@ -27,7 +27,7 @@ _client = create_google_client()
 
 def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
     contents: list[types.Content] = []
-    for item in history[-12:]:
+    for item in history[-16:]:
         role = "model" if item.get("role") in {"assistant", "model", "heni"} else "user"
         text = str(item.get("content") or item.get("text") or "").strip()
         if text:
@@ -103,29 +103,21 @@ async def run_chat_turn(
             {"reasonCategory": "human_requested", "summary": message[:220]},
             session,
         )
-        if result.get("success"):
-            answer = locale_message(
-                session.locale,
-                ar="حاضر. بعثت طلب للفريق باش موظف يعاونك. إذا تحب، قولي في كلمة شنية المساعدة اللي تحتاجها.",
-                fr="D’accord. J’ai envoyé une demande à l’équipe pour qu’un membre du personnel vous aide. Vous pouvez me dire en une phrase ce dont vous avez besoin.",
-                en="Done. I sent a request to the team for a staff member to help you. You can tell me in one sentence what you need.",
-            )
-        else:
-            answer = locale_message(
-                session.locale,
-                ar="ما نجّمتش نبعث الطلب توّا. جرّب مرّة أخرى، وإذا الأمر مستعجل اتصل مباشرة بالاستقبال أو بموظف في المكان.",
-                fr="Je n’ai pas pu envoyer la demande pour le moment. Réessayez, et si c’est urgent contactez directement l’accueil ou un membre du personnel sur place.",
-                en="I could not send the request right now. Please try again, and if it is urgent contact reception or on-site staff directly.",
-            )
+        answer = locale_message(
+            session.locale,
+            ar="حاضر. بعثت طلب للفريق باش موظف يعاونك." if result.get("success") else "ما نجّمتش نبعث الطلب توّا. إذا الأمر مستعجل اتصل مباشرة بالاستقبال أو بموظف في المكان.",
+            fr="D’accord. J’ai envoyé une demande à l’équipe pour qu’un membre du personnel vous aide." if result.get("success") else "Je n’ai pas pu envoyer la demande pour le moment. Si c’est urgent, contactez directement l’accueil ou le personnel sur place.",
+            en="Done. I sent a request to the team for a staff member to help you." if result.get("success") else "I could not send the request right now. If it is urgent, contact reception or on-site staff directly.",
+        )
         return _base_result(answer, session, tool="request_human_help", tools=[{"name": "request_human_help", "args": {"reasonCategory": "human_requested"}, "result": result}])
 
     if is_doctor_name_question(message):
         return _base_result(
             locale_message(
                 session.locale,
-                ar="ما عنديش اسم طبيب مؤكّد للمصلحة هاذي في المعطيات المتوفرة، وما نحبّش نعطيك اسم من غير تأكيد. نجم نبعثلك طلب لموظف باش يعطيك المعلومة الصحيحة.",
-                fr="Je n’ai pas de nom de médecin vérifié pour ce service dans les données disponibles, donc je préfère ne pas en inventer un. Je peux demander à un membre du personnel de vous donner l’information correcte.",
-                en="I do not have a verified doctor name for this service in the available data, so I will not invent one. I can ask a staff member to provide the correct information.",
+                ar="ما عنديش اسم طبيب مؤكّد للمصلحة هاذي في المعطيات المتوفرة، وما نحبّش نعطيك اسم من غير تأكيد. نجم نطلبلك مساعدة من موظف.",
+                fr="Je n’ai pas de nom de médecin vérifié pour ce service dans les données disponibles. Je peux demander à un membre du personnel de vous aider.",
+                en="I do not have a verified doctor name for this service in the available data. I can ask a staff member to help.",
             ),
             session,
         )
@@ -136,23 +128,21 @@ async def run_chat_turn(
     runtime_context = await fetch_runtime_context(session)
     config = types.GenerateContentConfig(
         system_instruction=build_runtime_system_prompt(runtime_context)
-        + f"\n\nCURRENT CONVERSATION LANGUAGE: {session.locale}. Reply in this language unless the user's current message clearly switches language.",
+        + f"\n\nCURRENT CONVERSATION LANGUAGE: {session.locale}. Reply in this language unless the current user message clearly switches language.",
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
-        max_output_tokens=240,
-        temperature=0.25,
+        max_output_tokens=420,
+        temperature=0.3,
     )
 
     response = await _generate(contents=contents, config=config)
 
     tool_events: list[dict[str, Any]] = []
-    for _ in range(3):
+    for _ in range(5):
         calls = response.function_calls or []
         if not calls:
             break
 
-        model_parts = [types.Part(function_call=call) for call in calls]
-        contents.append(types.Content(role="model", parts=model_parts))
-
+        contents.append(types.Content(role="model", parts=[types.Part(function_call=call) for call in calls]))
         response_parts = []
         for call in calls:
             args = dict(call.args or {})
@@ -179,11 +169,13 @@ async def run_chat_turn(
             en="Sorry, I could not complete the answer. You can rephrase or ask me to contact a staff member.",
         )
 
-    pending_token = (
-        sign_confirmation_token(session.pending_action, patient_id)
-        if session.pending_action
-        else None
-    )
+    pending_token = sign_confirmation_token(session.pending_action, patient_id) if session.pending_action else None
+    ui_actions = []
+    for event in tool_events:
+        action = event.get("result", {}).get("uiAction")
+        if isinstance(action, dict) and action.get("url"):
+            ui_actions.append(action)
+
     return {
         "message": reply,
         "sessionId": session.id,
@@ -191,5 +183,6 @@ async def run_chat_turn(
         "confirmationToken": pending_token,
         "tools": tool_events,
         "tool": tool_events[-1]["name"] if tool_events else None,
+        "uiActions": ui_actions[:3],
         "model": settings.text_model,
     }
