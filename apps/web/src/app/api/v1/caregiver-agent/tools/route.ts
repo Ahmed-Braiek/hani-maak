@@ -227,6 +227,29 @@ export async function requestDemoCareTask(caregiverId: string, patientId: string
   return { task, request: requestRows?.[0] ?? null };
 }
 
+export async function caregiverSupplement(caregiverId: string, patientId: string) {
+  await requireRelationship(caregiverId, patientId);
+  const [notifications, preferences, definitions] = await Promise.all([
+    sb(`caregiver_notifications?select=id,category,title,body,action_type,action_payload,scheduled_for,delivered_at,opened_at,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
+    first(`notification_preferences?select=*&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
+    sb("questionnaire_definitions?select=id,code,name,purpose,owner,active&active=eq.true&order=created_at.desc"),
+  ]);
+
+  const questionnaires: Json[] = [];
+  for (const definition of definitions as Json[]) {
+    const versions = await sb(
+      `questionnaire_versions?select=id,version_label,language,validation_status,validation_reference,active&questionnaire_id=eq.${definition.id}&active=eq.true&validation_status=eq.validated`,
+    ) as Json[];
+    questionnaires.push(...versions.map((version) => ({ ...version, definition })));
+  }
+
+  return {
+    notifications,
+    notificationPreferences: preferences,
+    questionnaires,
+  };
+}
+
 export async function POST(req: Request) {
   const configured = process.env.HENI_AGENT_SHARED_SECRET;
   if (!configured) return NextResponse.json({ error: "agent_bridge_not_configured" }, { status: 503 });
