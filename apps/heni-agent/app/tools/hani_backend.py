@@ -7,9 +7,17 @@ import httpx
 from ..config import settings
 
 
-async def call_hani_tool(name: str, args: dict[str, Any], *, patient_id: str, locale: str, source: str) -> dict[str, Any]:
+async def call_hani_tool(
+    name: str,
+    args: dict[str, Any],
+    *,
+    patient_id: str,
+    locale: str,
+    source: str,
+    caregiver_id: str | None = None,
+) -> dict[str, Any]:
     """Call the deterministic Hani Maak backend without letting transport errors crash Heni."""
-    url = f"{settings.backend_base_url}/api/v1/agent/tools"
+    url = f"{settings.backend_base_url}/api/v1/caregiver-agent/tools" if caregiver_id else f"{settings.backend_base_url}/api/v1/agent/tools"
     headers = {
         "content-type": "application/json",
         "x-heni-agent-key": settings.shared_secret,
