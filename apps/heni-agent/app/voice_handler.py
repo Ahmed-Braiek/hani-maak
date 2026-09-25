@@ -35,8 +35,15 @@ def _live_config(system_prompt: str) -> dict:
     }
 
 
-def _opening_turn(locale: str) -> types.Content:
-    if locale == "fr":
+def _opening_turn(locale: str, caregiver: bool = False) -> types.Content:
+    if caregiver:
+        if locale == "fr":
+            text = "Commence l'appel. Salue brièvement l'aidant, présente-toi comme Hani et demande ce qui se passe aujourd'hui. Sois chaleureux et très concis."
+        elif locale == "en":
+            text = "Start the call. Briefly greet the caregiver, introduce yourself as Hani, and ask what is happening today. Be warm and very concise."
+        else:
+            text = "ابدأ المكالمة توّا. سلّم على المرافق بتونسي طبيعي، عرّف روحك هاني واسألو شنوة صاير اليوم. خليك دافي ومختصر."
+    elif locale == "fr":
         text = "Commence l'appel. Salue brièvement le patient en français, présente-toi comme Heni et demande comment tu peux l'aider. Sois naturel."
     elif locale == "en":
         text = "Start the call. Briefly greet the patient in English, introduce yourself as Heni and ask how you can help. Sound natural."
@@ -78,7 +85,7 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         async with _client.aio.live.connect(model=settings.live_model, config=_live_config(system_prompt)) as live:
             sender = asyncio.create_task(_pump_client_to_live(ws, live, session))
             receiver = asyncio.create_task(_pump_live_to_client(ws, live, session))
-            await live.send_client_content(turns=_opening_turn(locale), turn_complete=True)
+            await live.send_client_content(turns=_opening_turn(locale, caregiver=bool(session.caregiver_id)), turn_complete=True)
             done, pending = await asyncio.wait({sender, receiver}, return_when=asyncio.FIRST_COMPLETED)
             for task in pending:
                 task.cancel()
