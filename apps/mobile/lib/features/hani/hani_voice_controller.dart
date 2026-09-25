@@ -1,15 +1,14 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:just_audio/just_audio.dart';
 import 'package:record/record.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../core/config/app_config.dart';
+import 'hani_pcm_player.dart';
 
 enum VoicePhase { idle, connecting, listening, thinking, speaking, error }
 
@@ -82,18 +81,12 @@ final haniVoiceProvider =
 class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   HaniVoiceController() : super(const HaniVoiceState());
 
-  static const int _playbackSampleRate = 24000;
-  static const int _chunkBytes = 15360; // 320 ms of 24 kHz mono PCM16.
-
   final _recorder = AudioRecorder();
-  final _player = AudioPlayer();
-  final Queue<Uint8List> _playQueue = Queue<Uint8List>();
-  final List<int> _pendingPcm = <int>[];
+  final _pcmPlayer = HaniPcmPlayer();
 
   WebSocketChannel? _channel;
   StreamSubscription<Uint8List>? _micSub;
   StreamSubscription<dynamic>? _socketSub;
-  bool _playingQueue = false;
   bool _disconnecting = false;
 
   Future<void> connect() async {
@@ -153,6 +146,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         },
       );
 
+      await _pcmPlayer.init();
       await _startMic();
 
       state = state.copyWith(
@@ -209,10 +203,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       await _socketSub?.cancel();
       _socketSub = null;
 
-      await _player.stop();
-      _playQueue.clear();
-      _pendingPcm.clear();
-      _playingQueue = false;
+      await _pcmPlayer.interrupt();
 
       await _channel?.sink.close();
       _channel = null;
@@ -263,9 +254,9 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
       case 'status':
         final phase = event['phase']?.toString();
-        if (phase == 'listening' && !_playingQueue) {
+        if (phase == 'listening') {
           state = state.copyWith(phase: VoicePhase.listening);
-        } else if (phase == 'thinking' && !_playingQueue) {
+        } else if (phase == 'thinking') {
           state = state.copyWith(phase: VoicePhase.thinking);
         }
         break;
@@ -298,7 +289,9 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         break;
 
       case 'turn_complete':
-        _flushPendingAudio();
+        if (mounted && state.connected) {
+          state = state.copyWith(phase: VoicePhase.listening);
+        }
         break;
 
       case 'error':
@@ -347,109 +340,21 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   }
 
   void _onAudioBytes(Uint8List bytes) {
-    _pendingPcm.addAll(bytes);
+    if (!state.connected || bytes.isEmpty) return;
 
-    while (_pendingPcm.length >= _chunkBytes) {
-      final chunk = Uint8List.fromList(_pendingPcm.sublist(0, _chunkBytes));
-      _pendingPcm.removeRange(0, _chunkBytes);
-      _playQueue.add(chunk);
+    if (mounted && state.phase != VoicePhase.speaking) {
+      state = state.copyWith(phase: VoicePhase.speaking);
     }
 
-    if (!_playingQueue && _playQueue.isNotEmpty) {
-      unawaited(_drainPlaybackQueue());
-    }
-  }
-
-  void _flushPendingAudio() {
-    if (_pendingPcm.isNotEmpty) {
-      _playQueue.add(Uint8List.fromList(_pendingPcm));
-      _pendingPcm.clear();
-    }
-
-    if (!_playingQueue && _playQueue.isNotEmpty) {
-      unawaited(_drainPlaybackQueue());
-    }
-  }
-
-  Future<void> _drainPlaybackQueue() async {
-    if (_playingQueue) return;
-    _playingQueue = true;
-
-    try {
-      while (_playQueue.isNotEmpty && state.connected) {
-        final pcm = _playQueue.removeFirst();
-        if (pcm.isEmpty) continue;
-
-        if (mounted) {
-          state = state.copyWith(phase: VoicePhase.speaking);
-        }
-
-        final wav = _pcmToWav(
-          pcm,
-          sampleRate: _playbackSampleRate,
-        );
-
-        await _player.setAudioSource(_BytesAudioSource(wav));
-        await _player.play();
-
-        await _player.playerStateStream.firstWhere(
-          (s) =>
-              s.processingState == ProcessingState.completed ||
-              !state.connected,
-        );
-      }
-    } catch (_) {
-      // A user barge-in intentionally stops playback; do not surface it as error.
-    } finally {
-      _playingQueue = false;
-      if (mounted && state.connected) {
-        state = state.copyWith(phase: VoicePhase.listening);
-      }
-    }
+    unawaited(_pcmPlayer.add(bytes));
   }
 
   Future<void> _interruptPlayback() async {
-    _playQueue.clear();
-    _pendingPcm.clear();
-
-    try {
-      await _player.stop();
-    } catch (_) {}
-
-    _playingQueue = false;
+    await _pcmPlayer.interrupt();
 
     if (mounted && state.connected) {
       state = state.copyWith(phase: VoicePhase.listening);
     }
-  }
-
-  Uint8List _pcmToWav(Uint8List pcm, {required int sampleRate}) {
-    final dataLength = pcm.length;
-    final bytes = ByteData(44 + dataLength);
-
-    void ascii(int offset, String value) {
-      for (var i = 0; i < value.length; i++) {
-        bytes.setUint8(offset + i, value.codeUnitAt(i));
-      }
-    }
-
-    ascii(0, 'RIFF');
-    bytes.setUint32(4, 36 + dataLength, Endian.little);
-    ascii(8, 'WAVE');
-    ascii(12, 'fmt ');
-    bytes.setUint32(16, 16, Endian.little);
-    bytes.setUint16(20, 1, Endian.little);
-    bytes.setUint16(22, 1, Endian.little);
-    bytes.setUint32(24, sampleRate, Endian.little);
-    bytes.setUint32(28, sampleRate * 2, Endian.little);
-    bytes.setUint16(32, 2, Endian.little);
-    bytes.setUint16(34, 16, Endian.little);
-    ascii(36, 'data');
-    bytes.setUint32(40, dataLength, Endian.little);
-
-    final output = bytes.buffer.asUint8List();
-    output.setRange(44, output.length, pcm);
-    return output;
   }
 
   void _fail(String message) {
@@ -467,27 +372,8 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     _socketSub?.cancel();
     _channel?.sink.close();
     _recorder.dispose();
-    _player.dispose();
+    _pcmPlayer.dispose();
     super.dispose();
   }
 }
 
-class _BytesAudioSource extends StreamAudioSource {
-  _BytesAudioSource(this.bytes);
-
-  final Uint8List bytes;
-
-  @override
-  Future<StreamAudioResponse> request([int? start, int? end]) async {
-    final from = start ?? 0;
-    final to = end ?? bytes.length;
-
-    return StreamAudioResponse(
-      sourceLength: bytes.length,
-      contentLength: to - from,
-      offset: from,
-      stream: Stream.value(bytes.sublist(from, to)),
-      contentType: 'audio/wav',
-    );
-  }
-}
