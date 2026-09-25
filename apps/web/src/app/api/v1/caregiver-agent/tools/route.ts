@@ -75,7 +75,7 @@ async function getProfessionalRoutes(patientId: string) {
     .filter((x) => x.professional?.is_verified === true);
 }
 
-async function caregiverContext(caregiverId: string, patientId: string) {
+export async function caregiverContext(caregiverId: string, patientId: string) {
   const relationship = await requireRelationship(caregiverId, patientId);
   const [caregiver, patient, meds, instructions, incidentRows, tasks, wellbeing, circle] = await Promise.all([
     first(`profiles?select=id,full_name,preferred_language,timezone,role&id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
