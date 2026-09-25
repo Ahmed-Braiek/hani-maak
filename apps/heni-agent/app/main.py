@@ -16,7 +16,7 @@ from .voice_handler import handle_voice_connection
 
 validate_settings()
 
-app = FastAPI(title="Heni Agent", version="1.0.0", docs_url=None if settings.is_production else "/docs")
+app = FastAPI(title="Heni Agent", version="2.0.0", docs_url=None if settings.is_production else "/docs")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.allowed_origins),
@@ -35,6 +35,7 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
     locale: str = "ar"
     patientId: str = Field(min_length=1, max_length=120)
+    caregiverId: str | None = Field(default=None, max_length=120)
     source: str = "website"
     sessionId: str | None = None
     confirmationToken: str | None = Field(default=None, max_length=12000)
@@ -46,6 +47,7 @@ async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "service": "heni-agent",
+        "mode": "caregiver-ready",
         "textModel": settings.text_model,
         "liveModel": settings.live_model,
     }
@@ -58,6 +60,7 @@ async def chat(body: ChatRequest, x_heni_agent_key: str | None = Header(default=
     return await run_chat_turn(
         message=body.message.strip(),
         patient_id=body.patientId,
+        caregiver_id=body.caregiverId,
         locale=body.locale,
         source=body.source,
         session_id=body.sessionId,
