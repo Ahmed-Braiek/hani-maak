@@ -121,7 +121,7 @@ async def run_chat_turn(
             )
         return _base_result(answer, session, tool="request_human_help", tools=[{"name": "request_human_help", "args": {"reasonCategory": "human_requested"}, "result": result}])
 
-    if is_doctor_name_question(message):
+    if not session.caregiver_id and is_doctor_name_question(message):
         return _base_result(
             locale_message(
                 session.locale,
