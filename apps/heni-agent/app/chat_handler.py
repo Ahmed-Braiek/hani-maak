@@ -154,7 +154,20 @@ async def run_chat_turn(
         if not calls:
             break
 
-        contents.append(types.Content(role="model", parts=[types.Part(function_call=call) for call in calls]))
+        # IMPORTANT: keep Gemini's original model Content object intact.
+        # Gemini 3.x tool-call parts include an opaque thought_signature that
+        # must be sent back on the next generate_content call. Rebuilding the
+        # function-call Parts manually drops that signature and causes a
+        # 400 INVALID_ARGUMENT on the following tool turn.
+        candidate_content = None
+        if response.candidates:
+            candidate_content = response.candidates[0].content
+
+        if candidate_content is None:
+            raise RuntimeError("gemini_tool_call_missing_candidate_content")
+
+        contents.append(candidate_content)
+
         response_parts = []
         for call in calls:
             args = dict(call.args or {})
@@ -169,6 +182,7 @@ async def run_chat_turn(
                     )
                 )
             )
+
         contents.append(types.Content(role="user", parts=response_parts))
         response = await _generate(contents=contents, config=config)
 
