@@ -35,7 +35,7 @@ def get_or_create_session(
     sid = session_id or str(uuid.uuid4())
     session = _sessions.get(sid)
     if session is None:
-        session = Session(id=sid, patient_id=patient_id, locale=locale, source=source)
+        session = Session(id=sid, patient_id=patient_id, caregiver_id=caregiver_id, locale=locale, source=source)
         _sessions[sid] = session
     else:
         # Identity comes from a trusted caller/token, never from model output.
