@@ -24,7 +24,7 @@ class Settings:
     google_cloud_project: str = os.getenv("GOOGLE_CLOUD_PROJECT", "")
     google_cloud_location: str = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
     live_model: str = os.getenv("HENI_LIVE_MODEL", os.getenv("GEMINI_LIVE_MODEL", "gemini-3.8-live"))
-    text_model: str = os.getenv("HENI_TEXT_MODEL", os.getenv("GEMINI_TEXT_MODEL", "gemini-3.8-flash"))
+    text_model: str = os.getenv("HENI_TEXT_MODEL", os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-flash-lite"))
     voice_name: str = os.getenv("HENI_VOICE_NAME", "Gacrux")
     backend_base_url: str = os.getenv("HANI_BACKEND_BASE_URL", "").rstrip("/")
     shared_secret: str = os.getenv("HENI_AGENT_SHARED_SECRET", "")
