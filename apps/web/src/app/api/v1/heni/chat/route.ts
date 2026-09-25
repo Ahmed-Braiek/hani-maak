@@ -43,7 +43,7 @@ async function externalPatientTurn(body:any){
   }finally{clearTimeout(timeout)}
 }
 
-export async function POST(req:Request){
+export async function OPTIONS(){return new Response(null,{status:204});}\n\nexport async function POST(req:Request){
   try{
     const body=await req.json().catch(()=>({}));
     const message=String(body?.message??"").trim();
