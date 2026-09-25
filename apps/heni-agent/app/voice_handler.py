@@ -54,7 +54,9 @@ def _opening_turn(locale: str, caregiver: bool = False) -> types.Content:
 
 async def handle_voice_connection(ws: WebSocket) -> None:
     origin = ws.headers.get("origin")
-    if not origin_allowed(origin):
+    # Browsers must come from an approved origin. Native Flutter WebSockets often
+    # omit Origin; the short-lived signed voice token remains mandatory.
+    if origin and not origin_allowed(origin):
         await ws.close(code=4403, reason="origin_not_allowed")
         return
 
@@ -69,9 +71,11 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         return
 
     locale = str(claims.get("locale") or "ar")
+    caregiver_id = str(claims.get("caregiverId") or "").strip() or None
     session = get_or_create_session(
         str(claims.get("sid") or "") or None,
         patient_id=patient_id,
+        caregiver_id=caregiver_id,
         locale=locale,
         source="voice",
     )
