@@ -1,6 +1,5 @@
 import {NextResponse} from "next/server";
 import {chatWithHeni} from "@/lib/heni/service";
-import {DEMO_PATIENT_ID} from "@/lib/seed";
 import {getStaffIdentity} from "@/lib/staff-auth";
 import type {HeniRole} from "@/lib/heni/types";
 
@@ -26,7 +25,8 @@ async function externalPatientTurn(body:any){
       body:JSON.stringify({
         message:String(body.message??"").trim(),
         locale:body.locale==="fr"||body.locale==="en"||body.locale==="ar"?body.locale:"ar",
-        patientId:DEMO_PATIENT_ID,
+        patientId:String(body.patientId||"30000000-0000-0000-0000-000000000001"),
+        caregiverId:String(body.caregiverId||"10000000-0000-0000-0000-000000000001"),
         source:String(body.source||"website"),
         sessionId:body.sessionId||undefined,
         confirmationToken:typeof body.confirmationToken==="string"?body.confirmationToken:undefined,
@@ -61,7 +61,7 @@ export async function POST(req:Request){
     const result=await chatWithHeni({
       message,
       locale:body?.locale,
-      patientId:body?.patientId,
+      patientId:body?.patientId||"30000000-0000-0000-0000-000000000001",
       role,
       source:body?.source,
       sessionId:body?.sessionId,
