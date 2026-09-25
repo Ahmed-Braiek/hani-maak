@@ -61,7 +61,7 @@ class HaniApiClient {
             'history': history.takeLast(16),
           }),
         )
-        .timeout(const Duration(seconds: 18));
+        .timeout(const Duration(seconds: 36));
 
     final decoded = jsonDecode(response.body);
     final body = decoded is Map<String, dynamic>
