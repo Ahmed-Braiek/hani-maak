@@ -65,9 +65,9 @@ async function getProfessionalRoutes(patientId: string) {
   ) as Json[];
   const ids = connections.map((x) => x.professional_id).filter(Boolean);
   if (!ids.length) return [];
-  const inList = ids.map((id) => `"${id}"`).join(",");
+  const inList = ids.join(",");
   const professionals = await sb(
-    `professional_profiles?select=id,full_name,specialty,facility_name,phone,whatsapp,booking_url,is_verified&id=in.(${encodeURIComponent(inList)})`,
+    `professional_profiles?select=id,full_name,specialty,facility_name,phone,whatsapp,booking_url,is_verified&id=in.(${inList})`,
   ) as Json[];
   const map = new Map(professionals.map((p) => [p.id, p]));
   return connections
@@ -78,10 +78,8 @@ async function getProfessionalRoutes(patientId: string) {
 async function caregiverContext(caregiverId: string, patientId: string) {
   const relationship = await requireRelationship(caregiverId, patientId);
   const [caregiver, patient, meds, instructions, incidentRows, tasks, wellbeing, circle] = await Promise.all([
-    first(`profiles?select=id,full_name,preferred_language,timezone,role&auth_user_id=is.null&id=eq.${encodeURIComponent(caregiverId)}&limit=1`)
-      .then(async (v) => v ?? first(`profiles?select=id,full_name,preferred_language,timezone,role&id=eq.${encodeURIComponent(caregiverId)}&limit=1`)),
-    first(`patients?select=id,display_name,preferred_name,date_of_birth,sex,alzheimer_stage,primary_language,important_notes&iss_demo=eq.false&id=eq.${encodeURIComponent(patientId)}&limit=1`)
-      .catch(() => first(`patients?select=id,display_name,preferred_name,date_of_birth,sex,alzheimer_stage,primary_language,important_notes,is_demo&id=eq.${encodeURIComponent(patientId)}&limit=1`)),
+    first(`profiles?select=id,full_name,preferred_language,timezone,role&id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
+    first(`patients?select=id,display_name,preferred_name,date_of_birth,sex,alzheimer_stage,primary_language,important_notes,is_demo&id=eq.${encodeURIComponent(patientId)}&limit=1`),
     sb(`patient_medications?select=id,medication_name,dose_text,schedule_text,instructions,verified,active&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true`),
     sb(`professional_instructions?select=id,instruction_type,title,body,status,verified_at,professional_id&patient_id=eq.${encodeURIComponent(patientId)}&status=eq.active`),
     sb(`incidents?select=id,reported_by_profile_id,scenario_id,title,summary,occurred_at,support_level,visibility,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=created_at.desc&limit=20`),
@@ -103,9 +101,9 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     ) as Json[];
     const memberIds = memberRows.map((m) => m.profile_id).filter(Boolean);
     if (memberIds.length) {
-      const inList = memberIds.map((id) => `"${id}"`).join(",");
+      const inList = memberIds.join(",");
       const people = await sb(
-        `profiles?select=id,full_name,avatar_url&id=in.(${encodeURIComponent(inList)})`,
+        `profiles?select=id,full_name,avatar_url&id=in.(${inList})`,
       ) as Json[];
       const peopleMap = new Map(people.map((p) => [p.id, p]));
       members = memberRows.map((m) => ({ ...m, profile: peopleMap.get(m.profile_id) ?? null }));
