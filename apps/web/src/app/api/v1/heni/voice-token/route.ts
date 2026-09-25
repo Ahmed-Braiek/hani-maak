@@ -1,6 +1,5 @@
 import {createHmac,randomUUID} from "node:crypto";
 import {NextResponse} from "next/server";
-import {DEMO_PATIENT_ID} from "@/lib/seed";
 
 export const dynamic="force-dynamic";
 
@@ -20,7 +19,9 @@ export async function POST(req:Request){
   const body=await req.json().catch(()=>({}));
   const locale=body?.locale==="fr"||body?.locale==="en"||body?.locale==="ar"?body.locale:"ar";
   const now=Math.floor(Date.now()/1000);const exp=now+120;
-  const payload={sid:randomUUID(),patientId:DEMO_PATIENT_ID,locale,iat:now,exp};
+  const caregiverId=String(body?.caregiverId||"10000000-0000-0000-0000-000000000001");
+  const patientId=String(body?.patientId||"30000000-0000-0000-0000-000000000001");
+  const payload={sid:randomUUID(),patientId,caregiverId,locale,iat:now,exp};
   const encoded=b64url(JSON.stringify(payload));
   const signature=createHmac("sha256",secret).update(encoded).digest("base64url");
   const token=`${encoded}.${signature}`;
