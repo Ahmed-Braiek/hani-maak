@@ -1,11 +1,16 @@
 import { timingSafeEqual } from "node:crypto";
+import dns from "node:dns";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+if (process.env.NODE_ENV !== "production") {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
 type Json = Record<string, any>;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.replace(/\/$/, "");
 const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function secureEqual(left: string | undefined, right: string | undefined) {
@@ -33,17 +38,69 @@ function headers(extra: Record<string, string> = {}) {
 
 async function sb(path: string, init: RequestInit = {}) {
   if (!supabaseUrl || !supabaseKey) throw new Error("supabase_not_configured");
-  const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
-    ...init,
-    headers: { ...headers(), ...(init.headers as Record<string, string> | undefined) },
-    cache: "no-store",
-  });
-  const raw = await response.text();
-  const body = raw ? JSON.parse(raw) : null;
-  if (!response.ok) {
-    throw new Error(body?.message || body?.error || `supabase_http_${response.status}`);
+
+  const url = `${supabaseUrl}/rest/v1/${path}`;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12_000);
+
+    try {
+      const response = await fetch(url, {
+        ...init,
+        headers: {
+          ...headers(),
+          ...(init.headers as Record<string, string> | undefined),
+        },
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      const raw = await response.text();
+      const body = raw ? JSON.parse(raw) : null;
+
+      if (!response.ok) {
+        throw new Error(
+          body?.message || body?.error || `supabase_http_${response.status}`,
+        );
+      }
+
+      return body;
+    } catch (error) {
+      lastError = error;
+
+      const cause =
+        error instanceof Error &&
+        "cause" in error &&
+        (error as Error & { cause?: unknown }).cause
+          ? (error as Error & { cause?: any }).cause
+          : null;
+
+      console.error("Supabase REST fetch failed", {
+        attempt,
+        host: (() => {
+          try {
+            return new URL(url).host;
+          } catch {
+            return "invalid_url";
+          }
+        })(),
+        message: error instanceof Error ? error.message : String(error),
+        causeCode: cause?.code,
+        causeMessage: cause?.message,
+      });
+
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
   }
-  return body;
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error("supabase_fetch_failed");
 }
 
 async function first(path: string) {
