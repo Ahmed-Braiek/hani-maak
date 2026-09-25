@@ -75,7 +75,7 @@ async function getProfessionalRoutes(patientId: string) {
     .filter((x) => x.professional?.is_verified === true);
 }
 
-export async function caregiverContext(caregiverId: string, patientId: string) {
+async function caregiverContext(caregiverId: string, patientId: string) {
   const relationship = await requireRelationship(caregiverId, patientId);
   const [caregiver, patient, meds, instructions, incidentRows, tasks, wellbeing, circle] = await Promise.all([
     first(`profiles?select=id,full_name,preferred_language,timezone,role&id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
@@ -126,7 +126,7 @@ export async function caregiverContext(caregiverId: string, patientId: string) {
   };
 }
 
-export async function recordDemoWellbeing(caregiverId: string, patientId: string, input: Json) {
+async function recordDemoWellbeing(caregiverId: string, patientId: string, input: Json) {
   await requireRelationship(caregiverId, patientId);
   const rows = await sb("wellbeing_checkins", {
     method: "POST",
@@ -144,7 +144,7 @@ export async function recordDemoWellbeing(caregiverId: string, patientId: string
   return rows?.[0] ?? null;
 }
 
-export async function shareDemoIncident(caregiverId: string, patientId: string, incidentId: string) {
+async function shareDemoIncident(caregiverId: string, patientId: string, incidentId: string) {
   await requireRelationship(caregiverId, patientId);
   const incident = await first(
     `incidents?select=*&id=eq.${encodeURIComponent(incidentId)}&reported_by_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
@@ -181,7 +181,7 @@ export async function shareDemoIncident(caregiverId: string, patientId: string, 
   return rows?.[0] ?? null;
 }
 
-export async function requestDemoCareTask(caregiverId: string, patientId: string, input: Json) {
+async function requestDemoCareTask(caregiverId: string, patientId: string, input: Json) {
   await requireRelationship(caregiverId, patientId);
   const recipientProfileId = clean(input.recipientProfileId, 120);
   const circle = await first(`care_circles?select=id&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`);
@@ -227,7 +227,7 @@ export async function requestDemoCareTask(caregiverId: string, patientId: string
   return { task, request: requestRows?.[0] ?? null };
 }
 
-export async function caregiverSupplement(caregiverId: string, patientId: string) {
+async function caregiverSupplement(caregiverId: string, patientId: string) {
   await requireRelationship(caregiverId, patientId);
   const [notifications, preferences, definitions] = await Promise.all([
     sb(`caregiver_notifications?select=id,category,title,body,action_type,action_payload,scheduled_for,delivered_at,opened_at,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
