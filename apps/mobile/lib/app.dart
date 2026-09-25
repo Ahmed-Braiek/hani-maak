@@ -11,7 +11,7 @@ import 'features/wellbeing/wellbeing_screen.dart';
 import 'features/wellbeing/questionnaire_screen.dart';
 import 'features/handoff/handoff_screen.dart';
 import 'features/notifications/notifications_screen.dart';
-import 'features/hani/hani_screen.dart';
+import 'features/hani/hani_chat_screen.dart';
 import 'features/hani/hani_voice_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -40,7 +40,7 @@ final router = GoRouter(
     GoRoute(
       parentNavigatorKey: _rootKey,
       path: '/hani',
-      builder: (_, __) => const HaniScreen(),
+      builder: (_, __) => const HaniChatScreen(),
     ),
     GoRoute(
       parentNavigatorKey: _rootKey,
