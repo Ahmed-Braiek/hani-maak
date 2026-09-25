@@ -126,6 +126,107 @@ export async function caregiverContext(caregiverId: string, patientId: string) {
   };
 }
 
+export async function recordDemoWellbeing(caregiverId: string, patientId: string, input: Json) {
+  await requireRelationship(caregiverId, patientId);
+  const rows = await sb("wellbeing_checkins", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      caregiver_profile_id: caregiverId,
+      patient_id: patientId,
+      mood_label: clean(input.moodLabel, 80) || null,
+      energy_label: clean(input.energyLabel, 80) || null,
+      sleep_label: clean(input.sleepLabel, 80) || null,
+      free_text: clean(input.freeText, 1200) || null,
+      source: "manual",
+    }),
+  });
+  return rows?.[0] ?? null;
+}
+
+export async function shareDemoIncident(caregiverId: string, patientId: string, incidentId: string) {
+  await requireRelationship(caregiverId, patientId);
+  const incident = await first(
+    `incidents?select=*&id=eq.${encodeURIComponent(incidentId)}&reported_by_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
+  );
+  if (!incident) throw new Error("incident_not_found_or_not_owned");
+
+  const rows = await sb(`incidents?id=eq.${encodeURIComponent(incidentId)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      visibility: "shared_care_timeline",
+      approved_to_share_by_profile_id: caregiverId,
+      shared_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }),
+  });
+
+  await sb("timeline_events", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      event_type: "incident",
+      title: incident.title || "Care incident",
+      summary: incident.summary,
+      occurred_at: incident.occurred_at || incident.created_at || new Date().toISOString(),
+      source_type: "incident",
+      source_id: incident.id,
+      created_by_profile_id: caregiverId,
+      visible_to_care_circle: true,
+    }),
+  });
+
+  return rows?.[0] ?? null;
+}
+
+export async function requestDemoCareTask(caregiverId: string, patientId: string, input: Json) {
+  await requireRelationship(caregiverId, patientId);
+  const recipientProfileId = clean(input.recipientProfileId, 120);
+  const circle = await first(`care_circles?select=id&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`);
+  if (!circle) throw new Error("care_circle_not_found");
+
+  const recipient = await first(
+    `care_circle_members?select=id&care_circle_id=eq.${circle.id}&profile_id=eq.${encodeURIComponent(recipientProfileId)}&status=eq.active&limit=1`,
+  );
+  if (!recipient) throw new Error("recipient_not_in_care_circle");
+
+  const taskRows = await sb("care_tasks", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      title: clean(input.title, 200) || "Care support",
+      description: clean(input.description, 1000) || null,
+      source: "manual",
+      requested_by_profile_id: caregiverId,
+      assigned_to_profile_id: null,
+      status: "requested",
+      effort_weight: Number(input.effortWeight) > 0 ? Number(input.effortWeight) : 1,
+      difficulty: ["light", "moderate", "heavy"].includes(input.difficulty) ? input.difficulty : "moderate",
+      due_at: input.dueAt || null,
+      overnight: false,
+      metadata: { source: "flutter-demo" },
+    }),
+  });
+  const task = taskRows?.[0];
+
+  const requestRows = await sb("care_task_requests", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      task_id: task.id,
+      requester_profile_id: caregiverId,
+      recipient_profile_id: recipientProfileId,
+      status: "pending",
+      message: clean(input.message, 500) || null,
+    }),
+  });
+
+  return { task, request: requestRows?.[0] ?? null };
+}
+
 export async function POST(req: Request) {
   const configured = process.env.HENI_AGENT_SHARED_SECRET;
   if (!configured) return NextResponse.json({ error: "agent_bridge_not_configured" }, { status: 503 });
