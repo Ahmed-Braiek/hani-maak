@@ -62,6 +62,7 @@ async def run_chat_turn(
     *,
     message: str,
     patient_id: str,
+    caregiver_id: str | None,
     locale: str,
     source: str,
     session_id: str | None,
@@ -71,6 +72,7 @@ async def run_chat_turn(
     session = get_or_create_session(
         session_id or str(uuid.uuid4()),
         patient_id=patient_id,
+        caregiver_id=caregiver_id,
         locale=locale,
         source=source,
     )
