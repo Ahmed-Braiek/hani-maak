@@ -12,6 +12,7 @@ from .config import settings
 class Session:
     id: str
     patient_id: str
+    caregiver_id: str | None = None
     locale: str = "ar"
     source: str = "voice"
     last_appointment_id: str | None = None
@@ -28,6 +29,7 @@ def get_or_create_session(
     session_id: str | None,
     *,
     patient_id: str,
+    caregiver_id: str | None = None,
     locale: str = "ar",
     source: str = "voice",
 ) -> Session:
@@ -35,11 +37,17 @@ def get_or_create_session(
     sid = session_id or str(uuid.uuid4())
     session = _sessions.get(sid)
     if session is None:
-        session = Session(id=sid, patient_id=patient_id, caregiver_id=caregiver_id, locale=locale, source=source)
+        session = Session(
+            id=sid,
+            patient_id=patient_id,
+            caregiver_id=caregiver_id,
+            locale=locale,
+            source=source,
+        )
         _sessions[sid] = session
     else:
-        # Identity comes from a trusted caller/token, never from model output.
         session.patient_id = patient_id
+        session.caregiver_id = caregiver_id or session.caregiver_id
         session.locale = locale or session.locale
         session.source = source or session.source
     session.last_active_at = time.time()
@@ -55,7 +63,8 @@ def touch_session(session_id: str) -> None:
 def cleanup_stale_sessions() -> None:
     now = time.time()
     stale = [
-        sid for sid, session in _sessions.items()
+        sid
+        for sid, session in _sessions.items()
         if now - session.last_active_at > settings.session_ttl_seconds
     ]
     for sid in stale:
