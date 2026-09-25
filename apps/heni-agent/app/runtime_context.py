@@ -15,7 +15,18 @@ def _usable(result: dict[str, Any]) -> dict[str, Any] | None:
 
 
 async def fetch_runtime_context(session) -> dict[str, Any]:
-    """Load fresh authorized patient and public hospital context on every turn/session."""
+    """Load fresh authorized context while keeping caregiver sessions fast."""
+    if session.caregiver_id:
+        caregiver = await call_hani_tool(
+            "get_caregiver_context",
+            {},
+            patient_id=session.patient_id,
+            caregiver_id=session.caregiver_id,
+            locale=session.locale,
+            source=session.source,
+        )
+        return {"caregiver": _usable(caregiver)}
+
     patient, hospital = await asyncio.gather(
         call_hani_tool(
             "get_patient_context",
@@ -32,19 +43,12 @@ async def fetch_runtime_context(session) -> dict[str, Any]:
             source=session.source,
         ),
     )
-    return {
-        "patient": _usable(patient),
-        "hospital": _usable(hospital),
-    }
+    return {"patient": _usable(patient), "hospital": _usable(hospital)}
 
 
 def build_runtime_system_prompt(context: dict[str, Any]) -> str:
-    safe_context = {
-        "patient": context.get("patient"),
-        "hospital": context.get("hospital"),
-    }
     runtime_json = json.dumps(
-        safe_context,
+        context,
         ensure_ascii=False,
         separators=(",", ":"),
         default=str,
@@ -52,12 +56,11 @@ def build_runtime_system_prompt(context: dict[str, Any]) -> str:
     return (
         HENI_SYSTEM_PROMPT
         + "\n\nRUNTIME CONTEXT\n"
-        + "The JSON below comes from authenticated/trusted Hani Maak backend tools for this session. "
-        + "Use it actively so the patient does not have to repeat known information. "
-        + "Patient context may include appointment history, upcoming appointment, service details, required documents, "
-        + "provider-approved preparation/follow-up, journey steps, reminders, caregiver scopes and waitlist state. "
-        + "When asked about what is next, summarize the relevant current step directly. "
-        + "Do not expose unrelated personal fields, and never turn administrative context into clinical advice. "
-        + "If a field is absent, use a tool or ask instead of inventing it.\n"
+        + "The JSON below comes from authenticated/trusted Hani Maak backend tools. "
+        + "For caregiver sessions it contains only the authorized caregiver, linked patient, shared care context, "
+        + "the caregiver's own private wellbeing/context, approved professional information and recent coordination state. "
+        + "Use it actively so the caregiver does not repeat known information. "
+        + "Never infer missing clinical facts. Never expose another caregiver's private wellbeing or Hani conversation. "
+        + "If a necessary fact is absent, use an approved tool or ask one concise question.\n"
         + runtime_json
     )
