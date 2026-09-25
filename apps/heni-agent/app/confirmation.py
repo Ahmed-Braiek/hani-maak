@@ -5,7 +5,15 @@ import re
 import uuid
 from typing import Any
 
-WRITE_TOOLS = {"create_appointment", "reschedule_appointment", "cancel_appointment"}
+WRITE_TOOLS = {
+    "create_appointment",
+    "reschedule_appointment",
+    "cancel_appointment",
+    "share_incident",
+    "request_care_task",
+    "create_professional_contact_request",
+    "create_caregiver_appointment",
+}
 
 _AFFIRMATIVE_PATTERNS = [
     r"\byes\b",
