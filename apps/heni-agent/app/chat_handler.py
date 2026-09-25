@@ -103,12 +103,22 @@ async def run_chat_turn(
             {"reasonCategory": "human_requested", "summary": message[:220]},
             session,
         )
-        answer = locale_message(
-            session.locale,
-            ar="حاضر. بعثت طلب للفريق باش موظف يعاونك." if result.get("success") else "ما نجّمتش نبعث الطلب توّا. إذا الأمر مستعجل اتصل مباشرة بالاستقبال أو بموظف في المكان.",
-            fr="D’accord. J’ai envoyé une demande à l’équipe pour qu’un membre du personnel vous aide." if result.get("success") else "Je n’ai pas pu envoyer la demande pour le moment. Si c’est urgent, contactez directement l’accueil ou le personnel sur place.",
-            en="Done. I sent a request to the team for a staff member to help you." if result.get("success") else "I could not send the request right now. If it is urgent, contact reception or on-site staff directly.",
-        )
+        if session.caregiver_id:
+            routes = result.get("routes") if isinstance(result, dict) else []
+            has_routes = isinstance(routes, list) and len(routes) > 0
+            answer = locale_message(
+                session.locale,
+                ar="أكيد. نجم نوصّلك بمختص مربوط بالحالة — مكالمة، واتساب أو طلب موعد. اختار شنوّة أنسبلك." if has_routes else "أكيد. نعاونك توصل لإنسان. ما لقيتش مسار مهني مربوط بالحالة توّا، لذلك ما باش نبعث حتى شيء من غير موافقتك.",
+                fr="Bien sûr. Je peux vous orienter vers un professionnel lié au suivi — appel, WhatsApp ou demande de rendez-vous. Choisissez ce qui vous convient." if has_routes else "Bien sûr. Je vais vous aider à joindre une personne. Aucun parcours professionnel n’est configuré pour le moment, et rien ne sera envoyé sans votre accord.",
+                en="Of course. I can connect you with a professional linked to the care plan — call, WhatsApp, or appointment request. Choose what works best." if has_routes else "Of course. I’ll help you reach a person. No professional route is configured right now, and nothing will be sent without your approval.",
+            )
+        else:
+            answer = locale_message(
+                session.locale,
+                ar="حاضر. بعثت طلب للفريق باش موظف يعاونك." if result.get("success") else "ما نجّمتش نبعث الطلب توّا. إذا الأمر مستعجل اتصل مباشرة بالاستقبال أو بموظف في المكان.",
+                fr="D’accord. J’ai envoyé une demande à l’équipe pour qu’un membre du personnel vous aide." if result.get("success") else "Je n’ai pas pu envoyer la demande pour le moment. Si c’est urgent, contactez directement l’accueil ou le personnel sur place.",
+                en="Done. I sent a request to the team for a staff member to help you." if result.get("success") else "I could not send the request right now. If it is urgent, contact reception or on-site staff directly.",
+            )
         return _base_result(answer, session, tool="request_human_help", tools=[{"name": "request_human_help", "args": {"reasonCategory": "human_requested"}, "result": result}])
 
     if is_doctor_name_question(message):
