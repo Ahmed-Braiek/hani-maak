@@ -16,8 +16,9 @@ async def call_hani_tool(
     source: str,
     caregiver_id: str | None = None,
 ) -> dict[str, Any]:
-    """Call the deterministic Hani Maak backend without letting transport errors crash Heni."""
-    url = f"{settings.backend_base_url}/api/v1/caregiver-agent/tools" if caregiver_id else f"{settings.backend_base_url}/api/v1/agent/tools"
+    """Call Hani's deterministic backend without letting transport failures kill the conversation."""
+    endpoint = "caregiver-agent/tools" if caregiver_id else "agent/tools"
+    url = f"{settings.backend_base_url}/api/v1/{endpoint}"
     headers = {
         "content-type": "application/json",
         "x-heni-agent-key": settings.shared_secret,
@@ -27,6 +28,7 @@ async def call_hani_tool(
         "args": args,
         "context": {
             "patientId": patient_id,
+            "caregiverId": caregiver_id,
             "locale": locale,
             "source": source,
         },
@@ -36,17 +38,9 @@ async def call_hani_tool(
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
             response = await client.post(url, headers=headers, json=payload)
     except httpx.TimeoutException:
-        return {
-            "success": False,
-            "error": "hani_backend_timeout",
-            "retryable": True,
-        }
+        return {"success": False, "error": "hani_backend_timeout", "retryable": True}
     except httpx.RequestError:
-        return {
-            "success": False,
-            "error": "hani_backend_unreachable",
-            "retryable": True,
-        }
+        return {"success": False, "error": "hani_backend_unreachable", "retryable": True}
 
     try:
         body = response.json()
@@ -54,8 +48,6 @@ async def call_hani_tool(
         body = {"error": "invalid_backend_response"}
 
     if not response.is_success:
-        # Return a bounded, model-readable error instead of raising. This keeps
-        # conversation alive even when one tool or deployment is temporarily down.
         return {
             "success": False,
             "error": str(body.get("error") or body.get("detail") or "hani_backend_error")[:160],
