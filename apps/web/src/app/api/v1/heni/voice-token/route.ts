@@ -12,7 +12,7 @@ function websocketBase(){
   return base;
 }
 
-export async function POST(req:Request){
+export async function OPTIONS(){return new Response(null,{status:204});}\n\nexport async function POST(req:Request){
   const secret=process.env.HENI_AGENT_SHARED_SECRET;
   const wsBase=websocketBase();
   if(!secret||!wsBase)return NextResponse.json({error:"live_voice_not_configured"},{status:503});
