@@ -10,6 +10,9 @@ class CaregiverContext {
     required this.wellbeing,
     required this.careCircle,
     required this.professionals,
+    required this.notifications,
+    required this.notificationPreferences,
+    required this.questionnaires,
   });
 
   final Map<String, dynamic> caregiver;
@@ -22,6 +25,9 @@ class CaregiverContext {
   final List<Map<String, dynamic>> wellbeing;
   final Map<String, dynamic>? careCircle;
   final List<Map<String, dynamic>> professionals;
+  final List<Map<String, dynamic>> notifications;
+  final Map<String, dynamic> notificationPreferences;
+  final List<Map<String, dynamic>> questionnaires;
 
   factory CaregiverContext.fromJson(Map<String, dynamic> json) {
     List<Map<String, dynamic>> maps(dynamic value) => (value as List? ?? const [])
@@ -45,6 +51,9 @@ class CaregiverContext {
           ? Map<String, dynamic>.from(json['careCircle'] as Map)
           : null,
       professionals: maps(json['professionalRoutes']),
+      notifications: maps(json['notifications']),
+      notificationPreferences: map(json['notificationPreferences']),
+      questionnaires: maps(json['questionnaires']),
     );
   }
 
