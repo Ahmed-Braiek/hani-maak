@@ -1,0 +1,72 @@
+name: Flutter caregiver preview
+
+on:
+  push:
+    branches:
+      - caregiver-mvp-rebuild
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/flutter-caregiver-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flutter-caregiver-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout rebuild branch
+        uses: actions/checkout@v4
+        with:
+          ref: caregiver-mvp-rebuild
+          fetch-depth: 0
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Flutter web host files
+        working-directory: apps/mobile
+        run: |
+          flutter create --platforms=web --project-name hani_maak_mobile .
+
+      - name: Resolve dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Analyze Dart
+        working-directory: apps/mobile
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build caregiver Flutter web app
+        working-directory: apps/mobile
+        run: |
+          flutter build web \
+            --release \
+            --base-href /flutter/ \
+            --dart-define=HANI_API_BASE=https://hani-maak.vercel.app
+
+      - name: Publish compiled Flutter app into the Vercel web host
+        run: |
+          rm -rf apps/web/public/flutter
+          mkdir -p apps/web/public/flutter
+          cp -R apps/mobile/build/web/. apps/web/public/flutter/
+
+      - name: Commit compiled preview
+        run: |
+          if git diff --quiet -- apps/web/public/flutter; then
+            echo "Flutter preview already current."
+            exit 0
+          fi
+          git config user.name "hani-maak-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f apps/web/public/flutter
+          git commit -m "Build Flutter caregiver preview [skip flutter]"
+          git push origin HEAD:caregiver-mvp-rebuild
