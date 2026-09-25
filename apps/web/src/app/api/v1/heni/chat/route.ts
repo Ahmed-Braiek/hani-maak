@@ -5,32 +5,18 @@ import type { HeniRole } from "@/lib/heni/types";
 
 export const dynamic = "force-dynamic";
 
-const LOCAL_FLUTTER_ORIGINS = new Set([
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-]);
-
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("origin");
-  if (!origin || !LOCAL_FLUTTER_ORIGINS.has(origin)) {
-    return {
-      "Access-Control-Allow-Methods": "POST,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    };
-  }
-
+function corsHeaders() {
   return {
-    "Access-Control-Allow-Origin": origin,
-    "Vary": "Origin",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "*",
     "Access-Control-Max-Age": "86400",
   };
 }
 
 function json(req: Request, body: unknown, init?: ResponseInit) {
   const response = NextResponse.json(body, init);
-  for (const [key, value] of Object.entries(corsHeaders(req))) {
+  for (const [key, value] of Object.entries(corsHeaders())) {
     response.headers.set(key, value);
   }
   return response;
@@ -124,7 +110,7 @@ async function externalPatientTurn(body: any) {
 export async function OPTIONS(req: Request) {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders(req),
+    headers: corsHeaders(),
   });
 }
 
