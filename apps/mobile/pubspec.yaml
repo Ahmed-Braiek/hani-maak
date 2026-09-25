@@ -16,6 +16,8 @@ dependencies:
   http: ^1.6.0
   web_socket_channel: ^3.0.3
   record: ^6.2.1
+  just_audio: ^0.10.5
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
