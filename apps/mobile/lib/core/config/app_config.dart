@@ -4,6 +4,13 @@ abstract final class AppConfig {
     defaultValue: 'https://hani-maak.vercel.app',
   );
 
+  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const supabasePublishableKey =
+      String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+
+  static bool get hasSupabaseAuth =>
+      supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty;
+
   static const demoCaregiverId =
       '10000000-0000-0000-0000-000000000001';
   static const demoPatientId =
