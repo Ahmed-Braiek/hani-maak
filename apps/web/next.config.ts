@@ -8,10 +8,10 @@ const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" }
 ];
 
-const localFlutterCorsHeaders = [
-  { key: "Access-Control-Allow-Origin", value: "http://localhost:5173" },
-  { key: "Access-Control-Allow-Methods", value: "GET,POST,OPTIONS" },
-  { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+const unrestrictedDevCors = [
+  { key: "Access-Control-Allow-Origin", value: "*" },
+  { key: "Access-Control-Allow-Methods", value: "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
+  { key: "Access-Control-Allow-Headers", value: "*" },
   { key: "Access-Control-Max-Age", value: "86400" }
 ];
 
@@ -20,9 +20,14 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
     const rules = [{ source: "/:path*", headers: securityHeaders }];
+
     if (process.env.NODE_ENV !== "production") {
-      rules.push({ source: "/api/:path*", headers: localFlutterCorsHeaders });
+      rules.push({
+        source: "/api/:path*",
+        headers: unrestrictedDevCors
+      });
     }
+
     return rules;
   }
 };
