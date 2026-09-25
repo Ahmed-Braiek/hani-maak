@@ -14,6 +14,7 @@ async def execute_tool(name: str, args: dict[str, Any], session) -> dict[str, An
         name,
         args,
         patient_id=session.patient_id,
+        caregiver_id=session.caregiver_id,
         locale=session.locale,
         source=session.source,
     )
