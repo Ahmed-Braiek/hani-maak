@@ -16,8 +16,28 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
+
     return Scaffold(
-      body: SafeArea(child: child),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            child,
+            Positioned(
+              top: 8,
+              right: 12,
+              child: Material(
+                color: Colors.white.withValues(alpha: .96),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: 'Notifications',
+                  onPressed: () => context.push('/notifications'),
+                  icon: const Icon(Icons.notifications_none_rounded),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'hani-fab',
         onPressed: () => context.push('/hani'),
@@ -33,10 +53,26 @@ class AppShell extends StatelessWidget {
           context.go(paths[index]);
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.today_outlined), selectedIcon: Icon(Icons.today), label: 'Today'),
-          NavigationDestination(icon: Icon(Icons.favorite_outline), selectedIcon: Icon(Icons.favorite), label: 'Patient'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Care Circle'),
-          NavigationDestination(icon: Icon(Icons.self_improvement_outlined), selectedIcon: Icon(Icons.self_improvement), label: 'Me'),
+          NavigationDestination(
+            icon: Icon(Icons.today_outlined),
+            selectedIcon: Icon(Icons.today_rounded),
+            label: 'Today',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite_outline_rounded),
+            selectedIcon: Icon(Icons.favorite_rounded),
+            label: 'Patient',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups_rounded),
+            label: 'Care Circle',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.self_improvement_outlined),
+            selectedIcon: Icon(Icons.self_improvement_rounded),
+            label: 'Me',
+          ),
         ],
       ),
     );
