@@ -84,7 +84,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
   static const int _playbackSampleRate = 24000;
   static const int _bytesPerSecond = _playbackSampleRate * 2;
-  static const int _chunkBytes = (_bytesPerSecond * 0.32).round();
+  static const int _chunkBytes = 15360; // 320 ms of 24 kHz mono PCM16.
 
   final _recorder = AudioRecorder();
   final _player = AudioPlayer();
