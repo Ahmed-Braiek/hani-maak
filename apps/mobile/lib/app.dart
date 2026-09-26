@@ -13,6 +13,8 @@ import 'features/dilemmas/dilemma_library_screen.dart';
 import 'features/patient/patient_screen.dart';
 import 'features/patient/patient_activity_screen.dart';
 import 'features/patient/care_hub_screen.dart';
+import 'features/patient/care_plan_screen.dart';
+import 'features/patient/care_documents_screen.dart';
 import 'features/patient/medication_screen.dart';
 import 'features/patient/summary_screen.dart';
 import 'features/care_circle/care_circle_screen.dart';
@@ -68,6 +70,8 @@ final router = GoRouter(
     GoRoute(parentNavigatorKey: _rootKey, path: '/care-hub', builder: (_, __) => const CareHubScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/medications', builder: (_, __) => const MedicationScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/summary', builder: (_, __) => const SummaryScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/care-plan', builder: (_, __) => const CarePlanScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/documents', builder: (_, __) => const CareDocumentsScreen()),
   ],
 );
 
