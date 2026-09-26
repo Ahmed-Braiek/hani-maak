@@ -600,6 +600,314 @@ async function updatePreferences(caregiverId: string, args: Json) {
   return rows?.[0] ?? null;
 }
 
+
+async function createMedication(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const name = clean(args.medicationName, 200);
+  if (!name) throw new Error("medication_name_required");
+
+  const medicationRows = await sb("patient_medications", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      medication_name: name,
+      dose_text: clean(args.doseText, 200) || null,
+      schedule_text: clean(args.scheduleText, 300) || null,
+      instructions: clean(args.instructions, 1000) || null,
+      verified: args.verified === true,
+      active: true,
+      starts_on: args.startsOn || null,
+      ends_on: args.endsOn || null,
+      external_ids: {
+        source: clean(args.source, 40) || "manual",
+        reviewedByCaregiver: true,
+      },
+    }),
+  });
+  const medication = medicationRows?.[0];
+  if (!medication?.id) throw new Error("medication_creation_failed");
+
+  const times = Array.isArray(args.times)
+    ? args.times.map((x) => clean(x, 8)).filter(Boolean)
+    : [];
+  if (times.length) {
+    await sb("medication_schedules", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        patient_medication_id: medication.id,
+        patient_id: patientId,
+        created_by_profile_id: caregiverId,
+        timezone: clean(args.timezone, 80) || "Africa/Tunis",
+        times,
+        days_of_week: Array.isArray(args.daysOfWeek)
+          ? args.daysOfWeek
+          : [1,2,3,4,5,6,7],
+        reminder_minutes_before: Math.max(
+          0,
+          Math.min(240, Number(args.reminderMinutesBefore) || 0),
+        ),
+        active: true,
+        starts_on: args.startsOn || null,
+        ends_on: args.endsOn || null,
+        notes: clean(args.scheduleNotes, 500) || null,
+      }),
+    });
+  }
+
+  return medication;
+}
+
+async function recordMedicationEvent(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const medicationId = clean(args.medicationId, 120);
+  const status = clean(args.status, 40);
+  if (!medicationId) throw new Error("medication_required");
+  if (!["taken", "skipped", "delayed", "pending"].includes(status)) {
+    throw new Error("invalid_medication_status");
+  }
+  const medication = await first(
+    `patient_medications?select=id&patient_id=eq.${encodeURIComponent(patientId)}&id=eq.${encodeURIComponent(medicationId)}&limit=1`,
+  );
+  if (!medication) throw new Error("medication_not_found");
+
+  const when = args.scheduledFor || new Date().toISOString();
+  const rows = await sb("medication_events", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      patient_medication_id: medicationId,
+      patient_id: patientId,
+      caregiver_profile_id: caregiverId,
+      scheduled_for: when,
+      status,
+      actual_at: status === "taken" || status === "delayed"
+        ? (args.actualAt || new Date().toISOString())
+        : null,
+      note: clean(args.note, 500) || null,
+      source: "caregiver_app",
+    }),
+  });
+  return rows?.[0] ?? null;
+}
+
+async function saveCareDocument(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const documentType = clean(args.documentType, 40);
+  if (!["prescription", "medication_box", "lab", "care_plan", "other"].includes(documentType)) {
+    throw new Error("invalid_document_type");
+  }
+  const title = clean(args.title, 220);
+  if (!title) throw new Error("document_title_required");
+
+  const rows = await sb("care_documents", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      uploaded_by_profile_id: caregiverId,
+      document_type: documentType,
+      title,
+      original_file_name: clean(args.originalFileName, 250) || null,
+      extracted_text: clean(args.extractedText, 12000) || null,
+      extraction_json:
+        args.extraction && typeof args.extraction === "object"
+          ? args.extraction
+          : {},
+      reviewed: args.reviewed === true,
+    }),
+  });
+  return rows?.[0] ?? null;
+}
+
+async function recordPatientActivity(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const type = clean(args.activityType, 80);
+  if (!type) throw new Error("activity_type_required");
+  const rows = await sb("patient_activity_sessions", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      caregiver_profile_id: caregiverId,
+      memory_item_id: clean(args.memoryItemId, 120) || null,
+      activity_type: type,
+      started_at: args.startedAt || new Date().toISOString(),
+      ended_at: args.endedAt || new Date().toISOString(),
+      response_label: clean(args.responseLabel, 100) || null,
+      note: clean(args.note, 1000) || null,
+      metadata:
+        args.metadata && typeof args.metadata === "object"
+          ? args.metadata
+          : {},
+    }),
+  });
+  return rows?.[0] ?? null;
+}
+
+function buildCareSummary(context: Json, summaryType: string) {
+  const patient = context.patient || {};
+  const name = clean(patient.preferred_name || patient.display_name, 120) || "Patient";
+  const meds = Array.isArray(context.medications) ? context.medications : [];
+  const events = Array.isArray(context.medicationEvents) ? context.medicationEvents : [];
+  const appointments = Array.isArray(context.appointments) ? context.appointments : [];
+  const tasks = Array.isArray(context.careTasks) ? context.careTasks : [];
+  const timeline = Array.isArray(context.timeline) ? context.timeline : [];
+
+  const taken = events.filter((e) => e.status === "taken").length;
+  const skipped = events.filter((e) => e.status === "skipped").length;
+  const delayed = events.filter((e) => e.status === "delayed").length;
+  const upcoming = appointments
+    .filter((a) => a.scheduled_for && new Date(a.scheduled_for).getTime() >= Date.now())
+    .slice(0, 3);
+  const openTasks = tasks.filter((t) => !["completed", "cancelled"].includes(t.status)).length;
+  const recent = timeline.slice(0, 3);
+
+  const lines = [
+    `Hani Maak — ${summaryType === "weekly" ? "Weekly" : "Daily"} summary for ${name}`,
+    "",
+    `Active medications: ${meds.length}`,
+    `Medication activity: ${taken} taken · ${skipped} skipped · ${delayed} delayed`,
+    `Open care tasks: ${openTasks}`,
+  ];
+
+  if (upcoming.length) {
+    lines.push("", "Upcoming appointments:");
+    for (const appointment of upcoming) {
+      const when = appointment.scheduled_for
+        ? new Date(appointment.scheduled_for).toLocaleString("en-GB", {
+            timeZone: "Africa/Tunis",
+          })
+        : "date pending";
+      lines.push(`- ${when}: ${clean(appointment.reason, 180) || "Care appointment"}`);
+    }
+  }
+
+  if (recent.length) {
+    lines.push("", "Recent shared care updates:");
+    for (const item of recent) {
+      lines.push(`- ${clean(item.title, 180)}${item.summary ? ": " + clean(item.summary, 240) : ""}`);
+    }
+  }
+
+  lines.push(
+    "",
+    "Private caregiver wellbeing and private Hani conversations are not included.",
+  );
+  return lines.join("\n");
+}
+
+async function deliverWhatsAppSummary(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const summaryType = clean(args.summaryType, 40) === "weekly" ? "weekly" : "daily";
+  const recipient = clean(args.recipient, 40) || "21627983305";
+  const context = await loadContext(caregiverId, patientId);
+  const summaryText = buildCareSummary(context, summaryType);
+
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const apiVersion = process.env.WHATSAPP_API_VERSION;
+
+  if (!phoneNumberId || !token || !apiVersion) {
+    const rows = await sb("summary_deliveries", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        caregiver_profile_id: caregiverId,
+        patient_id: patientId,
+        channel: "whatsapp",
+        recipient,
+        summary_type: summaryType,
+        status: "configuration_required",
+        summary_text: summaryText,
+        error: "whatsapp_provider_not_configured",
+        provider_response: {
+          requiredEnvironmentVariables: [
+            "WHATSAPP_PHONE_NUMBER_ID",
+            "WHATSAPP_ACCESS_TOKEN",
+            "WHATSAPP_API_VERSION",
+          ],
+        },
+      }),
+    });
+    return {
+      delivery: rows?.[0] ?? null,
+      sent: false,
+      configurationRequired: true,
+      summaryText,
+      requiredEnvironmentVariables: [
+        "WHATSAPP_PHONE_NUMBER_ID",
+        "WHATSAPP_ACCESS_TOKEN",
+        "WHATSAPP_API_VERSION",
+      ],
+    };
+  }
+
+  const response = await fetch(
+    `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: recipient.replace(/[^0-9]/g, ""),
+        type: "text",
+        text: {
+          preview_url: false,
+          body: summaryText,
+        },
+      }),
+    },
+  );
+  const providerResponse = await response.json().catch(() => ({}));
+  const messageId = providerResponse?.messages?.[0]?.id ?? null;
+  const status = response.ok ? "sent" : "failed";
+  const rows = await sb("summary_deliveries", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      caregiver_profile_id: caregiverId,
+      patient_id: patientId,
+      channel: "whatsapp",
+      recipient,
+      summary_type: summaryType,
+      status,
+      summary_text: summaryText,
+      provider_message_id: messageId,
+      provider_response: providerResponse,
+      error: response.ok ? null : clean(providerResponse?.error?.message, 1000) || "whatsapp_send_failed",
+      sent_at: response.ok ? new Date().toISOString() : null,
+    }),
+  });
+
+  return {
+    delivery: rows?.[0] ?? null,
+    sent: response.ok,
+    configurationRequired: false,
+    summaryText,
+    providerResponse,
+  };
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -670,6 +978,46 @@ export async function POST(req: Request) {
     }
     if (action === "update_app_preferences") {
       return json({ success: true, profile: await updateAppPreferences(caregiverId, args) });
+    }
+    if (action === "create_medication") {
+      return json({
+        success: true,
+        medication: await createMedication(caregiverId, patientId, args),
+      });
+    }
+    if (action === "record_medication_event") {
+      return json({
+        success: true,
+        event: await recordMedicationEvent(caregiverId, patientId, args),
+      });
+    }
+    if (action === "save_care_document") {
+      return json({
+        success: true,
+        document: await saveCareDocument(caregiverId, patientId, args),
+      });
+    }
+    if (action === "record_patient_activity") {
+      return json({
+        success: true,
+        activity: await recordPatientActivity(caregiverId, patientId, args),
+      });
+    }
+    if (action === "send_whatsapp_summary") {
+      return json({
+        success: true,
+        ...(await deliverWhatsAppSummary(caregiverId, patientId, args)),
+      });
+    }
+    if (action === "preview_summary") {
+      const context = await loadContext(caregiverId, patientId);
+      return json({
+        success: true,
+        summaryText: buildCareSummary(
+          context,
+          clean(args.summaryType, 40) === "weekly" ? "weekly" : "daily",
+        ),
+      });
     }
     if (action === "open_notification") {
       const id = clean(args.notificationId, 120);
