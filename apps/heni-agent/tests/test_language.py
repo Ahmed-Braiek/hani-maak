@@ -12,13 +12,13 @@ from app.language import (
 class LanguageTests(unittest.TestCase):
     def test_requested_language_switches(self):
         self.assertEqual(detect_requested_locale("parlez en arab"), "ar")
-        self.assertEqual(detect_requested_locale("tu peux parler tunisien"), "ar")
+        self.assertEqual(detect_requested_locale("tu peux parler tunisien"), "tn")
         self.assertEqual(detect_requested_locale("speak English"), "en")
         self.assertEqual(detect_requested_locale("parlez français"), "fr")
 
     def test_tunisian_romanized_language_detection(self):
-        self.assertEqual(detect_likely_locale("nheb naamel rendez vous"), "ar")
-        self.assertEqual(detect_likely_locale("3andi rendez-vous ghodwa"), "ar")
+        self.assertEqual(detect_likely_locale("nheb naamel rendez vous"), "tn")
+        self.assertEqual(detect_likely_locale("3andi rendez-vous ghodwa"), "tn")
 
     def test_human_help_variants(self):
         self.assertTrue(is_human_help_request("aide humain"))
