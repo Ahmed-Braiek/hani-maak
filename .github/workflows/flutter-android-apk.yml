@@ -54,6 +54,10 @@ jobs:
           permissions = """<uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.RECORD_AUDIO" />
               <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+              <uses-permission android:name="android.permission.CAMERA" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+              <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
               """
 
           if "android.permission.RECORD_AUDIO" not in text:
@@ -82,7 +86,141 @@ jobs:
               """
               text = text.replace("</manifest>", queries + "\n</manifest>")
 
+          receiver = """
+              <receiver
+                  android:name=".HaniMaakWidgetProvider"
+                  android:exported="true">
+                  <intent-filter>
+                      <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                  </intent-filter>
+                  <meta-data
+                      android:name="android.appwidget.provider"
+                      android:resource="@xml/hani_maak_widget_info" />
+              </receiver>
+          """
+          if "HaniMaakWidgetProvider" not in text:
+              text = text.replace("</application>", receiver + "\n    </application>")
+
           manifest.write_text(text)
+
+          layout = Path("android/app/src/main/res/layout/hani_maak_widget.xml")
+          layout.parent.mkdir(parents=True, exist_ok=True)
+          layout.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/widget_root"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:padding="16dp"
+              android:background="#EAF6FF">
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Hani Maak"
+                  android:textColor="#0E61C6"
+                  android:textStyle="bold"
+                  android:textSize="16sp" />
+              <TextView
+                  android:id="@+id/widget_patient"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="6dp"
+                  android:textColor="#12324A"
+                  android:textStyle="bold"
+                  android:textSize="14sp" />
+              <TextView
+                  android:id="@+id/widget_medication"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="8dp"
+                  android:textColor="#42647E"
+                  android:textSize="12sp" />
+              <TextView
+                  android:id="@+id/widget_appointment"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="4dp"
+                  android:textColor="#42647E"
+                  android:textSize="12sp" />
+              <TextView
+                  android:id="@+id/widget_status"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="4dp"
+                  android:textColor="#199AED"
+                  android:textStyle="bold"
+                  android:textSize="12sp" />
+          </LinearLayout>
+          """)
+
+          info = Path("android/app/src/main/res/xml/hani_maak_widget_info.xml")
+          info.parent.mkdir(parents=True, exist_ok=True)
+          info.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+              android:minWidth="250dp"
+              android:minHeight="110dp"
+              android:updatePeriodMillis="1800000"
+              android:initialLayout="@layout/hani_maak_widget"
+              android:resizeMode="horizontal|vertical"
+              android:widgetCategory="home_screen" />
+          """)
+
+          provider = Path("android/app/src/main/kotlin/com/hanimaak/hani_maak_mobile/HaniMaakWidgetProvider.kt")
+          provider.parent.mkdir(parents=True, exist_ok=True)
+          provider.write_text("""package com.hanimaak.hani_maak_mobile
+
+          import android.app.PendingIntent
+          import android.appwidget.AppWidgetManager
+          import android.content.Context
+          import android.content.SharedPreferences
+          import android.widget.RemoteViews
+          import es.antonborri.home_widget.HomeWidgetProvider
+
+          class HaniMaakWidgetProvider : HomeWidgetProvider() {
+              override fun onUpdate(
+                  context: Context,
+                  appWidgetManager: AppWidgetManager,
+                  appWidgetIds: IntArray,
+                  widgetData: SharedPreferences
+              ) {
+                  appWidgetIds.forEach { widgetId ->
+                      val views = RemoteViews(context.packageName, R.layout.hani_maak_widget)
+                      views.setTextViewText(
+                          R.id.widget_patient,
+                          widgetData.getString("patient_name", "Patient")
+                      )
+                      views.setTextViewText(
+                          R.id.widget_medication,
+                          widgetData.getString("next_medication", "No medication due")
+                      )
+                      views.setTextViewText(
+                          R.id.widget_appointment,
+                          widgetData.getString("next_appointment", "No upcoming appointment")
+                      )
+                      val tasks = widgetData.getInt("open_tasks", 0)
+                      val status = widgetData.getString("care_status", "Care plan up to date")
+                      views.setTextViewText(
+                          R.id.widget_status,
+                          "$tasks open tasks · $status"
+                      )
+
+                      val launch = context.packageManager
+                          .getLaunchIntentForPackage(context.packageName)
+                      if (launch != null) {
+                          val pending = PendingIntent.getActivity(
+                              context,
+                              0,
+                              launch,
+                              PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                          )
+                          views.setOnClickPendingIntent(R.id.widget_root, pending)
+                      }
+
+                      appWidgetManager.updateAppWidget(widgetId, views)
+                  }
+              }
+          }
+          """)
 
           gradle = Path("android/app/build.gradle.kts")
           if gradle.exists():
