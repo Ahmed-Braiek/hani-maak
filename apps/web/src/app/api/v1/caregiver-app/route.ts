@@ -258,6 +258,158 @@ async function respondTask(caregiverId: string, requestId: string, args: Json) {
   return rows?.[0] ?? null;
 }
 
+function scoreQuestion(answer: unknown, rule: Json) {
+  const scores = (rule?.scores || rule?.option_scores || rule?.optionScores) as Json | undefined;
+  if (scores && answer != null && Object.prototype.hasOwnProperty.call(scores, String(answer))) {
+    const value = Number(scores[String(answer)]);
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof answer === "number" && Number.isFinite(answer)) {
+    const multiplier = Number(rule?.multiplier ?? 1);
+    return answer * (Number.isFinite(multiplier) ? multiplier : 1);
+  }
+  if (typeof answer === "boolean") {
+    const trueScore = Number(rule?.true ?? rule?.true_score ?? 1);
+    const falseScore = Number(rule?.false ?? rule?.false_score ?? 0);
+    return answer
+      ? (Number.isFinite(trueScore) ? trueScore : 1)
+      : (Number.isFinite(falseScore) ? falseScore : 0);
+  }
+  return 0;
+}
+
+function interpretScore(score: number, config: Json) {
+  const bands = Array.isArray(config?.bands) ? config.bands : [];
+  for (const band of bands) {
+    const min = Number(band?.min ?? Number.NEGATIVE_INFINITY);
+    const max = Number(band?.max ?? Number.POSITIVE_INFINITY);
+    if (score >= min && score <= max) {
+      return {
+        key: clean(band?.key, 120) || null,
+        text: clean(band?.text, 1200) || null,
+        trendLabel: clean(band?.trend_label ?? band?.trendLabel, 120) || null,
+        requiresProfessionalSupport: band?.requires_professional_support === true ||
+          band?.requiresProfessionalSupport === true,
+      };
+    }
+  }
+  return {
+    key: null,
+    text: null,
+    trendLabel: null,
+    requiresProfessionalSupport: false,
+  };
+}
+
+async function getQuestionnaire(versionId: string) {
+  const version = await first(
+    `questionnaire_versions?select=id,questionnaire_id,version_label,language,validation_status,validation_reference,scoring_config,interpretation_config,active&id=eq.${encodeURIComponent(versionId)}&active=eq.true&validation_status=eq.validated&limit=1`,
+  );
+  if (!version) throw new Error("validated_questionnaire_not_found");
+  const definition = await first(
+    `questionnaire_definitions?select=id,code,name,purpose,owner,active&id=eq.${encodeURIComponent(version.questionnaire_id)}&active=eq.true&limit=1`,
+  );
+  const questions = await sb(
+    `questionnaire_questions?select=id,display_order,prompt,response_type,options,scoring_rule,required&version_id=eq.${encodeURIComponent(versionId)}&order=display_order.asc`,
+  );
+  return { version, definition, questions };
+}
+
+async function submitQuestionnaire(
+  caregiverId: string,
+  patientId: string,
+  versionId: string,
+  answers: Json[],
+) {
+  const questionnaire = await getQuestionnaire(versionId);
+  const questions = questionnaire.questions as Json[];
+  const answerMap = new Map(answers.map((a) => [clean(a.questionId, 120), a.answer]));
+
+  for (const question of questions) {
+    if (question.required === true && !answerMap.has(String(question.id))) {
+      throw new Error("required_question_missing");
+    }
+  }
+
+  const sessionRows = await sb("questionnaire_sessions", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      version_id: versionId,
+      caregiver_profile_id: caregiverId,
+      patient_id: patientId,
+      trigger_type: "manual",
+      status: "in_progress",
+      started_at: new Date().toISOString(),
+    }),
+  });
+  const session = sessionRows?.[0];
+  if (!session?.id) throw new Error("questionnaire_session_failed");
+
+  const answerRows = questions
+    .filter((q) => answerMap.has(String(q.id)))
+    .map((q) => ({
+      session_id: session.id,
+      question_id: q.id,
+      answer: { value: answerMap.get(String(q.id)) },
+    }));
+  if (answerRows.length) {
+    await sb("questionnaire_answers", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(answerRows),
+    });
+  }
+
+  let score = 0;
+  let hasScoring = false;
+  for (const question of questions) {
+    if (!answerMap.has(String(question.id))) continue;
+    const rule = question.scoring_rule && typeof question.scoring_rule === "object"
+      ? question.scoring_rule
+      : {};
+    if (Object.keys(rule).length) hasScoring = true;
+    score += scoreQuestion(answerMap.get(String(question.id)), rule);
+  }
+
+  const interpretation = hasScoring
+    ? interpretScore(score, questionnaire.version.interpretation_config || {})
+    : {
+        key: null,
+        text: null,
+        trendLabel: null,
+        requiresProfessionalSupport: false,
+      };
+
+  const resultRows = await sb("questionnaire_results", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      session_id: session.id,
+      raw_score: hasScoring ? score : null,
+      interpretation_key: interpretation.key,
+      interpretation_text: interpretation.text,
+      trend_label: interpretation.trendLabel,
+      requires_professional_support: interpretation.requiresProfessionalSupport,
+    }),
+  });
+
+  await sb(`questionnaire_sessions?id=eq.${encodeURIComponent(session.id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+    }),
+  });
+
+  return {
+    session: { ...session, status: "completed" },
+    result: resultRows?.[0] ?? null,
+    interpretationOnly: true,
+  };
+}
+
 async function updatePreferences(caregiverId: string, args: Json) {
   const payload: Json = {
     caregiver_profile_id: caregiverId,
@@ -310,6 +462,20 @@ export async function POST(req: Request) {
     if (!caregiverId || !patientId) return json({ error: "caregiver_and_patient_required" }, { status: 400 });
     await verifyIdentity(req, caregiverId, patientId);
 
+    if (action === "get_questionnaire") {
+      const versionId = clean(args.versionId, 120);
+      if (!versionId) return json({ error: "questionnaire_version_required" }, { status: 400 });
+      return json({ success: true, questionnaire: await getQuestionnaire(versionId) });
+    }
+    if (action === "submit_questionnaire") {
+      const versionId = clean(args.versionId, 120);
+      const answers = Array.isArray(args.answers) ? args.answers as Json[] : [];
+      if (!versionId) return json({ error: "questionnaire_version_required" }, { status: 400 });
+      return json({
+        success: true,
+        ...(await submitQuestionnaire(caregiverId, patientId, versionId, answers)),
+      });
+    }
     if (action === "record_wellbeing_checkin") {
       const rows = await sb("wellbeing_checkins", {
         method: "POST",
