@@ -83,67 +83,71 @@ class _HaniMarkPainter extends CustomPainter {
         ? const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.white, Color(0xFFE8F6FF)],
+            colors: [
+              Colors.white,
+              Color(0xFFF2F2F2),
+              Color(0xFFD8D8D8),
+            ],
           )
         : const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF0E61C6),
-              Color(0xFF199AED),
-              Color(0xFF18BFF6),
+              HaniColors.brandBlueDeep,
+              HaniColors.brandSky,
+              HaniColors.brandCyan,
             ],
           );
     final paint = Paint()
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.shortestSide * .16
+      ..strokeWidth = size.shortestSide * .145
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     final left = Path()
-      ..moveTo(size.width * .48, size.height * .74)
+      ..moveTo(size.width * .48, size.height * .75)
       ..cubicTo(
-        size.width * .34,
-        size.height * .58,
-        size.width * .07,
-        size.height * .58,
-        size.width * .09,
+        size.width * .31,
+        size.height * .62,
+        size.width * .06,
+        size.height * .59,
+        size.width * .08,
         size.height * .34,
       )
       ..cubicTo(
-        size.width * .11,
+        size.width * .10,
         size.height * .13,
-        size.width * .34,
-        size.height * .13,
+        size.width * .32,
+        size.height * .11,
         size.width * .49,
-        size.height * .35,
+        size.height * .34,
       )
       ..cubicTo(
         size.width * .61,
-        size.height * .54,
+        size.height * .50,
         size.width * .63,
-        size.height * .65,
+        size.height * .66,
         size.width * .48,
-        size.height * .74,
+        size.height * .75,
       );
 
     final right = Path()
       ..moveTo(size.width * .47, size.height * .35)
       ..cubicTo(
-        size.width * .59,
-        size.height * .13,
+        size.width * .60,
+        size.height * .12,
         size.width * .84,
-        size.height * .11,
-        size.width * .9,
-        size.height * .31,
+        size.height * .08,
+        size.width * .91,
+        size.height * .30,
       )
       ..cubicTo(
-        size.width * .97,
-        size.height * .54,
-        size.width * .74,
-        size.height * .78,
-        size.width * .5,
+        size.width * .99,
+        size.height * .55,
+        size.width * .76,
+        size.height * .80,
+        size.width * .50,
         size.height * .76,
       );
 
