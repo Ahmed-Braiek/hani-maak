@@ -42,6 +42,43 @@ class CaregiverContextApi {
     return CaregiverContext.fromJson(_demoContext);
   }
 
+  Future<Map<String, dynamic>> ocrPrescription({
+    required String imageBase64,
+    required String mimeType,
+    required String documentType,
+    required String locale,
+  }) async {
+    final identity = await CaregiverIdentity.resolve();
+    final response = await _client
+        .post(
+          Uri.parse('${AppConfig.apiBase}/api/v1/heni/ocr-prescription'),
+          headers: {
+            'content-type': 'application/json',
+            ...identity.authHeaders,
+          },
+          body: jsonEncode({
+            'caregiverId': identity.caregiverId,
+            'patientId': identity.patientId,
+            'imageBase64': imageBase64,
+            'mimeType': mimeType,
+            'documentType': documentType,
+            'locale': locale,
+          }),
+        )
+        .timeout(const Duration(seconds: 50));
+
+    final decoded = jsonDecode(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = decoded is Map
+          ? decoded['error']?.toString() ?? 'ocr_failed'
+          : 'ocr_failed';
+      throw StateError(message);
+    }
+    return decoded is Map
+        ? Map<String, dynamic>.from(decoded)
+        : <String, dynamic>{};
+  }
+
   Future<Map<String, dynamic>?> action(
     String action, {
     Map<String, dynamic> args = const {},
