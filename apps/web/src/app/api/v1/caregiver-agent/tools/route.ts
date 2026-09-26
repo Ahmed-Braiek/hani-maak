@@ -443,7 +443,7 @@ async function recordHaniTurn(
   const haniText = clean(args.haniText, 4000);
 
   let conversation = await first(
-    `hani_conversations?select=id& id=eq.${encodeURIComponent(sessionId)}&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`.replace("?select=id& id=", "?select=id&id="),
+    `hani_conversations?select=id&id=eq.${encodeURIComponent(sessionId)}&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
   );
 
   if (!conversation) {
