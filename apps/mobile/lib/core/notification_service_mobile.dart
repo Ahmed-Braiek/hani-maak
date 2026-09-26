@@ -36,7 +36,7 @@ class _MobileNotificationService implements HaniNotificationService {
       tz.setLocalLocation(tz.getLocation('Africa/Tunis'));
     } catch (_) {}
 
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('hani_notification');
     const settings = InitializationSettings(android: android);
 
     await _plugin.initialize(
@@ -75,7 +75,7 @@ class _MobileNotificationService implements HaniNotificationService {
         importance: channel.importance,
         priority: Priority.high,
         category: AndroidNotificationCategory.reminder,
-        icon: '@mipmap/ic_launcher',
+        icon: 'hani_notification',
       ),
     );
   }
