@@ -22,6 +22,57 @@ class ConfirmationTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertIsNone(session.pending_action)
 
+    def test_caregiver_sharing_requires_confirmation(self):
+        session = SimpleNamespace(pending_action=None, last_user_text="share it")
+        args = {"incidentId": "incident-1"}
+        allowed, result = guard_write_action("share_incident", args, session)
+        self.assertFalse(allowed)
+        self.assertEqual(result["action"], "share_incident")
+
+        session.last_user_text = "yes I confirm"
+        allowed, result = guard_write_action("share_incident", args, session)
+        self.assertTrue(allowed)
+        self.assertIsNone(result)
+
+    def test_care_circle_request_requires_confirmation(self):
+        session = SimpleNamespace(pending_action=None, last_user_text="ask Sami")
+        args = {
+            "recipientProfileId": "caregiver-2",
+            "title": "Morning coverage",
+        }
+        allowed, result = guard_write_action("request_care_task", args, session)
+        self.assertFalse(allowed)
+        self.assertTrue(result["requiresConfirmation"])
+
+        session.last_user_text = "oui je confirme"
+        allowed, result = guard_write_action("request_care_task", args, session)
+        self.assertTrue(allowed)
+        self.assertIsNone(result)
+
+    def test_professional_handoff_requires_confirmation(self):
+        session = SimpleNamespace(pending_action=None, last_user_text="contact doctor")
+        args = {
+            "professionalId": "professional-1",
+            "channel": "whatsapp",
+            "summary": "Relevant incident only",
+        }
+        allowed, result = guard_write_action(
+            "create_professional_contact_request",
+            args,
+            session,
+        )
+        self.assertFalse(allowed)
+        self.assertTrue(result["requiresConfirmation"])
+
+        session.last_user_text = "I confirm"
+        allowed, result = guard_write_action(
+            "create_professional_contact_request",
+            args,
+            session,
+        )
+        self.assertTrue(allowed)
+        self.assertIsNone(result)
+
 
 if __name__ == "__main__":
     unittest.main()
