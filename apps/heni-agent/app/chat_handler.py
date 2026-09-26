@@ -148,14 +148,16 @@ async def run_chat_turn(
             has_routes = isinstance(routes, list) and len(routes) > 0
             answer = locale_message(
                 session.locale,
-                ar="أكيد. نجم نوصّلك بمختص مربوط بالحالة — مكالمة، واتساب أو طلب موعد. اختار شنوّة أنسبلك." if has_routes else "أكيد. نعاونك توصل لإنسان. ما لقيتش مسار مهني مربوط بالحالة توّا، لذلك ما باش نبعث حتى شيء من غير موافقتك.",
+                tn="أكيد. نجم نوصّلك بمختص مربوط بالحالة — مكالمة، واتساب أو طلب موعد. اختار شنوّة أنسبلك." if has_routes else "أكيد. نعاونك توصل لإنسان. ما لقيتش مسار مهني مربوط بالحالة توّا، لذلك ما باش نبعث حتى شيء من غير موافقتك.",
+                ar="بالتأكيد. يمكنني مساعدتك في الوصول إلى مختص مرتبط بخطة الرعاية — عبر مكالمة أو واتساب أو طلب موعد. اختر ما يناسبك." if has_routes else "بالتأكيد. سأساعدك في الوصول إلى شخص. لا يوجد مسار مهني مرتبط بالحالة حاليًا، ولن أرسل أي معلومات دون موافقتك.",
                 fr="Bien sûr. Je peux vous orienter vers un professionnel lié au suivi — appel, WhatsApp ou demande de rendez-vous. Choisissez ce qui vous convient." if has_routes else "Bien sûr. Je vais vous aider à joindre une personne. Aucun parcours professionnel n’est configuré pour le moment, et rien ne sera envoyé sans votre accord.",
                 en="Of course. I can connect you with a professional linked to the care plan — call, WhatsApp, or appointment request. Choose what works best." if has_routes else "Of course. I’ll help you reach a person. No professional route is configured right now, and nothing will be sent without your approval.",
             )
         else:
             answer = locale_message(
                 session.locale,
-                ar="حاضر. بعثت طلب للفريق باش موظف يعاونك." if result.get("success") else "ما نجّمتش نبعث الطلب توّا. إذا الأمر مستعجل اتصل مباشرة بالاستقبال أو بموظف في المكان.",
+                tn="حاضر. بعثت طلب للفريق باش موظف يعاونك." if result.get("success") else "ما نجّمتش نبعث الطلب توّا. إذا الأمر مستعجل اتصل مباشرة بالاستقبال أو بموظف في المكان.",
+                ar="تم. أرسلت طلبًا إلى الفريق ليقوم أحد الموظفين بمساعدتك." if result.get("success") else "تعذر إرسال الطلب الآن. إذا كان الأمر عاجلًا، تواصل مباشرة مع الاستقبال أو أحد الموظفين في المكان.",
                 fr="D’accord. J’ai envoyé une demande à l’équipe pour qu’un membre du personnel vous aide." if result.get("success") else "Je n’ai pas pu envoyer la demande pour le moment. Si c’est urgent, contactez directement l’accueil ou le personnel sur place.",
                 en="Done. I sent a request to the team for a staff member to help you." if result.get("success") else "I could not send the request right now. If it is urgent, contact reception or on-site staff directly.",
             )
@@ -182,7 +184,8 @@ async def run_chat_turn(
         return _base_result(
             locale_message(
                 session.locale,
-                ar="ما عنديش اسم طبيب مؤكّد للمصلحة هاذي في المعطيات المتوفرة، وما نحبّش نعطيك اسم من غير تأكيد. نجم نطلبلك مساعدة من موظف.",
+                tn="ما عنديش اسم طبيب مؤكّد للمصلحة هاذي في المعطيات المتوفرة، وما نحبّش نعطيك اسم من غير تأكيد. نجم نطلبلك مساعدة من موظف.",
+                ar="لا أملك اسم طبيب موثقًا لهذه الخدمة ضمن البيانات المتاحة، ولا أريد أن أذكر اسمًا غير مؤكد. يمكنني طلب مساعدة أحد الموظفين.",
                 fr="Je n’ai pas de nom de médecin vérifié pour ce service dans les données disponibles. Je peux demander à un membre du personnel de vous aider.",
                 en="I do not have a verified doctor name for this service in the available data. I can ask a staff member to help.",
             ),
@@ -270,7 +273,8 @@ async def run_chat_turn(
     if not reply:
         reply = locale_message(
             session.locale,
-            ar="سامحني، ما نجّمتش نكمّل الإجابة توّا. تنجم تعاود السؤال أو نطلبلك مساعدة من موظف.",
+            tn="سامحني، ما نجّمتش نكمّل الإجابة توّا. تنجم تعاود السؤال أو نطلبلك مساعدة من موظف.",
+            ar="عذرًا، لم أتمكن من إكمال الإجابة الآن. يمكنك إعادة صياغة السؤال أو طلب المساعدة من شخص مختص.",
             fr="Désolé, je n’ai pas pu terminer la réponse. Vous pouvez reformuler ou me demander de contacter un membre du personnel.",
             en="Sorry, I could not complete the answer. You can rephrase or ask me to contact a staff member.",
         )
