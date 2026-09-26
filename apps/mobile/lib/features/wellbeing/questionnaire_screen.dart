@@ -18,7 +18,7 @@ class QuestionnaireScreen extends ConsumerWidget {
         title: Text(
           language == HaniLanguage.french
               ? 'Questionnaire de bien-être'
-              : language == HaniLanguage.tounsi
+              : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                   ? 'استبيان الراحة النفسية'
                   : 'Wellbeing questionnaire',
         ),
@@ -48,7 +48,7 @@ class QuestionnaireScreen extends ConsumerWidget {
                     Text(
                       language == HaniLanguage.french
                           ? 'Vos réponses restent privées.'
-                          : language == HaniLanguage.tounsi
+                          : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                               ? 'إجاباتك تبقى خاصّة بيك.'
                               : 'Your answers stay private.',
                       style: const TextStyle(
@@ -60,7 +60,7 @@ class QuestionnaireScreen extends ConsumerWidget {
                     Text(
                       language == HaniLanguage.french
                           ? 'Un résumé n’est partagé avec un professionnel qu’avec votre accord.'
-                          : language == HaniLanguage.tounsi
+                          : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                               ? 'ما يتشارك حتى ملخّص مع مختص كان بموافقتك.'
                               : 'A professional receives a summary only after your explicit approval.',
                       style: const TextStyle(
@@ -75,7 +75,7 @@ class QuestionnaireScreen extends ConsumerWidget {
               HaniSectionHeader(
                 title: language == HaniLanguage.french
                     ? 'Instruments validés'
-                    : language == HaniLanguage.tounsi
+                    : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                         ? 'الأدوات المصادق عليها'
                         : 'Validated instruments',
               ),
@@ -161,7 +161,7 @@ class _PendingInstrument extends StatelessWidget {
               Text(
                 language == HaniLanguage.french
                     ? 'Le parcours est prêt, mais Hani Maak n’invente ni questions ni score. L’instrument validé par le spécialiste doit être chargé.'
-                    : language == HaniLanguage.tounsi
+                    : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                         ? 'المسار حاضر، أمّا هاني ما يخترعش أسئلة ولا سكور. لازم تتحطّ الأداة اللي صادق عليها المختص.'
                         : 'The flow is ready, but Hani Maak does not invent questionnaire wording or scoring. A specialist-approved instrument must be loaded.',
                 style: const TextStyle(height: 1.5),
