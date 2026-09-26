@@ -1,0 +1,51 @@
+name: Caregiver production upgrade check
+
+on:
+  push:
+    branches:
+      - caregiver-production-upgrade
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/caregiver-production-check.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: caregiver-production-upgrade-check
+  cancel-in-progress: true
+
+jobs:
+  flutter-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production upgrade
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate web host files
+        working-directory: apps/mobile
+        run: |
+          flutter create --platforms=web --project-name hani_maak_mobile .
+          rm -f test/widget_test.dart
+
+      - name: Resolve dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: apps/mobile
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build web
+        working-directory: apps/mobile
+        run: |
+          flutter build web --release \
+            --dart-define=HANI_API_BASE=http://localhost:3000 \
+            --dart-define=SUPABASE_URL=https://lhrngmuxmjpigycgonnh.supabase.co \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY=placeholder
