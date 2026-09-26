@@ -43,12 +43,12 @@ class WellbeingScreen extends ConsumerWidget {
             HaniPageHeader(
               title: language == HaniLanguage.french
                   ? 'Mon espace'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'مساحتي'
                       : 'My space',
               subtitle: language == HaniLanguage.french
                   ? 'Votre bien-être reste privé par défaut.'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'إحساسك وكلامك مع هاني يبقاو خاصّين بيك.'
                       : 'Your wellbeing stays private by default.',
               trailing: IconButton.filledTonal(
@@ -73,7 +73,7 @@ class WellbeingScreen extends ConsumerWidget {
                   Text(
                     language == HaniLanguage.french
                         ? 'Comment tenez-vous aujourd’hui ?'
-                        : language == HaniLanguage.tounsi
+                        : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                             ? 'كيفاش إنت اليوم؟'
                             : 'How are you holding up today?',
                     style: const TextStyle(
@@ -86,7 +86,7 @@ class WellbeingScreen extends ConsumerWidget {
                   Text(
                     language == HaniLanguage.french
                         ? 'Un mot suffit. Aucun score, aucun jugement.'
-                        : language == HaniLanguage.tounsi
+                        : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                             ? 'كلمة تكفي. لا سكور، لا حكم.'
                             : 'One word is enough. No score, no judgment.',
                     style: const TextStyle(color: HaniColors.muted),
@@ -100,7 +100,7 @@ class WellbeingScreen extends ConsumerWidget {
                         emoji: '🙂',
                         label: language == HaniLanguage.french
                             ? 'Ça va'
-                            : language == HaniLanguage.tounsi
+                            : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                 ? 'لاباس'
                                 : 'I’m okay',
                         onTap: () => _checkIn(context, ref, 'okay'),
@@ -109,7 +109,7 @@ class WellbeingScreen extends ConsumerWidget {
                         emoji: '😮‍💨',
                         label: language == HaniLanguage.french
                             ? 'Fatigué'
-                            : language == HaniLanguage.tounsi
+                            : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                 ? 'تعبان'
                                 : 'Tired',
                         onTap: () => _checkIn(context, ref, 'tired'),
@@ -118,7 +118,7 @@ class WellbeingScreen extends ConsumerWidget {
                         emoji: '🫶',
                         label: language == HaniLanguage.french
                             ? 'Débordé'
-                            : language == HaniLanguage.tounsi
+                            : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                 ? 'فوق طاقتي'
                                 : 'Overwhelmed',
                         onTap: () => _checkIn(context, ref, 'overwhelmed'),
@@ -132,7 +132,7 @@ class WellbeingScreen extends ConsumerWidget {
             HaniSectionHeader(
               title: language == HaniLanguage.french
                   ? 'Derniers check-ins'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'آخر المرّات'
                       : 'Recent check-ins',
             ),
@@ -184,12 +184,12 @@ class WellbeingScreen extends ConsumerWidget {
               icon: Icons.fact_check_outlined,
               title: language == HaniLanguage.french
                   ? 'Questionnaire de bien-être'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'استبيان الراحة النفسية'
                       : 'Caregiver wellbeing questionnaire',
               subtitle: language == HaniLanguage.french
                   ? 'Uniquement avec un instrument validé.'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'يتفعّل كان بأداة مصادق عليها من المختص.'
                       : 'Activated only with a validated instrument.',
               onTap: () => context.push('/questionnaire'),
@@ -199,7 +199,7 @@ class WellbeingScreen extends ConsumerWidget {
               icon: Icons.support_agent_rounded,
               title: language == HaniLanguage.french
                   ? 'Parler à un professionnel'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'احكي مع مختص'
                       : 'Talk to a professional',
               subtitle: 'Call · WhatsApp · appointment',
@@ -210,7 +210,7 @@ class WellbeingScreen extends ConsumerWidget {
               icon: Icons.tune_rounded,
               title: language == HaniLanguage.french
                   ? 'Préférences'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'الإعدادات'
                       : 'Preferences',
               subtitle: 'Language · notifications · widgets',
