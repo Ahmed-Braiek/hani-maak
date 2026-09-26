@@ -282,6 +282,22 @@ jobs:
               text = text.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_11")
               text = text.replace('JvmTarget.JVM_1_8', 'JvmTarget.JVM_11')
               text = text.replace('"1.8"', '"11"')
+
+              if "isCoreLibraryDesugaringEnabled = true" not in text:
+                  text = text.replace(
+                      "compileOptions {",
+                      "compileOptions {\n        isCoreLibraryDesugaringEnabled = true",
+                      1,
+                  )
+
+              if 'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' not in text:
+                  text += """
+                  
+                  dependencies {
+                      coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+                  }
+                  """
+
               app_gradle.write_text(text)
 
           cache = Path.home() / ".pub-cache" / "hosted" / "pub.dev"
