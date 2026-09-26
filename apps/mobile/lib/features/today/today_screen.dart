@@ -527,10 +527,10 @@ class _LoadingToday extends StatelessWidget {
   const _LoadingToday();
 
   @override
-  Widget build(BuildContext context) => const ListView(
-        physics: AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(24),
-        children: [
+  Widget build(BuildContext context) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        children: const [
           SizedBox(height: 150),
           Center(child: CircularProgressIndicator()),
           SizedBox(height: 16),
