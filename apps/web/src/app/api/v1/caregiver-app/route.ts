@@ -147,6 +147,22 @@ async function loadContext(caregiverId: string, patientId: string) {
 
   if (!patient) throw new Error("patient_not_found");
 
+  const [
+    medicationSchedules,
+    medicationEvents,
+    careDocuments,
+    memoryItems,
+    activitySessions,
+    summaryDeliveries,
+  ] = await Promise.all([
+    sb(`medication_schedules?select=id,patient_medication_id,timezone,times,days_of_week,reminder_minutes_before,active,starts_on,ends_on,notes,created_at&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true&order=created_at.desc`),
+    sb(`medication_events?select=id,patient_medication_id,caregiver_profile_id,scheduled_for,status,actual_at,note,source,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=scheduled_for.desc&limit=100`),
+    sb(`care_documents?select=id,document_type,title,original_file_name,extracted_text,extraction_json,reviewed,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=created_at.desc&limit=50`),
+    sb(`patient_memory_items?select=id,item_type,title,subtitle,image_url,media_url,prompt,sort_order,active,metadata,created_at&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true&order=sort_order.asc,created_at.desc&limit=100`),
+    sb(`patient_activity_sessions?select=id,memory_item_id,activity_type,started_at,ended_at,response_label,note,metadata,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=started_at.desc&limit=50`),
+    sb(`summary_deliveries?select=id,channel,recipient,summary_type,status,summary_text,provider_message_id,error,created_at,sent_at&patient_id=eq.${encodeURIComponent(patientId)}&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
+  ]);
+
   const incidents = (incidentRows as Json[]).filter(
     (i) => i.reported_by_profile_id === caregiverId || i.visibility === "shared_care_timeline",
   );
@@ -210,6 +226,12 @@ async function loadContext(caregiverId: string, patientId: string) {
     patient,
     relationship,
     medications,
+    medicationSchedules,
+    medicationEvents,
+    careDocuments,
+    memoryItems,
+    activitySessions,
+    summaryDeliveries,
     professionalInstructions: instructions,
     recentIncidents: incidents,
     careTasks: tasks,
