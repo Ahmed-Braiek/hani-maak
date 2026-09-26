@@ -239,7 +239,7 @@ class HaniVoiceScreen extends ConsumerWidget {
                             ? 'Reconnect voice'
                             : settings.language == HaniLanguage.french
                                 ? 'Démarrer la conversation'
-                                : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                                : (settings.language == HaniLanguage.tounsi || settings.language == HaniLanguage.arabic)
                                     ? 'ابدأ المكالمة'
                                     : 'Start live conversation',
                       ),
