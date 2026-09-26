@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,13 +82,23 @@ final haniVoiceProvider =
 class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   HaniVoiceController() : super(const HaniVoiceState());
 
+  static const int _bargeInPreRollBytes = 16000; // ~500 ms at 16 kHz PCM16.
+  static const double _bargeInRmsThreshold = 0.055;
+  static const double _bargeInPeakThreshold = 0.18;
+  static const int _bargeInRequiredChunks = 2;
+
   final _recorder = AudioRecorder();
   final _pcmPlayer = HaniPcmPlayer();
+  final List<Uint8List> _bargePreRoll = <Uint8List>[];
 
   WebSocketChannel? _channel;
   StreamSubscription<Uint8List>? _micSub;
   StreamSubscription<dynamic>? _socketSub;
   bool _disconnecting = false;
+  bool _bargeInActive = false;
+  bool _dropOldModelAudio = false;
+  int _bargePreRollBytes = 0;
+  int _bargeSpeechChunks = 0;
 
   Future<void> connect() async {
     if (state.phase != VoicePhase.idle && state.phase != VoicePhase.error) {
@@ -177,13 +188,101 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     );
 
     _micSub = stream.listen(
-      (chunk) {
-        if (_channel != null && state.connected) {
-          _channel?.sink.add(chunk);
-        }
-      },
+      _onMicChunk,
       onError: (_) => _fail('Microphone stream was interrupted.'),
     );
+  }
+
+
+  void _onMicChunk(Uint8List chunk) {
+    if (_channel == null || !state.connected || chunk.isEmpty) return;
+
+    final assistantSpeaking =
+        state.phase == VoicePhase.speaking || _pcmPlayer.isPlaying;
+
+    if (!assistantSpeaking && !_bargeInActive) {
+      _resetBargeGate();
+      _channel?.sink.add(chunk);
+      return;
+    }
+
+    if (_bargeInActive) {
+      _channel?.sink.add(chunk);
+      return;
+    }
+
+    // While Hani is speaking, keep a short local pre-roll instead of sending
+    // speaker echo straight back to Gemini. This is what prevents false
+    // self-interruptions while preserving the first syllable of a real barge-in.
+    _pushBargePreRoll(chunk);
+
+    final level = _pcmLevel(chunk);
+    final likelyHumanSpeech =
+        level.$1 >= _bargeInRmsThreshold &&
+        level.$2 >= _bargeInPeakThreshold;
+
+    if (likelyHumanSpeech) {
+      _bargeSpeechChunks += 1;
+    } else if (_bargeSpeechChunks > 0) {
+      _bargeSpeechChunks -= 1;
+    }
+
+    if (_bargeSpeechChunks < _bargeInRequiredChunks) return;
+
+    _bargeInActive = true;
+    _dropOldModelAudio = true;
+    _bargeSpeechChunks = 0;
+
+    // Stop Hani locally immediately. Gemini will then receive the buffered
+    // user speech and its server-side VAD will register the genuine barge-in.
+    unawaited(_pcmPlayer.interrupt());
+
+    if (mounted) {
+      state = state.copyWith(phase: VoicePhase.listening);
+    }
+
+    for (final buffered in _bargePreRoll) {
+      _channel?.sink.add(buffered);
+    }
+    _bargePreRoll.clear();
+    _bargePreRollBytes = 0;
+  }
+
+  void _pushBargePreRoll(Uint8List chunk) {
+    _bargePreRoll.add(Uint8List.fromList(chunk));
+    _bargePreRollBytes += chunk.length;
+
+    while (_bargePreRollBytes > _bargeInPreRollBytes &&
+        _bargePreRoll.isNotEmpty) {
+      final removed = _bargePreRoll.removeAt(0);
+      _bargePreRollBytes -= removed.length;
+    }
+  }
+
+  (double, double) _pcmLevel(Uint8List pcm) {
+    final evenLength = pcm.length - (pcm.length % 2);
+    if (evenLength <= 0) return (0, 0);
+
+    final data = ByteData.sublistView(pcm, 0, evenLength);
+    var sumSquares = 0.0;
+    var peak = 0.0;
+    final samples = evenLength ~/ 2;
+
+    for (var i = 0; i < samples; i++) {
+      final normalized =
+          data.getInt16(i * 2, Endian.little).abs() / 32768.0;
+      sumSquares += normalized * normalized;
+      if (normalized > peak) peak = normalized;
+    }
+
+    final rms = samples == 0 ? 0.0 : math.sqrt(sumSquares / samples);
+    return (rms, peak);
+  }
+
+  void _resetBargeGate() {
+    _bargePreRoll.clear();
+    _bargePreRollBytes = 0;
+    _bargeSpeechChunks = 0;
   }
 
   void setLocale(String locale) {
@@ -204,6 +303,9 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       _socketSub = null;
 
       await _pcmPlayer.interrupt();
+      _bargeInActive = false;
+      _dropOldModelAudio = false;
+      _resetBargeGate();
 
       await _channel?.sink.close();
       _channel = null;
@@ -255,8 +357,11 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       case 'status':
         final phase = event['phase']?.toString();
         if (phase == 'listening') {
-          state = state.copyWith(phase: VoicePhase.listening);
+          if (!_pcmPlayer.isPlaying) {
+            state = state.copyWith(phase: VoicePhase.listening);
+          }
         } else if (phase == 'thinking') {
+          _dropOldModelAudio = false;
           state = state.copyWith(phase: VoicePhase.thinking);
         }
         break;
@@ -285,11 +390,13 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         break;
 
       case 'interrupted':
+        _dropOldModelAudio = false;
         _interruptPlayback();
         break;
 
       case 'turn_complete':
-        if (mounted && state.connected) {
+        _dropOldModelAudio = false;
+        if (mounted && state.connected && !_pcmPlayer.isPlaying) {
           state = state.copyWith(phase: VoicePhase.listening);
         }
         break;
@@ -340,7 +447,11 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   }
 
   void _onAudioBytes(Uint8List bytes) {
-    if (!state.connected || bytes.isEmpty) return;
+    if (!state.connected || bytes.isEmpty || _dropOldModelAudio) return;
+
+    // A new assistant response starts a fresh possible barge-in window.
+    _bargeInActive = false;
+    _resetBargeGate();
 
     if (mounted && state.phase != VoicePhase.speaking) {
       state = state.copyWith(phase: VoicePhase.speaking);
