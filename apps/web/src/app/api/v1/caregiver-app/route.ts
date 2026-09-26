@@ -595,6 +595,53 @@ async function updatePreferences(caregiverId: string, args: Json) {
 }
 
 
+async function registerPushToken(
+  caregiverId: string,
+  args: Json,
+) {
+  const platform = clean(args.platform, 30).toLowerCase();
+  const token = clean(args.token, 4096);
+  if (!["android", "ios"].includes(platform)) {
+    throw new Error("invalid_push_platform");
+  }
+  if (!token) throw new Error("push_token_required");
+
+  const rows = await sb(
+    `device_push_tokens?caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&platform=eq.${encodeURIComponent(platform)}&token=eq.${encodeURIComponent(token)}`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        enabled: true,
+        last_seen_at: new Date().toISOString(),
+        metadata:
+          args.metadata && typeof args.metadata === "object"
+            ? args.metadata
+            : {},
+      }),
+    },
+  );
+
+  if (Array.isArray(rows) && rows.length) return rows[0];
+
+  const created = await sb("device_push_tokens", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      caregiver_profile_id: caregiverId,
+      platform,
+      token,
+      enabled: true,
+      last_seen_at: new Date().toISOString(),
+      metadata:
+        args.metadata && typeof args.metadata === "object"
+          ? args.metadata
+          : {},
+    }),
+  });
+  return created?.[0] ?? null;
+}
+
 async function createMedication(
   caregiverId: string,
   patientId: string,
@@ -972,6 +1019,12 @@ export async function POST(req: Request) {
     }
     if (action === "update_app_preferences") {
       return json({ success: true, profile: await updateAppPreferences(caregiverId, args) });
+    }
+    if (action === "register_push_token") {
+      return json({
+        success: true,
+        device: await registerPushToken(caregiverId, args),
+      });
     }
     if (action === "create_medication") {
       return json({
