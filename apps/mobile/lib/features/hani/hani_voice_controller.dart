@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/session/caregiver_identity.dart';
 import 'hani_pcm_player.dart';
 
 enum VoicePhase { idle, connecting, listening, thinking, speaking, error }
@@ -113,14 +114,18 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     );
 
     try {
+      final identity = await CaregiverIdentity.resolve();
       final response = await http
           .post(
             Uri.parse('${AppConfig.apiBase}/api/v1/heni/voice-token'),
-            headers: const {'content-type': 'application/json'},
+            headers: {
+              'content-type': 'application/json',
+              ...identity.authHeaders,
+            },
             body: jsonEncode({
               'locale': state.locale,
-              'caregiverId': AppConfig.demoCaregiverId,
-              'patientId': AppConfig.demoPatientId,
+              'caregiverId': identity.caregiverId,
+              'patientId': identity.patientId,
             }),
           )
           .timeout(const Duration(seconds: 12));
