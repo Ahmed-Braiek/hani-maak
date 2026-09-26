@@ -13,6 +13,7 @@ from .chat_handler import run_chat_turn
 from .config import settings, validate_settings
 from .security import verify_internal_key
 from .voice_handler import handle_voice_connection
+from .medication_ocr import MedicationOcrResult, analyze_medication_image
 
 validate_settings()
 
@@ -29,6 +30,11 @@ app.add_middleware(
 class ChatMessage(BaseModel):
     role: str
     content: str = Field(max_length=4000)
+
+
+class MedicationOcrRequest(BaseModel):
+    imageDataUrl: str = Field(min_length=32, max_length=10_500_000)
+    mode: str = Field(default="prescription", max_length=40)
 
 
 class ChatRequest(BaseModel):
@@ -67,6 +73,22 @@ async def chat(body: ChatRequest, x_heni_agent_key: str | None = Header(default=
         history=[item.model_dump() for item in body.history],
         confirmation_token=body.confirmationToken,
     )
+
+
+@app.post("/v1/ocr/medication", response_model=MedicationOcrResult)
+async def medication_ocr(
+    body: MedicationOcrRequest,
+    x_heni_agent_key: str | None = Header(default=None),
+) -> MedicationOcrResult:
+    if not verify_internal_key(x_heni_agent_key):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    try:
+        return await analyze_medication_image(
+            image_data_url=body.imageDataUrl,
+            mode=body.mode,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.websocket("/ws/voice")
