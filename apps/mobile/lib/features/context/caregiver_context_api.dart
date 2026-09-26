@@ -99,12 +99,23 @@ class CaregiverContextApi {
     },
     'medications': [
       {
-        'medication_name': 'Demo medication A',
-        'dose_text': 'As prescribed',
-        'schedule_text': 'Evening',
+        'id': 'demo-med-donepezil',
+        'medication_name': 'Donepezil',
+        'dose_text': '5 mg',
+        'schedule_text': '20:00',
         'instructions':
-            'Synthetic demo row. Follow the prescribing professional instructions.',
+            'Synthetic demo record. Follow the verified prescription; Hani never changes dose or timing.',
         'verified': true,
+        'active': true,
+        'starts_on': '2026-09-01',
+      },
+      {
+        'id': 'demo-med-vitd',
+        'medication_name': 'Vitamin D3',
+        'dose_text': 'As recorded on the mock prescription',
+        'schedule_text': 'Sunday morning',
+        'instructions': 'Synthetic demo record for workflow testing.',
+        'verified': false,
         'active': true,
       },
     ],
@@ -226,7 +237,106 @@ class CaregiverContextApi {
     },
     'questionnaires': [],
     'timeline': [],
-    'appointments': [],
+    'appointments': [
+      {
+        'id': 'demo-appointment-1',
+        'scheduled_for': '2026-09-29T10:30:00+01:00',
+        'reason': 'Neurology follow-up',
+        'status': 'requested',
+      },
+    ],
+    'medicationSchedules': [
+      {
+        'id': 'demo-schedule-1',
+        'patient_medication_id': 'demo-med-donepezil',
+        'timezone': 'Africa/Tunis',
+        'times': ['20:00'],
+        'days_of_week': [1,2,3,4,5,6,7],
+        'reminder_minutes_before': 10,
+        'active': true,
+      },
+    ],
+    'medicationEvents': [
+      {
+        'id': 'demo-med-event-1',
+        'patient_medication_id': 'demo-med-donepezil',
+        'scheduled_for': '2026-09-25T20:00:00+01:00',
+        'status': 'taken',
+        'actual_at': '2026-09-25T20:08:00+01:00',
+      },
+      {
+        'id': 'demo-med-event-2',
+        'patient_medication_id': 'demo-med-donepezil',
+        'scheduled_for': '2026-09-24T20:00:00+01:00',
+        'status': 'delayed',
+        'actual_at': '2026-09-24T21:05:00+01:00',
+      },
+    ],
+    'careDocuments': [
+      {
+        'id': 'demo-doc-1',
+        'document_type': 'prescription',
+        'title': 'Prescription — September follow-up',
+        'original_file_name': 'ordonnance_demo.jpg',
+        'extracted_text': 'Synthetic demo OCR content reviewed by caregiver.',
+        'extraction_json': {
+          'medications': [
+            {'name': 'Donepezil', 'dose': '5 mg', 'frequency': '20:00'}
+          ]
+        },
+        'reviewed': true,
+      },
+    ],
+    'memoryItems': [
+      {
+        'id': 'demo-memory-person',
+        'item_type': 'person',
+        'title': 'Sami, her son',
+        'subtitle': 'Sunday lunch and family stories',
+        'prompt': 'Who do you enjoy having lunch with on Sunday?',
+        'sort_order': 1,
+        'active': true,
+      },
+      {
+        'id': 'demo-memory-place',
+        'item_type': 'place',
+        'title': 'Sidi Bou Said',
+        'subtitle': 'Blue doors, sea view, afternoon walks',
+        'prompt': 'What do you remember about the sea and the blue doors?',
+        'sort_order': 2,
+        'active': true,
+      },
+      {
+        'id': 'demo-memory-routine',
+        'item_type': 'routine',
+        'title': 'Morning coffee by the window',
+        'subtitle': 'A calm daily routine',
+        'prompt': 'Would you like to sit by the window for coffee?',
+        'sort_order': 3,
+        'active': true,
+      },
+      {
+        'id': 'demo-memory-music',
+        'item_type': 'music',
+        'title': 'Familiar Tunisian classics',
+        'subtitle': 'Music the family says she enjoys',
+        'prompt': 'Would you like to listen together for a few minutes?',
+        'sort_order': 4,
+        'active': true,
+      },
+    ],
+    'activitySessions': [
+      {
+        'id': 'demo-activity-1',
+        'memory_item_id': 'demo-memory-routine',
+        'activity_type': 'routine',
+        'response_label': 'calm',
+        'note': 'Synthetic demo: calm engagement for about 10 minutes.',
+        'started_at': '2026-09-25T09:00:00+01:00',
+        'ended_at': '2026-09-25T09:10:00+01:00',
+      },
+    ],
+    'summaryDeliveries': [],
     'supportSignals': [],
     'taskRequests': [],
     'patterns': [
