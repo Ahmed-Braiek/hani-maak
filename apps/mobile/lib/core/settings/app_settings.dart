@@ -112,6 +112,66 @@ class AppSettingsController extends StateNotifier<AppSettings> {
 
   void setWellbeingWidget(bool value) =>
       state = state.copyWith(showWellbeingWidget: value);
+
+  void hydrateFromCareContext(
+    Map<String, dynamic> caregiver,
+    Map<String, dynamic> notificationPreferences,
+  ) {
+    final rawMetadata = caregiver['metadata'];
+    final metadata = rawMetadata is Map
+        ? Map<String, dynamic>.from(rawMetadata)
+        : <String, dynamic>{};
+    final rawAppPreferences = metadata['app_preferences'];
+    final appPreferences = rawAppPreferences is Map
+        ? Map<String, dynamic>.from(rawAppPreferences)
+        : <String, dynamic>{};
+
+    final storedLanguage =
+        (appPreferences['language'] ?? caregiver['preferred_language'])
+            ?.toString()
+            .toLowerCase();
+    final language = switch (storedLanguage) {
+      'tn' || 'derja' || 'tounsi' => HaniLanguage.tounsi,
+      'ar' || 'arabic' => HaniLanguage.arabic,
+      'fr' || 'french' => HaniLanguage.french,
+      'en' || 'english' => HaniLanguage.english,
+      _ => state.language,
+    };
+
+    bool savedBool(String key, bool fallback) {
+      final value = appPreferences[key];
+      return value is bool ? value : fallback;
+    }
+
+    bool notificationBool(String key, bool fallback) {
+      final value = notificationPreferences[key];
+      return value is bool ? value : fallback;
+    }
+
+    state = state.copyWith(
+      language: language,
+      notificationsEnabled:
+          notificationBool('enabled', state.notificationsEnabled),
+      incidentFollowups:
+          notificationBool('incident_followup', state.incidentFollowups),
+      wellbeingReminders:
+          notificationBool('wellbeing_checkin', state.wellbeingReminders),
+      careCircleRequests:
+          notificationBool('care_circle_requests', state.careCircleRequests),
+      appointments:
+          notificationBool('appointments', state.appointments),
+      quietHours:
+          notificationBool('quiet_hours_enabled', state.quietHours),
+      showHaniWidget:
+          savedBool('show_hani_widget', state.showHaniWidget),
+      showPatientWidget:
+          savedBool('show_patient_widget', state.showPatientWidget),
+      showCareLoadWidget:
+          savedBool('show_care_load_widget', state.showCareLoadWidget),
+      showWellbeingWidget:
+          savedBool('show_wellbeing_widget', state.showWellbeingWidget),
+    );
+  }
 }
 
 final appSettingsProvider =

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/settings/app_settings.dart';
 import 'caregiver_context.dart';
 import 'caregiver_context_api.dart';
 
@@ -15,14 +16,24 @@ final caregiverContextProvider =
 
 class CaregiverContextController extends AsyncNotifier<CaregiverContext> {
   @override
-  Future<CaregiverContext> build() {
-    return ref.read(caregiverContextApiProvider).load();
+  Future<CaregiverContext> build() async {
+    final data = await ref.read(caregiverContextApiProvider).load();
+    ref.read(appSettingsProvider.notifier).hydrateFromCareContext(
+          data.caregiver,
+          data.notificationPreferences,
+        );
+    return data;
   }
 
   Future<void> refreshContext() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(caregiverContextApiProvider).load(),
-    );
+    state = await AsyncValue.guard(() async {
+      final data = await ref.read(caregiverContextApiProvider).load();
+      ref.read(appSettingsProvider.notifier).hydrateFromCareContext(
+            data.caregiver,
+            data.notificationPreferences,
+          );
+      return data;
+    });
   }
 }

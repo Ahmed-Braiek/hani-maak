@@ -3,14 +3,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../context/caregiver_context_api.dart';
+import '../context/caregiver_context_provider.dart';
 
 class WidgetsScreen extends ConsumerWidget {
   const WidgetsScreen({super.key});
+
+  Future<void> persist(WidgetRef ref) async {
+    final s = ref.read(appSettingsProvider);
+    try {
+      await ref.read(caregiverContextApiProvider).action(
+        'update_app_preferences',
+        args: {
+          'language': s.language.code,
+          'showHaniWidget': s.showHaniWidget,
+          'showPatientWidget': s.showPatientWidget,
+          'showCareLoadWidget': s.showCareLoadWidget,
+          'showWellbeingWidget': s.showWellbeingWidget,
+        },
+      );
+      await ref.read(caregiverContextProvider.notifier).refreshContext();
+    } catch (_) {
+      // Keep the UI responsive if a local preview backend is unavailable.
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appSettingsProvider);
     final c = ref.read(appSettingsProvider.notifier);
+
+    void update(void Function() change) {
+      change();
+      persist(ref);
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Today widgets')),
@@ -47,7 +73,7 @@ class WidgetsScreen extends ConsumerWidget {
                   title: 'Hani companion',
                   subtitle: 'Fast text and live voice access',
                   value: s.showHaniWidget,
-                  onChanged: c.setHaniWidget,
+                  onChanged: (v) => update(() => c.setHaniWidget(v)),
                 ),
                 const Divider(indent: 70),
                 _Toggle(
@@ -55,7 +81,7 @@ class WidgetsScreen extends ConsumerWidget {
                   title: 'Patient snapshot',
                   subtitle: 'Care stage and current context',
                   value: s.showPatientWidget,
-                  onChanged: c.setPatientWidget,
+                  onChanged: (v) => update(() => c.setPatientWidget(v)),
                 ),
                 const Divider(indent: 70),
                 _Toggle(
@@ -63,7 +89,7 @@ class WidgetsScreen extends ConsumerWidget {
                   title: 'Care load',
                   subtitle: 'Your open responsibilities at a glance',
                   value: s.showCareLoadWidget,
-                  onChanged: c.setCareLoadWidget,
+                  onChanged: (v) => update(() => c.setCareLoadWidget(v)),
                 ),
                 const Divider(indent: 70),
                 _Toggle(
@@ -71,7 +97,7 @@ class WidgetsScreen extends ConsumerWidget {
                   title: 'Wellbeing pulse',
                   subtitle: 'Private check-in shortcut',
                   value: s.showWellbeingWidget,
-                  onChanged: c.setWellbeingWidget,
+                  onChanged: (v) => update(() => c.setWellbeingWidget(v)),
                 ),
               ],
             ),

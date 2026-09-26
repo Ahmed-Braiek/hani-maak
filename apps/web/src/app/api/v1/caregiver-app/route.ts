@@ -127,7 +127,7 @@ async function loadContext(caregiverId: string, patientId: string) {
     outgoingRequests,
     questionnaireDefinitions,
   ] = await Promise.all([
-    first(`profiles?select=id,full_name,preferred_language,timezone,role,avatar_url&id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
+    first(`profiles?select=id,full_name,preferred_language,timezone,role,avatar_url,metadata&id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
     first(`patients?select=id,display_name,preferred_name,date_of_birth,sex,alzheimer_stage,primary_language,important_notes,photo_url,is_demo&id=eq.${encodeURIComponent(patientId)}&limit=1`),
     sb(`patient_medications?select=id,medication_name,dose_text,schedule_text,instructions,verified,active&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true`),
     sb(`professional_instructions?select=id,instruction_type,title,body,status,verified_at,professional_id,created_at&patient_id=eq.${encodeURIComponent(patientId)}&status=eq.active&order=created_at.desc`),
@@ -411,6 +411,49 @@ async function submitQuestionnaire(
   };
 }
 
+async function updateAppPreferences(caregiverId: string, args: Json) {
+  const current = await first(
+    `profiles?select=id,preferred_language,metadata&id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
+  );
+  if (!current) throw new Error("caregiver_profile_not_found");
+
+  const metadata = current.metadata && typeof current.metadata === "object"
+    ? { ...current.metadata }
+    : {};
+  const existing = metadata.app_preferences && typeof metadata.app_preferences === "object"
+    ? { ...metadata.app_preferences }
+    : {};
+
+  const requested = clean(args.language, 20).toLowerCase();
+  const preferredLanguage =
+    requested === "tn" ? "derja" :
+    ["ar", "fr", "en"].includes(requested) ? requested :
+    current.preferred_language || "derja";
+
+  metadata.app_preferences = {
+    ...existing,
+    language: requested || existing.language || preferredLanguage,
+    show_hani_widget: args.showHaniWidget !== false,
+    show_patient_widget: args.showPatientWidget !== false,
+    show_care_load_widget: args.showCareLoadWidget !== false,
+    show_wellbeing_widget: args.showWellbeingWidget !== false,
+  };
+
+  const rows = await sb(
+    `profiles?id=eq.${encodeURIComponent(caregiverId)}`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        preferred_language: preferredLanguage,
+        metadata,
+        updated_at: new Date().toISOString(),
+      }),
+    },
+  );
+  return rows?.[0] ?? null;
+}
+
 async function updatePreferences(caregiverId: string, args: Json) {
   const payload: Json = {
     caregiver_profile_id: caregiverId,
@@ -498,6 +541,9 @@ export async function POST(req: Request) {
     }
     if (action === "update_notification_preferences") {
       return json({ success: true, preferences: await updatePreferences(caregiverId, args) });
+    }
+    if (action === "update_app_preferences") {
+      return json({ success: true, profile: await updateAppPreferences(caregiverId, args) });
     }
     if (action === "open_notification") {
       const id = clean(args.notificationId, 120);
