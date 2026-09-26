@@ -12,6 +12,8 @@ import 'features/dilemmas/dilemma_library_screen.dart';
 import 'features/patient/patient_screen.dart';
 import 'features/patient/patient_activity_screen.dart';
 import 'features/patient/care_hub_screen.dart';
+import 'features/patient/medication_screen.dart';
+import 'features/patient/summary_screen.dart';
 import 'features/care_circle/care_circle_screen.dart';
 import 'features/wellbeing/wellbeing_screen.dart';
 import 'features/wellbeing/questionnaire_screen.dart';
@@ -63,6 +65,8 @@ final router = GoRouter(
     GoRoute(parentNavigatorKey: _rootKey, path: '/widgets', builder: (_, __) => const WidgetsScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/activity', builder: (_, __) => const PatientActivityScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/care-hub', builder: (_, __) => const CareHubScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/medications', builder: (_, __) => const MedicationScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/summary', builder: (_, __) => const SummaryScreen()),
   ],
 );
 
