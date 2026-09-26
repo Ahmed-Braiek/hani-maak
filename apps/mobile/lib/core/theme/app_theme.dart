@@ -2,35 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class HaniColors {
-  static const ink = Color(0xFF102A2E);
-  static const inkSoft = Color(0xFF294247);
-  static const primary = Color(0xFF0B7A75);
-  static const primaryDeep = Color(0xFF075E5B);
-  static const primarySoft = Color(0xFFE4F4F1);
-  static const mint = Color(0xFFBFE8DD);
-  static const aqua = Color(0xFFDFF5F2);
-  static const surface = Color(0xFFF6F8F7);
+  static const ink = Color(0xFF12324A);
+  static const inkSoft = Color(0xFF42647E);
+  static const primary = Color(0xFF199AED);
+  static const primaryDeep = Color(0xFF0E61C6);
+  static const primarySoft = Color(0xFFEAF6FF);
+  static const mint = Color(0xFFB9E8FF);
+  static const aqua = Color(0xFFEAF8FF);
+  static const surface = Color(0xFFF7FBFE);
   static const card = Color(0xFFFFFFFF);
-  static const muted = Color(0xFF708186);
-  static const line = Color(0xFFE2EAE7);
+  static const muted = Color(0xFF6E8496);
+  static const line = Color(0xFFDDECF6);
   static const warm = Color(0xFFFFF0DC);
   static const warning = Color(0xFFB06C20);
   static const danger = Color(0xFFD85858);
-  static const lilac = Color(0xFFEDE9FF);
-  static const lilacInk = Color(0xFF6654B8);
+  static const lilac = Color(0xFFEAF0FF);
+  static const lilacInk = Color(0xFF345AB8);
 }
 
 abstract final class HaniGradients {
   static const hero = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF0B7A75), Color(0xFF085F67), Color(0xFF123F4D)],
+    colors: [Color(0xFF18BFF6), Color(0xFF199AED), Color(0xFF0E61C6)],
   );
 
   static const soft = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFF1FBF8), Color(0xFFE4F4F1)],
+    colors: [Color(0xFFF5FBFF), Color(0xFFEAF6FF)],
   );
 
   static const wellbeing = LinearGradient(
