@@ -1,1 +1,2 @@
-const haniMaakCaregiverBuild = 'coach-mvp-2026-09-25';
+// Build stamp for caregiver MVP preview verification.
+const haniBuildStamp = 'design-refresh-2026-09-26-v1';
