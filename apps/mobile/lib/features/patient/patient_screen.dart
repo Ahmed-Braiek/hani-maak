@@ -43,8 +43,7 @@ class _PatientContent extends StatelessWidget {
         HaniPageHeader(
           title: data.patientName,
           subtitle: switch (language) {
-            HaniLanguage.tounsi =>
-              'معلومات رعاية مشتركة · المرحلة: ${data.stage}',
+            HaniLanguage.tounsi => 'معلومات رعاية مشتركة · المرحلة: ${data.stage}',        HaniLanguage.arabic => 'معلومات رعاية مشتركة · المرحلة: ${data.stage}',
             HaniLanguage.french =>
               'Informations partagées · Stade : ${data.stage}',
             HaniLanguage.english =>
@@ -79,8 +78,7 @@ class _PatientContent extends StatelessWidget {
               Expanded(
                 child: Text(
                   switch (language) {
-                    HaniLanguage.tounsi =>
-                      'تعليمات المختص واضحة كمعلومة موثّقة. ملاحظات العائلة تبقى ملاحظات وما تتخلطش بالتشخيص.',
+                    HaniLanguage.tounsi => 'تعليمات المختص واضحة كمعلومة موثّقة. ملاحظات العائلة تبقى ملاحظات وما تتخلطش بالتشخيص.',        HaniLanguage.arabic => 'تعليمات المختص واضحة كمعلومة موثّقة. ملاحظات العائلة تبقى ملاحظات وما تتخلطش بالتشخيص.',
                     HaniLanguage.french =>
                       'Les instructions professionnelles sont identifiées comme vérifiées. Les observations familiales restent des observations.',
                     HaniLanguage.english =>
@@ -96,10 +94,10 @@ class _PatientContent extends StatelessWidget {
         HaniSectionHeader(
           title: language == HaniLanguage.french
               ? 'Médicaments'
-              : language == HaniLanguage.tounsi
+              : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                   ? 'الأدوية'
                   : 'Medications',
-          subtitle: language == HaniLanguage.tounsi
+          subtitle: (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
               ? 'هاني ما يبدّلش الجرعة ولا التوقيت.'
               : language == HaniLanguage.french
                   ? 'Hani ne modifie jamais dose ou horaire.'
@@ -120,7 +118,7 @@ class _PatientContent extends StatelessWidget {
         HaniSectionHeader(
           title: language == HaniLanguage.french
               ? 'Instructions vérifiées'
-              : language == HaniLanguage.tounsi
+              : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                   ? 'تعليمات المختص'
                   : 'Verified instructions',
           action: '${data.instructions.length}',
@@ -139,7 +137,7 @@ class _PatientContent extends StatelessWidget {
         HaniSectionHeader(
           title: language == HaniLanguage.french
               ? 'Chronologie récente'
-              : language == HaniLanguage.tounsi
+              : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                   ? 'آخر الملاحظات'
                   : 'Recent care timeline',
           subtitle: '${data.sharedIncidents.length} shared',
@@ -171,7 +169,7 @@ class _PatientContent extends StatelessWidget {
                 child: Text(
                   language == HaniLanguage.french
                       ? 'Quelque chose a changé ? Dites-le à Hani.'
-                      : language == HaniLanguage.tounsi
+                      : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                           ? 'تبدّل شيء؟ احكيه لهاني وخليه يرتّبلك الملاحظة.'
                           : 'Something changed? Tell Hani and structure a private draft.',
                   style: const TextStyle(fontWeight: FontWeight.w800),
