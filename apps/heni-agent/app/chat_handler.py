@@ -22,6 +22,7 @@ from .security import sign_confirmation_token, verify_confirmation_token
 from .session_store import get_or_create_session, touch_session
 from .tools.declarations import TOOL_DECLARATIONS
 from .tools.execute import execute_tool
+from .tools.hani_backend import call_hani_tool
 
 _client = create_google_client()
 
@@ -59,6 +60,38 @@ def _base_result(message: str, session, *, tool: str | None = None, tools: list[
     }
 
 
+async def _persist_chat_turn(
+    session,
+    *,
+    user_text: str,
+    hani_text: str,
+    purpose: str = "general",
+) -> None:
+    if not session.caregiver_id:
+        return
+    try:
+        await call_hani_tool(
+            "record_hani_turn",
+            {
+                "sessionId": session.id,
+                "channel": "chat",
+                "locale": session.locale,
+                "purpose": purpose,
+                "userText": user_text,
+                "haniText": hani_text,
+            },
+            patient_id=session.patient_id,
+            caregiver_id=session.caregiver_id,
+            locale=session.locale,
+            source=session.source,
+        )
+    except Exception as persistence_error:
+        print(
+            "Hani chat persistence failed",
+            type(persistence_error).__name__,
+        )
+
+
 async def run_chat_turn(
     *,
     message: str,
@@ -90,15 +123,19 @@ async def run_chat_turn(
         session.locale = likely_locale
 
     if requested_locale and is_language_switch_only(message):
-        return _base_result(
-            locale_message(
-                session.locale,
-                ar="أكيد. من توّا نحكي معاك بالتونسي، وتنجم تخلّط فرنسي عادي.",
-                fr="Bien sûr. Je continue en français.",
-                en="Of course. I will continue in English.",
-            ),
-            session,
+        answer = locale_message(
+            session.locale,
+            tn="أكيد. من توّا نحكي معاك بالتونسي، وتنجم تخلّط فرنسي عادي.",
+            ar="بالتأكيد. سأتحدث معك بالعربية من الآن.",
+            fr="Bien sûr. Je continue en français.",
+            en="Of course. I will continue in English.",
         )
+        await _persist_chat_turn(
+            session,
+            user_text=message,
+            hani_text=answer,
+        )
+        return _base_result(answer, session)
 
     if is_human_help_request(message):
         result = await execute_tool(
@@ -122,7 +159,24 @@ async def run_chat_turn(
                 fr="D’accord. J’ai envoyé une demande à l’équipe pour qu’un membre du personnel vous aide." if result.get("success") else "Je n’ai pas pu envoyer la demande pour le moment. Si c’est urgent, contactez directement l’accueil ou le personnel sur place.",
                 en="Done. I sent a request to the team for a staff member to help you." if result.get("success") else "I could not send the request right now. If it is urgent, contact reception or on-site staff directly.",
             )
-        return _base_result(answer, session, tool="request_human_help", tools=[{"name": "request_human_help", "args": {"reasonCategory": "human_requested"}, "result": result}])
+        await _persist_chat_turn(
+            session,
+            user_text=message,
+            hani_text=answer,
+            purpose="handoff",
+        )
+        return _base_result(
+            answer,
+            session,
+            tool="request_human_help",
+            tools=[
+                {
+                    "name": "request_human_help",
+                    "args": {"reasonCategory": "human_requested"},
+                    "result": result,
+                }
+            ],
+        )
 
     if not session.caregiver_id and is_doctor_name_question(message):
         return _base_result(
@@ -227,6 +281,23 @@ async def run_chat_turn(
         action = event.get("result", {}).get("uiAction")
         if isinstance(action, dict) and action.get("url"):
             ui_actions.append(action)
+
+    await _persist_chat_turn(
+        session,
+        user_text=message,
+        hani_text=reply,
+        purpose=(
+            "handoff"
+            if any(
+                event.get("name") in {
+                    "request_human_help",
+                    "create_professional_contact_request",
+                }
+                for event in tool_events
+            )
+            else "general"
+        ),
+    )
 
     return {
         "message": reply,
