@@ -13,6 +13,7 @@ from .chat_handler import run_chat_turn
 from .config import settings, validate_settings
 from .security import verify_internal_key
 from .voice_handler import handle_voice_connection
+from .ocr_handler import extract_prescription
 
 validate_settings()
 
@@ -29,6 +30,13 @@ app.add_middleware(
 class ChatMessage(BaseModel):
     role: str
     content: str = Field(max_length=4000)
+
+
+class OcrRequest(BaseModel):
+    imageBase64: str = Field(min_length=1, max_length=12000000)
+    mimeType: str = Field(default="image/jpeg", max_length=80)
+    documentType: str = Field(default="prescription", max_length=80)
+    locale: str = Field(default="tn", max_length=20)
 
 
 class ChatRequest(BaseModel):
@@ -67,6 +75,24 @@ async def chat(body: ChatRequest, x_heni_agent_key: str | None = Header(default=
         history=[item.model_dump() for item in body.history],
         confirmation_token=body.confirmationToken,
     )
+
+
+@app.post("/v1/ocr-prescription")
+async def ocr_prescription(
+    body: OcrRequest,
+    x_heni_agent_key: str | None = Header(default=None),
+) -> dict[str, Any]:
+    if not verify_internal_key(x_heni_agent_key):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    try:
+        return await extract_prescription(
+            image_base64=body.imageBase64,
+            mime_type=body.mimeType,
+            document_type=body.documentType,
+            locale=body.locale,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @app.websocket("/ws/voice")
