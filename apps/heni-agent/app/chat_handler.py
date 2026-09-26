@@ -161,7 +161,12 @@ async def run_chat_turn(
 
     config = types.GenerateContentConfig(
         system_instruction=build_runtime_system_prompt(runtime_context)
-        + f"\n\nCURRENT CONVERSATION LANGUAGE: {session.locale}. Reply in this language unless the current user message clearly switches language.",
+        + (
+            "\n\nCURRENT CONVERSATION LANGUAGE: "
+            + session.locale
+            + ". Locale tn means Tunisian Derja; locale ar means Modern Standard Arabic; "
+              "fr means French; en means English. Reply in this language unless the current user message clearly switches language."
+        ),
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
         max_output_tokens=420,
         temperature=0.3,

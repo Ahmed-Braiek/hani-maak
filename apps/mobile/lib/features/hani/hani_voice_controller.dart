@@ -291,7 +291,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   }
 
   void setLocale(String locale) {
-    if (!const {'ar', 'fr', 'en'}.contains(locale)) return;
+    if (!const {'tn', 'ar', 'fr', 'en'}.contains(locale)) return;
     state = state.copyWith(locale: locale);
   }
 
@@ -389,7 +389,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
       case 'locale':
         final locale = event['locale']?.toString();
-        if (locale != null && const {'ar', 'fr', 'en'}.contains(locale)) {
+        if (locale != null && const {'tn', 'ar', 'fr', 'en'}.contains(locale)) {
           state = state.copyWith(locale: locale);
         }
         break;

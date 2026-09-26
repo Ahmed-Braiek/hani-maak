@@ -56,6 +56,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
 
   const locale =
+    body?.locale === "tn" ||
     body?.locale === "fr" ||
     body?.locale === "en" ||
     body?.locale === "ar"

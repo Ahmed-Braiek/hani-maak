@@ -151,7 +151,7 @@ class HaniChatController extends StateNotifier<HaniChatState> {
   }
 
   void setLocale(String locale) {
-    if (!const {'ar', 'fr', 'en'}.contains(locale)) return;
+    if (!const {'tn', 'ar', 'fr', 'en'}.contains(locale)) return;
     state = state.copyWith(locale: locale);
   }
 }
