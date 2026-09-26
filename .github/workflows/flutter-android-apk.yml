@@ -66,6 +66,31 @@ jobs:
               text = text.replace(marker, ">\n    " + permissions + "<application", 1)
 
           text = text.replace('android:label="hani_maak_mobile"', 'android:label="Hani Maak"')
+          text = text.replace(
+              'android:icon="@mipmap/ic_launcher"',
+              'android:icon="@drawable/hani_launcher" android:roundIcon="@drawable/hani_launcher"'
+          )
+
+          launcher = Path("android/app/src/main/res/drawable/hani_launcher.xml")
+          launcher.parent.mkdir(parents=True, exist_ok=True)
+          launcher.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#199AED"
+                  android:pathData="M54,0A54,54 0,1 0,54 108A54,54 0,1 0,54 0" />
+              <path
+                  android:fillColor="@android:color/transparent"
+                  android:strokeColor="#FFFFFF"
+                  android:strokeWidth="7"
+                  android:strokeLineCap="round"
+                  android:strokeLineJoin="round"
+                  android:pathData="M53,69 C43,57 25,58 24,43 C23,30 38,27 48,40 C56,50 59,58 53,69 M50,40 C58,27 76,27 83,39 C91,54 73,70 54,69" />
+          </vector>
+          """)
 
           if "<queries>" not in text:
               queries = """
