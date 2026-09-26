@@ -567,10 +567,18 @@ async function caregiverContext(caregiverId: string, patientId: string) {
   }
 
   const professionals = await getProfessionalRoutes(patientId);
-  const [supportSignals, timeline, notifications] = await Promise.all([
+  const [
+    supportSignals,
+    timeline,
+    notifications,
+    incomingTaskRequests,
+    outgoingTaskRequests,
+  ] = await Promise.all([
     sb(`support_signals?select=id,signal_type,severity,confidence,evidence,experimental,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=10`),
     sb(`timeline_events?select=id,event_type,title,summary,occurred_at,source_type,source_id&patient_id=eq.${encodeURIComponent(patientId)}&visible_to_care_circle=eq.true&order=occurred_at.desc&limit=20`),
     sb(`caregiver_notifications?select=id,category,title,body,action_type,action_payload,scheduled_for,opened_at,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=12`),
+    sb(`care_task_requests?select=id,task_id,requester_profile_id,recipient_profile_id,status,message,alternative_note,alternative_starts_at,responded_at,created_at&recipient_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
+    sb(`care_task_requests?select=id,task_id,requester_profile_id,recipient_profile_id,status,message,alternative_note,alternative_starts_at,responded_at,created_at&requester_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
   ]);
 
   const patterns: Json[] = [];
@@ -609,6 +617,28 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     });
   }
 
+  const declinedOutgoing = (outgoingTaskRequests as Json[]).filter(
+    (request) => request.status === "declined",
+  ).length;
+  if (declinedOutgoing >= 2) {
+    patterns.push({
+      type: "repeated_declined_requests",
+      count: declinedOutgoing,
+      diagnostic: false,
+      instruction:
+        "Keep the wording neutral. Offer alternatives or a family conversation without blame or scorekeeping.",
+    });
+  }
+
+  const taskById = new Map((tasks as Json[]).map((task) => [task.id, task]));
+  const taskRequests = [
+    ...(incomingTaskRequests as Json[]),
+    ...(outgoingTaskRequests as Json[]),
+  ].map((request) => ({
+    ...request,
+    task: taskById.get(request.task_id) ?? null,
+  }));
+
   const now = Date.now();
   const visibleNotifications = (notifications as Json[]).filter((n) => {
     if (!n.scheduled_for) return true;
@@ -626,6 +656,7 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     careTasks: tasks,
     privateWellbeing: wellbeing,
     careCircle: circle ? { ...circle, members } : null,
+    taskRequests,
     professionalRoutes: professionals,
     supportSignals,
     timeline,
