@@ -259,13 +259,13 @@ class _EmptyHani extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = language == HaniLanguage.french
         ? 'Qu’est-ce qui se passe ?'
-        : language == HaniLanguage.tounsi
+        : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
             ? 'شنوّة صاير؟'
             : 'What is happening?';
 
     final body = language == HaniLanguage.french
         ? 'Parlez comme vous le feriez avec quelqu’un qui connaît déjà votre situation.'
-        : language == HaniLanguage.tounsi
+        : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
             ? 'احكي عادي كيف ما تحكي مع شخص يعرف حالتك من قبل.'
             : 'Talk naturally, like you would with someone who already knows the situation.';
 
@@ -299,7 +299,7 @@ class _EmptyHani extends StatelessWidget {
           label: Text(
             language == HaniLanguage.french
                 ? 'Démarrer la voix en direct'
-                : language == HaniLanguage.tounsi
+                : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                     ? 'ابدأ مكالمة مباشرة'
                     : 'Start live voice',
           ),
@@ -309,7 +309,7 @@ class _EmptyHani extends StatelessWidget {
         const SizedBox(height: 9),
         _PromptCard(
           icon: Icons.restaurant_outlined,
-          text: language == HaniLanguage.tounsi
+          text: (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
               ? 'ما حبّتش تاكل اليوم'
               : language == HaniLanguage.french
                   ? 'Elle refuse de manger aujourd’hui'
@@ -319,7 +319,7 @@ class _EmptyHani extends StatelessWidget {
         const SizedBox(height: 8),
         _PromptCard(
           icon: Icons.repeat_rounded,
-          text: language == HaniLanguage.tounsi
+          text: (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
               ? 'تعاود نفس السؤال برشة'
               : language == HaniLanguage.french
                   ? 'Elle répète la même question'
@@ -329,7 +329,7 @@ class _EmptyHani extends StatelessWidget {
         const SizedBox(height: 8),
         _PromptCard(
           icon: Icons.self_improvement_rounded,
-          text: language == HaniLanguage.tounsi
+          text: (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
               ? 'أنا تعبت وما عادش نجم'
               : language == HaniLanguage.french
                   ? 'Je suis épuisé, je n’en peux plus'
@@ -464,7 +464,7 @@ class _Composer extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: language == HaniLanguage.french
                         ? 'Parlez à Hani…'
-                        : language == HaniLanguage.tounsi
+                        : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                             ? 'احكي مع هاني…'
                             : 'Talk to Hani…',
                     fillColor: HaniColors.surface,
