@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../../core/widgets/hani_brand_logo.dart';
 import 'hani_voice_controller.dart';
 
 class HaniVoiceScreen extends ConsumerWidget {
@@ -44,23 +45,11 @@ class HaniVoiceScreen extends ConsumerWidget {
                     icon: const Icon(Icons.keyboard_arrow_down_rounded),
                   ),
                   const Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          'Hani Live',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        Text(
-                          'Private · context-aware',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: HaniColors.muted,
-                          ),
-                        ),
-                      ],
+                    child: Center(
+                      child: HaniBrandLogo(
+                        height: 45,
+                        showArabic: false,
+                      ),
                     ),
                   ),
                   if (!active)
