@@ -6,6 +6,8 @@ on:
       - caregiver-production-upgrade
     paths:
       - "apps/mobile/**"
+      - "apps/web/**"
+      - "apps/heni-agent/**"
       - ".github/workflows/caregiver-production-check.yml"
 
 permissions:
@@ -16,11 +18,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  flutter-check:
+  production-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout production upgrade
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Type check web and workspace
+        run: npm run typecheck
+
+      - name: Run domain and security tests
+        run: npm test
+
+      - name: Hani deterministic evaluations
+        run: npm run evals
+
+      - name: Python syntax
+        run: python -m compileall -q apps/heni-agent/app apps/heni-agent/tests
+
+      - name: Hani agent tests
+        env:
+          PYTHONPATH: apps/heni-agent
+        run: python -m unittest discover -s apps/heni-agent/tests -v
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -34,15 +63,15 @@ jobs:
           flutter create --platforms=web --project-name hani_maak_mobile .
           rm -f test/widget_test.dart
 
-      - name: Resolve dependencies
+      - name: Resolve Flutter dependencies
         working-directory: apps/mobile
         run: flutter pub get
 
-      - name: Analyze
+      - name: Analyze Flutter
         working-directory: apps/mobile
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build web
+      - name: Build Flutter web
         working-directory: apps/mobile
         run: |
           flutter build web --release \
