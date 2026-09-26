@@ -1,0 +1,76 @@
+name: Build production Flutter web host
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/flutter-production-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hani-maak-production-flutter-web
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout production
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Flutter web host files
+        working-directory: apps/mobile
+        run: |
+          flutter create --platforms=web --project-name hani_maak_mobile .
+          rm -f test/widget_test.dart
+
+      - name: Resolve dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Analyze Dart
+        working-directory: apps/mobile
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build production Flutter web app
+        working-directory: apps/mobile
+        run: |
+          flutter build web \
+            --release \
+            --base-href /flutter/ \
+            --dart-define=HANI_API_BASE=https://hani-maak.vercel.app \
+            --dart-define=SUPABASE_URL=https://lhrngmuxmjpigycgonnh.supabase.co \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_8jxBjLqsE0-8fSxaCZqP7w_7LdAm4SI
+
+      - name: Publish compiled Flutter app into Next.js
+        run: |
+          rm -rf apps/web/public/flutter
+          mkdir -p apps/web/public/flutter
+          cp -R apps/mobile/build/web/. apps/web/public/flutter/
+
+      - name: Commit production web bundle
+        run: |
+          if git diff --quiet -- apps/web/public/flutter; then
+            echo "Flutter web bundle already current."
+            exit 0
+          fi
+          git config user.name "hani-maak-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f apps/web/public/flutter
+          git commit -m "Build production Flutter web bundle [skip mobile]"
+          git push origin HEAD:main
