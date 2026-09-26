@@ -22,8 +22,8 @@ abstract final class HaniColors {
   static const warm = Color(0xFFFFF0DC);
   static const warning = Color(0xFFB06C20);
   static const danger = Color(0xFFD85858);
-  static const lilac = Color(0xFFEAF0FF);
-  static const lilacInk = Color(0xFF345AB8);
+  static const lilac = Color(0xFFE8F3FF);
+  static const lilacInk = brandBlueDeep;
 }
 
 abstract final class HaniGradients {
