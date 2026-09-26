@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'core/settings/app_settings.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/sign_in_screen.dart';
 import 'features/auth/welcome_screen.dart';
@@ -11,6 +13,8 @@ import 'features/wellbeing/wellbeing_screen.dart';
 import 'features/wellbeing/questionnaire_screen.dart';
 import 'features/handoff/handoff_screen.dart';
 import 'features/notifications/notifications_screen.dart';
+import 'features/settings/settings_screen.dart';
+import 'features/settings/widgets_screen.dart';
 import 'features/hani/hani_chat_screen.dart';
 import 'features/hani/hani_voice_screen.dart';
 
@@ -20,14 +24,8 @@ final router = GoRouter(
   navigatorKey: _rootKey,
   initialLocation: '/welcome',
   routes: [
-    GoRoute(
-      path: '/welcome',
-      builder: (_, __) => const WelcomeScreen(),
-    ),
-    GoRoute(
-      path: '/sign-in',
-      builder: (_, __) => const SignInScreen(),
-    ),
+    GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
+    GoRoute(path: '/sign-in', builder: (_, __) => const SignInScreen()),
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
@@ -62,19 +60,36 @@ final router = GoRouter(
       path: '/notifications',
       builder: (_, __) => const NotificationsScreen(),
     ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/settings',
+      builder: (_, __) => const SettingsScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/widgets',
+      builder: (_, __) => const WidgetsScreen(),
+    ),
   ],
 );
 
-class HaniMaakApp extends StatelessWidget {
+class HaniMaakApp extends ConsumerWidget {
   const HaniMaakApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(appSettingsProvider.select((s) => s.language));
+    final rtl = language == HaniLanguage.tounsi;
+
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Hani Maak',
       theme: AppTheme.light,
       routerConfig: router,
+      builder: (context, child) => Directionality(
+        textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }
