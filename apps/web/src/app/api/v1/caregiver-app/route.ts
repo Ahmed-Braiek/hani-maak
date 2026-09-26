@@ -195,7 +195,13 @@ async function loadContext(caregiverId: string, patientId: string) {
   ).length;
   if (heavy >= 2) patterns.push({ type: "caregiver_strain", count: heavy, windowCount: recentWellbeing.length });
 
-  const followUp = (notifications as Json[]).find((n) =>
+  const now = Date.now();
+  const visibleNotifications = (notifications as Json[]).filter((n) => {
+    if (!n.scheduled_for) return true;
+    const scheduled = new Date(n.scheduled_for).getTime();
+    return Number.isNaN(scheduled) || scheduled <= now;
+  });
+  const followUp = visibleNotifications.find((n) =>
     n.category === "incident_followup" && !n.opened_at,
   ) ?? null;
 
@@ -210,7 +216,7 @@ async function loadContext(caregiverId: string, patientId: string) {
     privateWellbeing: wellbeing,
     careCircle: circle ? { ...circle, members } : null,
     professionalRoutes: await professionalRoutes(patientId),
-    notifications,
+    notifications: visibleNotifications,
     notificationPreferences: preferences,
     questionnaires,
     timeline,

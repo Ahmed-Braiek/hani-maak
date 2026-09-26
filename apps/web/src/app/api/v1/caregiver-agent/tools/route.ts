@@ -442,19 +442,28 @@ export async function POST(req: Request) {
       });
       const incident = rows?.[0] ?? null;
 
-      const preferences = await first(
-        `notification_preferences?select=enabled,incident_followup&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
-      );
+      const [preferences, caregiverProfile] = await Promise.all([
+        first(
+          `notification_preferences?select=enabled,incident_followup,quiet_hours_start,quiet_hours_end&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
+        ),
+        first(
+          `profiles?select=preferred_language&id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
+        ),
+      ]);
       if (incident && preferences?.enabled !== false && preferences?.incident_followup !== false) {
-        const scheduled = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+        const target = new Date(Date.now() + 12 * 60 * 60 * 1000);
+        const scheduled = afterQuietHours(target, preferences).toISOString();
+        const copy = followUpCopy(
+          notificationLanguage(caregiverProfile?.preferred_language),
+        );
         await sb("caregiver_notifications", {
           method: "POST",
           headers: { Prefer: "return=minimal" },
           body: JSON.stringify({
             caregiver_profile_id: caregiverId,
             category: "incident_followup",
-            title: "How did it go?",
-            body: "Hani remembers this care moment and can follow up when you are ready.",
+            title: copy.title,
+            body: copy.body,
             action_type: "open_hani_followup",
             action_payload: { incidentId: incident.id, scenarioKey: scenarioKey || null },
             scheduled_for: scheduled,
@@ -597,21 +606,30 @@ export async function POST(req: Request) {
         }),
       });
 
-      const recipientPreferences = await first(
-        `notification_preferences?select=enabled,care_circle_requests&caregiver_profile_id=eq.${encodeURIComponent(recipientProfileId)}&limit=1`,
-      );
+      const [recipientPreferences, recipientProfile] = await Promise.all([
+        first(
+          `notification_preferences?select=enabled,care_circle_requests,quiet_hours_start,quiet_hours_end&caregiver_profile_id=eq.${encodeURIComponent(recipientProfileId)}&limit=1`,
+        ),
+        first(
+          `profiles?select=preferred_language&id=eq.${encodeURIComponent(recipientProfileId)}&limit=1`,
+        ),
+      ]);
       if (recipientPreferences?.enabled !== false && recipientPreferences?.care_circle_requests !== false) {
+        const copy = careCircleCopy(
+          notificationLanguage(recipientProfile?.preferred_language),
+          clean(args.message, 500) || clean(args.title, 200),
+        );
         await sb("caregiver_notifications", {
           method: "POST",
           headers: { Prefer: "return=minimal" },
           body: JSON.stringify({
             caregiver_profile_id: recipientProfileId,
             category: "care_circle_request",
-            title: "Care Circle request",
-            body: clean(args.message, 500) || clean(args.title, 200) || "A caregiver asked for help.",
+            title: copy.title,
+            body: copy.body,
             action_type: "open_care_circle",
             action_payload: { requestId: requestRows?.[0]?.id ?? null, taskId: task.id },
-            scheduled_for: new Date().toISOString(),
+            scheduled_for: afterQuietHours(new Date(), recipientPreferences).toISOString(),
           }),
         });
       }
