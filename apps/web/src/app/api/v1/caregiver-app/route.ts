@@ -64,6 +64,29 @@ async function first(path: string) {
   return Array.isArray(rows) ? rows[0] ?? null : null;
 }
 
+async function signPrivateCareAsset(value: unknown) {
+  const raw = clean(value, 1800);
+  const prefix = "storage://hani-care-media/";
+  if (!raw.startsWith(prefix)) return raw || null;
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const path = raw.slice(prefix.length);
+  if (!path || !path.startsWith("patients/")) return null;
+
+  const res = await fetch(
+    `${supabaseUrl}/storage/v1/object/sign/hani-care-media/${path}`,
+    {
+      method: "POST",
+      headers: restHeaders(),
+      body: JSON.stringify({ expiresIn: 3600 }),
+      cache: "no-store",
+    },
+  );
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body?.signedURL) return null;
+  return `${supabaseUrl}/storage/v1${body.signedURL}`;
+}
+
 async function verifyIdentity(req: Request, caregiverId: string, patientId: string) {
   if (caregiverId === DEMO_CAREGIVER && patientId === DEMO_PATIENT) return;
 
@@ -151,7 +174,7 @@ async function loadContext(caregiverId: string, patientId: string) {
     medicationSchedules,
     medicationEvents,
     careDocuments,
-    memoryItems,
+    memoryItems: signedMemoryItems,
     activitySessions,
     summaryDeliveries,
   ] = await Promise.all([
@@ -162,6 +185,13 @@ async function loadContext(caregiverId: string, patientId: string) {
     sb(`patient_activity_sessions?select=id,memory_item_id,activity_type,started_at,ended_at,response_label,note,metadata,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=started_at.desc&limit=50`),
     sb(`summary_deliveries?select=id,channel,recipient,summary_type,status,summary_text,provider_message_id,error,created_at,sent_at&patient_id=eq.${encodeURIComponent(patientId)}&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
   ]);
+
+  const signedMemoryItems = await Promise.all(
+    (memoryItems as Json[]).map(async (item) => ({
+      ...item,
+      image_url: await signPrivateCareAsset(item.image_url),
+    })),
+  );
 
   const incidents = (incidentRows as Json[]).filter(
     (i) => i.reported_by_profile_id === caregiverId || i.visibility === "shared_care_timeline",
