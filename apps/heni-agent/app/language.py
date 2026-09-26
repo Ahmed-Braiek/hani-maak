@@ -10,9 +10,14 @@ def _norm(text: str) -> str:
 def detect_requested_locale(text: str) -> str | None:
     value = _norm(text)
     if any(term in value for term in (
-        "parle en arabe", "parlez en arabe", "parle en arab", "parlez en arab", "parle arabe", "parlez arabe", "en arabe",
-        "arabic", "arab", "tunisian", "tunisaian", "tunisia", "tunisien", "tunisienne", "derja", "darija",
-        "بالعربي", "بالتونسي", "بالدارجة", "عربي", "تونسي",
+        "tunisian", "tunisaian", "tunisia", "tunisien", "tunisienne",
+        "derja", "darija", "بالتونسي", "بالدارجة", "تونسي",
+    )):
+        return "tn"
+    if any(term in value for term in (
+        "parle en arabe", "parlez en arabe", "parle en arab", "parlez en arab",
+        "parle arabe", "parlez arabe", "en arabe", "arabic", "arab",
+        "بالعربي", "عربي", "العربية", "بالعربية",
     )):
         return "ar"
     if any(term in value for term in ("parle français", "parlez français", "parle francais", "parlez francais", "en français", "en francais", "french", "بالفرنسي")):
@@ -27,12 +32,12 @@ def detect_likely_locale(text: str) -> str | None:
     if requested:
         return requested
     value = _norm(text)
-    if re.search(r"[\u0600-\u06ff]", value):
-        return "ar"
     if any(term in value for term in (
         "nheb", "naamel", "na3mel", "najjem", "najem", "chnowa", "chnoua", "chneya",
         "sbeh", "l3chiya", "3andi", "aandy", "ghodwa", "tawa", "mouch",
     )):
+        return "tn"
+    if re.search(r"[\u0600-\u06ff]", value):
         return "ar"
     if any(term in value for term in ("bonjour", "je veux", "je voudrais", "avec plaisir", "docteur", "médecin", "medecin")):
         return "fr"
@@ -68,7 +73,16 @@ def is_doctor_name_question(text: str) -> bool:
     return doctor and identity
 
 
-def locale_message(locale: str, *, ar: str, fr: str, en: str) -> str:
+def locale_message(
+    locale: str,
+    *,
+    ar: str,
+    fr: str,
+    en: str,
+    tn: str | None = None,
+) -> str:
+    if locale == "tn":
+        return tn if tn is not None else ar
     if locale == "ar":
         return ar
     if locale == "en":

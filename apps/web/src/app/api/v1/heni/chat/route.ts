@@ -55,6 +55,7 @@ async function externalPatientTurn(body: any) {
       body: JSON.stringify({
         message: String(body.message ?? "").trim(),
         locale:
+          body.locale === "tn" ||
           body.locale === "fr" ||
           body.locale === "en" ||
           body.locale === "ar"

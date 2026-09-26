@@ -4,7 +4,7 @@ enum HaniLanguage { tounsi, arabic, english, french }
 
 extension HaniLanguageX on HaniLanguage {
   String get code => switch (this) {
-        HaniLanguage.tounsi => 'ar',
+        HaniLanguage.tounsi => 'tn',
         HaniLanguage.arabic => 'ar',
         HaniLanguage.english => 'en',
         HaniLanguage.french => 'fr',
