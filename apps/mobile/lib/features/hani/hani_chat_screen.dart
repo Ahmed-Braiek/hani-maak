@@ -8,7 +8,9 @@ import '../../core/widgets/hani_ui.dart';
 import 'hani_controller.dart';
 
 class HaniChatScreen extends ConsumerStatefulWidget {
-  const HaniChatScreen({super.key});
+  const HaniChatScreen({super.key, this.initialPrompt});
+
+  final String? initialPrompt;
 
   @override
   ConsumerState<HaniChatScreen> createState() => _HaniChatScreenState();
@@ -17,6 +19,20 @@ class HaniChatScreen extends ConsumerStatefulWidget {
 class _HaniChatScreenState extends ConsumerState<HaniChatScreen> {
   final input = TextEditingController();
   final scroll = ScrollController();
+  bool _initialPromptSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final prompt = widget.initialPrompt?.trim();
+    if (prompt != null && prompt.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _initialPromptSent) return;
+        _initialPromptSent = true;
+        _send(prompt);
+      });
+    }
+  }
 
   @override
   void dispose() {

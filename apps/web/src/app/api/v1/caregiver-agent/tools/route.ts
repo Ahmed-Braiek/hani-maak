@@ -392,12 +392,28 @@ export async function POST(req: Request) {
         `dilemma_scenarios?select=*&scenario_key=eq.${encodeURIComponent(key)}&active=eq.true&validation_status=eq.validated&limit=1`,
       );
       if (!scenario) return NextResponse.json({ success: false, error: "scenario_not_found" }, { status: 404 });
-      const [questions, guidance, redFlags] = await Promise.all([
+      const [storedQuestions, guidance, redFlags] = await Promise.all([
         sb(`dilemma_questions?select=question_key,prompt_i18n,response_type,options,required,display_order&scenario_id=eq.${scenario.id}&active=eq.true&order=display_order.asc`),
         sb(`dilemma_guidance?select=guidance_key,guidance_i18n,condition_json,display_order&scenario_id=eq.${scenario.id}&active=eq.true&validation_status=eq.validated&order=display_order.asc`),
         sb(`dilemma_red_flags?select=red_flag_key,description_i18n,trigger_json,escalation_level,recommended_route&scenario_id=eq.${scenario.id}&active=eq.true&validation_status=eq.validated`),
       ]);
-      return NextResponse.json({ success: true, scenario, questions, guidance, redFlags });
+      const questions = Array.isArray(storedQuestions) && storedQuestions.length
+        ? storedQuestions
+        : (SAFE_INTERACTION_SHELLS[key] || []);
+      const contentStatus = guidance.length || redFlags.length
+        ? "validated_content_available"
+        : "interaction_shell_only";
+      return NextResponse.json({
+        success: true,
+        scenario,
+        questions,
+        guidance,
+        redFlags,
+        contentStatus,
+        safeBoundary: contentStatus === "interaction_shell_only"
+          ? "Use these questions only to understand context. Do not invent clinical guidance or red flags. Offer supportive, low-risk orientation and route to a human professional when clinical stakes or uncertainty are meaningful."
+          : null,
+      });
     }
 
     if (tool === "create_incident_draft") {
