@@ -15,6 +15,12 @@ class CaregiverContext {
     required this.questionnaires,
     required this.timeline,
     required this.appointments,
+    required this.medicationSchedules,
+    required this.medicationEvents,
+    required this.careDocuments,
+    required this.memoryItems,
+    required this.activitySessions,
+    required this.summaryDeliveries,
     required this.supportSignals,
     required this.taskRequests,
     required this.patterns,
@@ -36,6 +42,12 @@ class CaregiverContext {
   final List<Map<String, dynamic>> questionnaires;
   final List<Map<String, dynamic>> timeline;
   final List<Map<String, dynamic>> appointments;
+  final List<Map<String, dynamic>> medicationSchedules;
+  final List<Map<String, dynamic>> medicationEvents;
+  final List<Map<String, dynamic>> careDocuments;
+  final List<Map<String, dynamic>> memoryItems;
+  final List<Map<String, dynamic>> activitySessions;
+  final List<Map<String, dynamic>> summaryDeliveries;
   final List<Map<String, dynamic>> supportSignals;
   final List<Map<String, dynamic>> taskRequests;
   final List<Map<String, dynamic>> patterns;
@@ -68,6 +80,12 @@ class CaregiverContext {
       questionnaires: maps(json['questionnaires']),
       timeline: maps(json['timeline']),
       appointments: maps(json['appointments']),
+      medicationSchedules: maps(json['medicationSchedules']),
+      medicationEvents: maps(json['medicationEvents']),
+      careDocuments: maps(json['careDocuments']),
+      memoryItems: maps(json['memoryItems']),
+      activitySessions: maps(json['activitySessions']),
+      summaryDeliveries: maps(json['summaryDeliveries']),
       supportSignals: maps(json['supportSignals']),
       taskRequests: maps(json['taskRequests']),
       patterns: maps(json['patterns']),
