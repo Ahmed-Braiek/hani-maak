@@ -283,6 +283,28 @@ async function recordMedicationEvent(
     },
   );
 
+  let rescheduledEvent: Json | null = null;
+  if (status === "delayed") {
+    const delayMinutes = Number.isFinite(Number(args.delayMinutes))
+      ? Math.max(5, Math.min(240, Number(args.delayMinutes)))
+      : 30;
+    const scheduledFor = new Date(Date.now() + delayMinutes * 60_000).toISOString();
+    const newRows = await sb("medication_events", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        patient_medication_id: event.patient_medication_id,
+        patient_id: patientId,
+        caregiver_profile_id: caregiverId,
+        scheduled_for: scheduledFor,
+        status: "pending",
+        note: `Delayed by ${delayMinutes} minutes`,
+        source: "caregiver_app",
+      }),
+    });
+    rescheduledEvent = newRows?.[0] ?? null;
+  }
+
   await sb("timeline_events", {
     method: "POST",
     headers: { Prefer: "return=minimal" },
@@ -304,7 +326,10 @@ async function recordMedicationEvent(
     }),
   });
 
-  return rows?.[0] ?? null;
+  return {
+    event: rows?.[0] ?? null,
+    rescheduledEvent,
+  };
 }
 
 async function saveDocument(
@@ -700,11 +725,11 @@ export async function POST(req: Request) {
     if (action === "record_medication_event") {
       return response({
         success: true,
-        event: await recordMedicationEvent(
+        ...(await recordMedicationEvent(
           caregiverId,
           patientId,
           args,
-        ),
+        )),
       });
     }
     if (action === "save_document") {
