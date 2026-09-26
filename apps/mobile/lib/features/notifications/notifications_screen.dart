@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
+import '../../core/notification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
 import '../context/caregiver_context_api.dart';
@@ -210,6 +211,15 @@ class NotificationsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await HaniNotificationService.instance.requestPermissions();
+              await HaniNotificationService.instance.showTest();
+            },
+            icon: const Icon(Icons.phone_android_rounded),
+            label: const Text('Test phone notification'),
           ),
           const SizedBox(height: 22),
           HaniSectionHeader(
