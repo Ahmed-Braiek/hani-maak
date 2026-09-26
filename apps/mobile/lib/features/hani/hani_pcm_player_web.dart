@@ -19,6 +19,8 @@ class HaniPcmPlayer {
   double _nextStart = 0;
   bool _ready = false;
 
+  bool get isPlaying => _active.isNotEmpty;
+
   Future<void> init() async {
     if (_ready) {
       final context = _context;
