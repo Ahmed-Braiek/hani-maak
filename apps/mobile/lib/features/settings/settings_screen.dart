@@ -8,6 +8,14 @@ import '../../core/widgets/hani_ui.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  String t(HaniLanguage l, String tn, String ar, String en, String fr) =>
+      switch (l) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
@@ -38,11 +46,13 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
-                      ? 'خلّي التطبيق يخدم بالطريقة اللي تريحك.'
-                      : settings.language == HaniLanguage.french
-                          ? 'Adaptez Hani Maak à votre façon de prendre soin.'
-                          : 'Make Hani Maak fit the way you care.',
+                  t(
+                    settings.language,
+                    'خلّي التطبيق يخدم بالطريقة اللي تريحك.',
+                    'اجعل التطبيق يعمل بالطريقة الأنسب لك.',
+                    'Make Hani Maak fit the way you care.',
+                    'Adaptez Hani Maak à votre façon de prendre soin.',
+                  ),
                   style: const TextStyle(color: HaniColors.muted),
                 ),
               ],
@@ -63,15 +73,22 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.notifications_active_outlined,
                   title: copy.t('notifications'),
                   subtitle: settings.notificationsEnabled
-                      ? 'On · personalized'
-                      : 'Off',
+                      ? t(settings.language, 'مفعّلة', 'مفعّلة', 'On · personalized',
+                          'Activées · personnalisées')
+                      : t(settings.language, 'مطفية', 'متوقفة', 'Off', 'Désactivées'),
                   onTap: () => context.push('/notifications'),
                 ),
                 const Divider(indent: 70),
                 HaniSettingsTile(
                   icon: Icons.dashboard_customize_outlined,
                   title: copy.t('widgets'),
-                  subtitle: 'Choose what appears on Today',
+                  subtitle: t(
+                    settings.language,
+                    'اختار شنوّة يبان في Today',
+                    'اختر ما يظهر في صفحة اليوم',
+                    'Choose what appears on Today',
+                    'Choisissez ce qui apparaît sur Aujourd’hui',
+                  ),
                   onTap: () => context.push('/widgets'),
                 ),
               ],
@@ -82,13 +99,45 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               children: [
                 HaniSettingsTile(
+                  icon: Icons.explore_outlined,
+                  title: t(settings.language, 'كيفاش يخدم هاني',
+                      'كيف يعمل هاني', 'How Hani Maak works',
+                      'Comment fonctionne Hani Maak'),
+                  subtitle: t(
+                    settings.language,
+                    'شرح سريع للخصوصية، الدعم، والدائرة.',
+                    'شرح سريع للخصوصية والدعم ودائرة الرعاية.',
+                    'A one-minute product guide',
+                    'Guide produit en une minute',
+                  ),
+                  onTap: () => context.push('/how-it-works'),
+                ),
+                const Divider(indent: 70),
+                HaniSettingsTile(
+                  icon: Icons.hub_outlined,
+                  title: t(settings.language, 'مركز الرعاية', 'مركز الرعاية',
+                      'Care hub', 'Centre de soins'),
+                  subtitle: t(
+                    settings.language,
+                    'الخط الزمني، المواعيد، التعليمات والنشاطات',
+                    'الخط الزمني والمواعيد والتعليمات والأنشطة',
+                    'Timeline · appointments · instructions · activities',
+                    'Chronologie · rendez-vous · instructions · activités',
+                  ),
+                  onTap: () => context.push('/care-hub'),
+                ),
+                const Divider(indent: 70),
+                HaniSettingsTile(
                   icon: Icons.lock_outline_rounded,
-                  title: settings.language == HaniLanguage.french
-                      ? 'Confidentialité'
-                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
-                          ? 'الخصوصية'
-                          : 'Privacy',
-                  subtitle: 'Caregiver wellbeing stays private by default',
+                  title: t(settings.language, 'الخصوصية', 'الخصوصية',
+                      'Privacy', 'Confidentialité'),
+                  subtitle: t(
+                    settings.language,
+                    'الراحة النفسية متاعك تبقى خاصة افتراضيًا',
+                    'يبقى رفاهك النفسي خاصًا افتراضيًا',
+                    'Caregiver wellbeing stays private by default',
+                    'Le bien-être de l’aidant reste privé par défaut',
+                  ),
                 ),
                 const Divider(indent: 70),
                 HaniSettingsTile(
@@ -102,7 +151,13 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Demo build · Synthetic patient data',
+            t(
+              settings.language,
+              'نسخة Demo · بيانات مريض اصطناعية',
+              'نسخة تجريبية · بيانات مريض اصطناعية',
+              'Demo build · Synthetic patient data',
+              'Build de démonstration · Données patient synthétiques',
+            ),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: HaniColors.muted.withValues(alpha: .8),
@@ -130,15 +185,16 @@ class SettingsScreen extends ConsumerWidget {
                     leading: CircleAvatar(
                       backgroundColor: HaniColors.primarySoft,
                       child: Text(
-                        (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
-                            ? 'ت'
-                            : language == HaniLanguage.french
-                                ? 'FR'
-                                : 'EN',
+                        switch (language) {
+                          HaniLanguage.tounsi => 'TN',
+                          HaniLanguage.arabic => 'AR',
+                          HaniLanguage.french => 'FR',
+                          HaniLanguage.english => 'EN',
+                        },
                         style: const TextStyle(
                           color: HaniColors.primary,
                           fontWeight: FontWeight.w900,
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                     ),
@@ -146,6 +202,12 @@ class SettingsScreen extends ConsumerWidget {
                       language.label,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
+                    trailing: ref.read(appSettingsProvider).language == language
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: HaniColors.primary,
+                          )
+                        : null,
                     onTap: () {
                       ref
                           .read(appSettingsProvider.notifier)
