@@ -363,14 +363,12 @@ class _BreathingOrbState extends State<_BreathingOrb>
                     width: 10,
                   ),
                 ),
-                child: Icon(
-                  speaking
-                      ? Icons.graphic_eq_rounded
-                      : widget.phase == VoicePhase.thinking
-                          ? Icons.auto_awesome_rounded
-                          : Icons.mic_none_rounded,
-                  color: Colors.white,
-                  size: 53,
+                child: const Center(
+                  child: HaniBrandLogo(
+                    variant: HaniBrandVariant.markOnly,
+                    light: true,
+                    height: 82,
+                  ),
                 ),
               ),
             ),
