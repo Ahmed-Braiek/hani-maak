@@ -178,13 +178,10 @@ class HaniGradientCard extends StatelessWidget {
     );
 
     if (onTap == null) return content;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(28),
-        onTap: onTap,
-        child: content,
-      ),
+    return _HaniPressable(
+      onTap: onTap!,
+      radius: 28,
+      child: content,
     );
   }
 }
@@ -331,4 +328,218 @@ class HaniSettingsTile extends StatelessWidget {
       trailing: trailing ?? const Icon(Icons.chevron_right_rounded),
     );
   }
+}
+
+
+class HaniAmbientWash extends StatefulWidget {
+  const HaniAmbientWash({super.key});
+
+  @override
+  State<HaniAmbientWash> createState() => _HaniAmbientWashState();
+}
+
+class _HaniAmbientWashState extends State<HaniAmbientWash>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 14),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final v = Curves.easeInOut.transform(_controller.value);
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                top: -120 + (v * 26),
+                left: -96 + (v * 18),
+                child: _GlowCircle(
+                  size: 300,
+                  color: HaniColors.mint.withValues(alpha: .24),
+                ),
+              ),
+              Positioned(
+                top: 250 - (v * 20),
+                right: -150 + (v * 22),
+                child: _GlowCircle(
+                  size: 330,
+                  color: HaniColors.lilac.withValues(alpha: .22),
+                ),
+              ),
+              Positioned(
+                bottom: 80 + (v * 24),
+                left: -130 + (v * 16),
+                child: _GlowCircle(
+                  size: 270,
+                  color: HaniColors.aqua.withValues(alpha: .34),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _GlowCircle extends StatelessWidget {
+  const _GlowCircle({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: .45),
+              blurRadius: 70,
+              spreadRadius: 6,
+            ),
+          ],
+        ),
+      );
+}
+
+class HaniPulseMark extends StatefulWidget {
+  const HaniPulseMark({
+    super.key,
+    this.size = 52,
+    this.icon = Icons.graphic_eq_rounded,
+    this.foreground = Colors.white,
+    this.background = HaniColors.primary,
+  });
+
+  final double size;
+  final IconData icon;
+  final Color foreground;
+  final Color background;
+
+  @override
+  State<HaniPulseMark> createState() => _HaniPulseMarkState();
+}
+
+class _HaniPulseMarkState extends State<HaniPulseMark>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1850),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: widget.size * 1.34,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final progress = Curves.easeOut.transform(_controller.value);
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Transform.scale(
+                scale: .78 + (progress * .42),
+                child: Opacity(
+                  opacity: (1 - progress) * .28,
+                  child: Container(
+                    width: widget.size,
+                    height: widget.size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.background,
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                width: widget.size,
+                height: widget.size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.background,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .18),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.background.withValues(alpha: .24),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  widget.icon,
+                  color: widget.foreground,
+                  size: widget.size * .46,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HaniPressable extends StatefulWidget {
+  const _HaniPressable({
+    required this.child,
+    required this.onTap,
+    required this.radius,
+  });
+
+  final Widget child;
+  final VoidCallback onTap;
+  final double radius;
+
+  @override
+  State<_HaniPressable> createState() => _HaniPressableState();
+}
+
+class _HaniPressableState extends State<_HaniPressable> {
+  bool pressed = false;
+
+  @override
+  Widget build(BuildContext context) => AnimatedScale(
+        scale: pressed ? .985 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(widget.radius),
+            onHighlightChanged: (value) {
+              if (mounted) setState(() => pressed = value);
+            },
+            onTap: widget.onTap,
+            child: widget.child,
+          ),
+        ),
+      );
 }
