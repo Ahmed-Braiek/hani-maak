@@ -179,6 +179,47 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen> {
   }
 
   Future<void> scanPrescription(HaniLanguage language) async {
+    final documentType = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'What are you scanning?',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: HaniColors.primarySoft,
+                  child: Icon(Icons.description_outlined,
+                      color: HaniColors.primary),
+                ),
+                title: const Text('Prescription / ordonnance'),
+                subtitle: const Text('Extract medication, dose, frequency, and duration.'),
+                onTap: () => Navigator.pop(context, 'prescription'),
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: HaniColors.primarySoft,
+                  child: Icon(Icons.medication_outlined,
+                      color: HaniColors.primary),
+                ),
+                title: const Text('Medication box'),
+                subtitle: const Text('Read visible medication information from the packaging.'),
+                onTap: () => Navigator.pop(context, 'medication_box'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (documentType == null) return;
+
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       showDragHandle: true,
@@ -234,7 +275,7 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen> {
       final result = await ref.read(caregiverContextApiProvider).ocrPrescription(
             imageBase64: base64Encode(bytes),
             mimeType: mime,
-            documentType: 'prescription',
+            documentType: documentType,
             locale: language.code,
           );
 
@@ -243,6 +284,7 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen> {
         language: language,
         extraction: result,
         fileName: image.name,
+        documentType: documentType,
       );
     } catch (error) {
       if (mounted) {
@@ -259,6 +301,7 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen> {
     required HaniLanguage language,
     required Map<String, dynamic> extraction,
     required String fileName,
+    String documentType = 'prescription',
   }) async {
     final raw = extraction['medications'];
     final medications = (raw as List? ?? const [])
@@ -402,8 +445,10 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen> {
       await ref.read(caregiverContextApiProvider).action(
         'save_care_document',
         args: {
-          'documentType': 'prescription',
-          'title': 'Prescription scan',
+          'documentType': documentType,
+          'title': documentType == 'medication_box'
+              ? 'Medication box scan'
+              : 'Prescription scan',
           'originalFileName': fileName,
           'extractedText': extraction['rawText']?.toString() ?? '',
           'extraction': extraction,
