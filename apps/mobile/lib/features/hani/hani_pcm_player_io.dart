@@ -57,17 +57,17 @@ class HaniPcmPlayer {
   Future<void> interrupt() async {
     if (!_ready) return;
     _playing = false;
+
+    // flutter_pcm_sound 3.x intentionally removed stop/clear. Releasing the
+    // native audio engine is the reliable way to discard already-buffered
+    // model audio during barge-in; the next PCM packet lazily calls setup().
     try {
-      await FlutterPcmSound.stop(clear: true);
-    } catch (_) {
-      try {
-        await FlutterPcmSound.clear();
-      } catch (_) {}
-    }
+      await FlutterPcmSound.release();
+    } catch (_) {}
+    _ready = false;
   }
 
   Future<void> dispose() async {
     await interrupt();
-    _ready = false;
   }
 }
