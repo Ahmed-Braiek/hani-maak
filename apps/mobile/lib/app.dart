@@ -9,6 +9,8 @@ import 'features/auth/how_hani_works_screen.dart';
 import 'features/shell/app_shell.dart';
 import 'features/today/today_screen.dart';
 import 'features/patient/patient_screen.dart';
+import 'features/patient/patient_activity_screen.dart';
+import 'features/patient/care_hub_screen.dart';
 import 'features/care_circle/care_circle_screen.dart';
 import 'features/wellbeing/wellbeing_screen.dart';
 import 'features/wellbeing/questionnaire_screen.dart';
@@ -47,6 +49,8 @@ final router = GoRouter(
     GoRoute(parentNavigatorKey: _rootKey, path: '/notifications', builder: (_, __) => const NotificationsScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/settings', builder: (_, __) => const SettingsScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/widgets', builder: (_, __) => const WidgetsScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/activity', builder: (_, __) => const PatientActivityScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/care-hub', builder: (_, __) => const CareHubScreen()),
   ],
 );
 
