@@ -471,6 +471,28 @@ export async function POST(req: Request) {
         `incidents?select=*&id=eq.${encodeURIComponent(incidentId)}&reported_by_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
       );
       if (!incident) return NextResponse.json({ error: "incident_not_found_or_not_owned" }, { status: 404 });
+      const circle = await first(
+        `care_circles?select=id&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
+      );
+      const consentRows = await sb("consents", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          actor_profile_id: caregiverId,
+          patient_id: patientId,
+          consent_type: "share_incident_to_care_circle",
+          scope: {
+            minimumNecessary: true,
+            incidentId,
+            dataCategories: ["patient_incident"],
+          },
+          recipient_type: "care_circle",
+          recipient_id: circle?.id ?? null,
+          status: "granted",
+        }),
+      });
+      const consent = consentRows?.[0] ?? null;
+
       const rows = await sb(`incidents?id=eq.${encodeURIComponent(incidentId)}`, {
         method: "PATCH",
         headers: { Prefer: "return=representation" },
@@ -481,9 +503,10 @@ export async function POST(req: Request) {
           updated_at: new Date().toISOString(),
         }),
       });
-      await sb("timeline_events", {
+
+      const timelineRows = await sb("timeline_events", {
         method: "POST",
-        headers: { Prefer: "return=minimal" },
+        headers: { Prefer: "return=representation" },
         body: JSON.stringify({
           patient_id: patientId,
           event_type: "incident",
@@ -496,7 +519,33 @@ export async function POST(req: Request) {
           visible_to_care_circle: true,
         }),
       });
-      return NextResponse.json({ success: true, incident: rows?.[0], shared: true });
+      const timelineEvent = timelineRows?.[0] ?? null;
+
+      await sb("disclosure_events", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          consent_id: consent?.id ?? null,
+          actor_profile_id: caregiverId,
+          patient_id: patientId,
+          recipient_type: "care_circle",
+          recipient_id: circle?.id ?? null,
+          data_categories: ["patient_incident"],
+          purpose: "shared_care_coordination",
+          payload_reference: {
+            incidentId,
+            timelineEventId: timelineEvent?.id ?? null,
+          },
+        }),
+      });
+
+      return NextResponse.json({
+        success: true,
+        incident: rows?.[0],
+        timelineEvent,
+        consent,
+        shared: true,
+      });
     }
 
     if (tool === "get_care_circle") {
@@ -694,6 +743,32 @@ export async function POST(req: Request) {
           status: "requested",
         }),
       });
+      const contactRequest = requestRows?.[0] ?? null;
+
+      if (handoff?.id && consent?.id) {
+        await sb("disclosure_events", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            consent_id: consent.id,
+            actor_profile_id: caregiverId,
+            patient_id: patientId,
+            recipient_type: "professional",
+            recipient_id: professionalId,
+            data_categories: [
+              "handoff_summary",
+              ...(args.incidentId ? ["patient_incident"] : []),
+            ],
+            purpose: "professional_handoff",
+            payload_reference: {
+              handoffSummaryId: handoff.id,
+              incidentId: args.incidentId || null,
+              contactRequestId: contactRequest?.id ?? null,
+              channel,
+            },
+          }),
+        });
+      }
 
       let uiAction: Json | null = null;
       if (channel === "call" && professional.phone) {
@@ -707,7 +782,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        request: requestRows?.[0],
+        request: contactRequest,
         handoff,
         professional,
         uiAction,
