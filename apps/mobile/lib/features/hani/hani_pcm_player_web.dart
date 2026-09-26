@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
-import 'dart:html' as html;
+import 'dart:web_audio' as web_audio;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -14,8 +14,8 @@ import 'dart:typed_data';
 class HaniPcmPlayer {
   static const int sampleRate = 24000;
 
-  html.AudioContext? _context;
-  final Set<html.AudioBufferSourceNode> _active = {};
+  web_audio.AudioContext? _context;
+  final Set<web_audio.AudioBufferSourceNode> _active = {};
   double _nextStart = 0;
   bool _ready = false;
 
@@ -28,7 +28,7 @@ class HaniPcmPlayer {
       return;
     }
 
-    final context = html.AudioContext();
+    final context = web_audio.AudioContext();
     _context = context;
     _nextStart = context.currentTime;
 
