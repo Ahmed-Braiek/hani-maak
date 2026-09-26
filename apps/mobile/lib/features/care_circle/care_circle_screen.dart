@@ -240,7 +240,7 @@ class _CareCircleScreenState extends ConsumerState<CareCircleScreen> {
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String?>(
-                    value: recipientProfileId,
+                    initialValue: recipientProfileId,
                     decoration: InputDecoration(
                       labelText: t(language, 'شكون يشدّها؟', 'من يتولى المهمة؟',
                           'Who should take it?', 'Qui peut la prendre ?'),
