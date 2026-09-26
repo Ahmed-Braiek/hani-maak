@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../../core/widgets/hani_brand_logo.dart';
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
@@ -54,7 +55,7 @@ class WelcomeScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const _Brand(),
+                    const HaniBrandLogo(height: 50),
                     const Spacer(),
                     PopupMenuButton<HaniLanguage>(
                       tooltip: copy.t('language'),
