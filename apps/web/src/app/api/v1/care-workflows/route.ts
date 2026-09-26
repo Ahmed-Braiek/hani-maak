@@ -1,4 +1,4 @@
-import { createSign } from "node:crypto";
+import { createSign, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   caregiverAuthStatus,
@@ -84,6 +84,107 @@ async function sb(path: string, init: RequestInit = {}) {
 async function first(path: string) {
   const rows = await sb(path);
   return Array.isArray(rows) ? rows[0] ?? null : null;
+}
+
+async function uploadPrivateCareImage(
+  patientId: string,
+  imageDataUrl: string,
+) {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("supabase_not_configured");
+  }
+  const match = imageDataUrl.match(
+    /^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=\s]+)$/i,
+  );
+  if (!match) throw new Error("unsupported_memory_image");
+
+  const mime = match[1].toLowerCase().replace("image/jpg", "image/jpeg");
+  const bytes = Buffer.from(match[2], "base64");
+  if (!bytes.length || bytes.length > 5 * 1024 * 1024) {
+    throw new Error("memory_image_too_large");
+  }
+
+  const extension =
+    mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+  const path = `patients/${patientId}/memory/${randomUUID()}.${extension}`;
+
+  const upload = await fetch(
+    `${supabaseUrl}/storage/v1/object/hani-care-media/${path}`,
+    {
+      method: "POST",
+      headers: {
+        ...headers(),
+        "content-type": mime,
+        "x-upsert": "false",
+      },
+      body: bytes,
+    },
+  );
+  const raw = await upload.text();
+  if (!upload.ok) {
+    let body: Json | null = null;
+    try {
+      body = raw ? JSON.parse(raw) : null;
+    } catch {}
+    throw new Error(
+      body?.message || body?.error || `care_media_upload_http_${upload.status}`,
+    );
+  }
+  return { path, mime, size: bytes.length };
+}
+
+async function saveMemoryItem(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const itemType = clean(args.itemType, 40);
+  if (!["person", "place", "routine", "music", "memory", "activity"].includes(itemType)) {
+    throw new Error("invalid_memory_item_type");
+  }
+  const title = clean(args.title, 180);
+  if (!title) throw new Error("memory_item_title_required");
+
+  let imageUrl: string | null = null;
+  const imageDataUrl = clean(args.imageDataUrl, 7_500_000);
+  let media: Json | null = null;
+  if (imageDataUrl) {
+    media = await uploadPrivateCareImage(patientId, imageDataUrl);
+    imageUrl = `storage://hani-care-media/${media.path}`;
+  }
+
+  const rows = await sb("patient_memory_items", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      item_type: itemType,
+      title,
+      subtitle: clean(args.subtitle, 320) || null,
+      image_url: imageUrl,
+      media_url: clean(args.mediaUrl, 1000) || null,
+      prompt: clean(args.prompt, 900) || null,
+      sort_order: Number.isFinite(Number(args.sortOrder))
+        ? Number(args.sortOrder)
+        : 0,
+      active: true,
+      metadata: {
+        createdBy: caregiverId,
+        source: "caregiver_app",
+        ...(args.metadata && typeof args.metadata === "object"
+          ? args.metadata
+          : {}),
+        ...(media
+          ? {
+              storageBucket: "hani-care-media",
+              storagePath: media.path,
+              mimeType: media.mime,
+            }
+          : {}),
+      },
+    }),
+  });
+  return rows?.[0] ?? null;
 }
 
 async function analyzeMedicationImage(args: Json) {
@@ -736,6 +837,12 @@ export async function POST(req: Request) {
       return response({
         success: true,
         document: await saveDocument(caregiverId, patientId, args),
+      });
+    }
+    if (action === "save_memory_item") {
+      return response({
+        success: true,
+        item: await saveMemoryItem(caregiverId, patientId, args),
       });
     }
     if (action === "record_patient_activity") {
