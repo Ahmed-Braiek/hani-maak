@@ -80,8 +80,57 @@ class HaniMaakApp extends ConsumerWidget {
       routerConfig: router,
       builder: (context, child) => Directionality(
         textDirection: language.isRtl ? TextDirection.rtl : TextDirection.ltr,
-        child: child ?? const SizedBox.shrink(),
+        child: _ResponsiveAppFrame(
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
+    );
+  }
+}
+
+
+class _ResponsiveAppFrame extends StatelessWidget {
+  const _ResponsiveAppFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) return child;
+
+        return ColoredBox(
+          color: HaniColors.ink,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(34),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: HaniColors.surface,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .08),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .28),
+                          blurRadius: 48,
+                          offset: const Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
