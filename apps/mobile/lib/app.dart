@@ -5,6 +5,7 @@ import 'core/settings/app_settings.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/sign_in_screen.dart';
 import 'features/auth/welcome_screen.dart';
+import 'features/auth/how_hani_works_screen.dart';
 import 'features/shell/app_shell.dart';
 import 'features/today/today_screen.dart';
 import 'features/patient/patient_screen.dart';
@@ -26,6 +27,10 @@ final router = GoRouter(
   routes: [
     GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
     GoRoute(path: '/sign-in', builder: (_, __) => const SignInScreen()),
+    GoRoute(
+      path: '/how-it-works',
+      builder: (_, __) => const HowHaniWorksScreen(),
+    ),
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
@@ -35,41 +40,13 @@ final router = GoRouter(
         GoRoute(path: '/me', builder: (_, __) => const WellbeingScreen()),
       ],
     ),
-    GoRoute(
-      parentNavigatorKey: _rootKey,
-      path: '/hani',
-      builder: (_, __) => const HaniChatScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootKey,
-      path: '/voice',
-      builder: (_, __) => const HaniVoiceScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootKey,
-      path: '/handoff',
-      builder: (_, __) => const HandoffScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootKey,
-      path: '/questionnaire',
-      builder: (_, __) => const QuestionnaireScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootKey,
-      path: '/notifications',
-      builder: (_, __) => const NotificationsScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootKey,
-      path: '/settings',
-      builder: (_, __) => const SettingsScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: _rootKey,
-      path: '/widgets',
-      builder: (_, __) => const WidgetsScreen(),
-    ),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/hani', builder: (_, __) => const HaniChatScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/voice', builder: (_, __) => const HaniVoiceScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/handoff', builder: (_, __) => const HandoffScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/questionnaire', builder: (_, __) => const QuestionnaireScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/settings', builder: (_, __) => const SettingsScreen()),
+    GoRoute(parentNavigatorKey: _rootKey, path: '/widgets', builder: (_, __) => const WidgetsScreen()),
   ],
 );
 
@@ -79,7 +56,6 @@ class HaniMaakApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final language = ref.watch(appSettingsProvider.select((s) => s.language));
-    final rtl = language == HaniLanguage.tounsi;
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -87,7 +63,7 @@ class HaniMaakApp extends ConsumerWidget {
       theme: AppTheme.light,
       routerConfig: router,
       builder: (context, child) => Directionality(
-        textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+        textDirection: language.isRtl ? TextDirection.rtl : TextDirection.ltr,
         child: child ?? const SizedBox.shrink(),
       ),
     );
