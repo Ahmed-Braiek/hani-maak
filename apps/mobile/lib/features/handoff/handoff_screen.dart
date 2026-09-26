@@ -32,7 +32,7 @@ class HandoffScreen extends ConsumerWidget {
         title: Text(
           language == HaniLanguage.french
               ? 'Aide professionnelle'
-              : language == HaniLanguage.tounsi
+              : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                   ? 'مساعدة مختص'
                   : 'Professional support',
         ),
@@ -60,7 +60,7 @@ class HandoffScreen extends ConsumerWidget {
                     child: Text(
                       language == HaniLanguage.french
                           ? 'Hani prépare uniquement un résumé pertinent. Rien n’est partagé sans votre accord explicite.'
-                          : language == HaniLanguage.tounsi
+                          : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                               ? 'هاني يجهّز كان ملخّص يلزم المختص. ما يتشارك حتى شيء بلا موافقتك.'
                               : 'Hani prepares only the relevant summary. Nothing is shared without your explicit approval.',
                       style: const TextStyle(height: 1.45),
@@ -188,7 +188,7 @@ class HandoffScreen extends ConsumerWidget {
                               label: Text(
                                 language == HaniLanguage.french
                                     ? 'Demander un rendez-vous'
-                                    : language == HaniLanguage.tounsi
+                                    : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                         ? 'اطلب موعد'
                                         : 'Request appointment',
                               ),
