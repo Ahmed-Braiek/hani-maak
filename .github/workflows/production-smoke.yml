@@ -1,0 +1,66 @@
+name: Production smoke test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/production-smoke.yml"
+      - "apps/web/**"
+      - "apps/heni-agent/**"
+      - "apps/mobile/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hani-maak-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Wait for production aliases
+        run: sleep 20
+
+      - name: Verify web Flutter host
+        run: |
+          curl --fail --silent --show-error             --retry 4 --retry-delay 5             https://hani-maak.vercel.app/flutter/index.html             -o /tmp/flutter.html
+          grep -q '<base href="/flutter/">' /tmp/flutter.html
+
+      - name: Verify Hani agent health
+        run: |
+          curl --fail --silent --show-error             --retry 4 --retry-delay 5             https://hani-maak-heni-agent.vercel.app/health             -o /tmp/agent-health.json
+          python3 - <<'PY'
+          import json
+          body=json.load(open('/tmp/agent-health.json'))
+          assert body.get('status') == 'ok', body
+          assert body.get('service') == 'heni-agent', body
+          print('agent health ok')
+          PY
+
+      - name: Verify voice token and secure WebSocket URL
+        run: |
+          curl --fail --silent --show-error             --retry 3 --retry-delay 4             --max-time 30             -X POST https://hani-maak.vercel.app/api/v1/heni/voice-token             -H 'content-type: application/json'             --data '{"locale":"en","caregiverId":"10000000-0000-0000-0000-000000000001","patientId":"30000000-0000-0000-0000-000000000001"}'             -o /tmp/voice.json
+          python3 - <<'PY'
+          import json
+          body=json.load(open('/tmp/voice.json'))
+          assert body.get('token'), 'voice token missing'
+          assert str(body.get('wsUrl','')).startswith('wss://'), body.get('wsUrl')
+          print('voice token ok')
+          PY
+
+      - name: Verify Hani caregiver chat end to end
+        run: |
+          curl --fail --silent --show-error             --retry 2 --retry-delay 5             --max-time 55             -X POST https://hani-maak.vercel.app/api/v1/heni/chat             -H 'content-type: application/json'             --data '{"message":"Hello Hani. Give me one short supportive sentence.","locale":"en","role":"patient","caregiverId":"10000000-0000-0000-0000-000000000001","patientId":"30000000-0000-0000-0000-000000000001","history":[]}'             -o /tmp/chat.json
+          python3 - <<'PY'
+          import json
+          body=json.load(open('/tmp/chat.json'))
+          assert body.get('message'), body
+          assert body.get('sessionId'), body
+          assert body.get('locale') in {'tn','ar','fr','en'}, body
+          print('chat end-to-end ok')
+          PY
