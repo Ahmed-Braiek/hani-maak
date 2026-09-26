@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../../core/widgets/hani_brand_logo.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -85,6 +86,8 @@ class _SignInScreenState extends State<SignInScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(22, 10, 22, 34),
             children: [
+              const Center(child: HaniBrandLogo(height: 66)),
+              const SizedBox(height: 18),
               const HaniPill(
                 label: 'Secure caregiver space',
                 icon: Icons.lock_outline_rounded,
