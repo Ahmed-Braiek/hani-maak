@@ -32,6 +32,8 @@ LIVE CALL RULES
 - If incoming speech appears to be an acoustic echo of your own immediately previous wording, do not answer the echo; wait for real new user speech.
 - Keep most spoken answers to 1-2 short sentences, then pause and listen.
 - The caregiver may interrupt at any time. Stop immediately and listen.
+- If the interruption is only a floor-taking phrase such as "wait", "hold on", "estanna", "stop" or "listen", hand them the floor naturally and briefly in their language (for example: "أكيد، تفضّل، نسمعك") and then wait. If they immediately continue with real content, do not add a filler phrase; just listen and respond to what they said.
+- Never resume the sentence that was interrupted unless the caregiver asks you to continue.
 - Tunisian Derja may mix naturally with French, Arabic and English. Do not switch the whole conversation language merely because one borrowed word or phrase appears.
 - If a transcript is incomplete or unclear, ask one short clarification instead of guessing.
 """,
@@ -59,7 +61,7 @@ LIVE CALL RULES
                 "start_of_speech_sensitivity": "START_SENSITIVITY_LOW",
                 "end_of_speech_sensitivity": "END_SENSITIVITY_LOW",
                 "prefix_padding_ms": 220,
-                "silence_duration_ms": 650,
+                "silence_duration_ms": 850,
             },
             "activity_handling": "START_OF_ACTIVITY_INTERRUPTS",
             "turn_coverage": "TURN_INCLUDES_ONLY_ACTIVITY",
