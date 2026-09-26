@@ -38,7 +38,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  settings.language == HaniLanguage.tounsi
+                  settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'خلّي التطبيق يخدم بالطريقة اللي تريحك.'
                       : settings.language == HaniLanguage.french
                           ? 'Adaptez Hani Maak à votre façon de prendre soin.'
@@ -85,7 +85,7 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.lock_outline_rounded,
                   title: settings.language == HaniLanguage.french
                       ? 'Confidentialité'
-                      : settings.language == HaniLanguage.tounsi
+                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                           ? 'الخصوصية'
                           : 'Privacy',
                   subtitle: 'Caregiver wellbeing stays private by default',
@@ -130,7 +130,7 @@ class SettingsScreen extends ConsumerWidget {
                     leading: CircleAvatar(
                       backgroundColor: HaniColors.primarySoft,
                       child: Text(
-                        language == HaniLanguage.tounsi
+                        (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                             ? 'ت'
                             : language == HaniLanguage.french
                                 ? 'FR'
