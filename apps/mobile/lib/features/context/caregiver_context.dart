@@ -4,6 +4,12 @@ class CaregiverContext {
     required this.patient,
     required this.relationship,
     required this.medications,
+    required this.medicationSchedules,
+    required this.medicationEvents,
+    required this.careDocuments,
+    required this.memoryItems,
+    required this.activitySessions,
+    required this.summaryDeliveries,
     required this.instructions,
     required this.incidents,
     required this.tasks,
@@ -25,6 +31,12 @@ class CaregiverContext {
   final Map<String, dynamic> patient;
   final Map<String, dynamic> relationship;
   final List<Map<String, dynamic>> medications;
+  final List<Map<String, dynamic>> medicationSchedules;
+  final List<Map<String, dynamic>> medicationEvents;
+  final List<Map<String, dynamic>> careDocuments;
+  final List<Map<String, dynamic>> memoryItems;
+  final List<Map<String, dynamic>> activitySessions;
+  final List<Map<String, dynamic>> summaryDeliveries;
   final List<Map<String, dynamic>> instructions;
   final List<Map<String, dynamic>> incidents;
   final List<Map<String, dynamic>> tasks;
@@ -55,6 +67,12 @@ class CaregiverContext {
       patient: map(json['patient']),
       relationship: map(json['relationship']),
       medications: maps(json['medications']),
+      medicationSchedules: maps(json['medicationSchedules']),
+      medicationEvents: maps(json['medicationEvents']),
+      careDocuments: maps(json['careDocuments']),
+      memoryItems: maps(json['memoryItems']),
+      activitySessions: maps(json['activitySessions']),
+      summaryDeliveries: maps(json['summaryDeliveries']),
       instructions: maps(json['professionalInstructions']),
       incidents: maps(json['recentIncidents']),
       tasks: maps(json['careTasks']),
