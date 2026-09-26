@@ -1,6 +1,46 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
+class HaniBrandMark extends StatelessWidget {
+  const HaniBrandMark({
+    super.key,
+    this.size = 44,
+    this.showName = true,
+    this.onDark = false,
+  });
+
+  final double size;
+  final bool showName;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            'assets/brand/hani_app_icon.png',
+            width: size,
+            height: size,
+            fit: BoxFit.contain,
+          ),
+          if (showName) ...[
+            const SizedBox(width: 10),
+            Text(
+              'Hani Maak',
+              style: TextStyle(
+                color: onDark ? Colors.white : HaniColors.ink,
+                fontSize: size * .39,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -.6,
+              ),
+            ),
+          ],
+        ],
+      );
+}
+
+
 class HaniAnimatedEntrance extends StatelessWidget {
   const HaniAnimatedEntrance({
     super.key,

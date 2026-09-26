@@ -46,17 +46,12 @@ class HaniVoiceScreen extends ConsumerWidget {
                   const Expanded(
                     child: Column(
                       children: [
+                        HaniBrandMark(size: 34),
+                        SizedBox(height: 2),
                         Text(
-                          'Hani Live',
+                          'Live voice · private by default',
                           style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        Text(
-                          'Private · context-aware',
-                          style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 10.8,
                             color: HaniColors.muted,
                           ),
                         ),

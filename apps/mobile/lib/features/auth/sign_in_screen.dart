@@ -85,6 +85,8 @@ class _SignInScreenState extends State<SignInScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(22, 10, 22, 34),
             children: [
+              const Center(child: HaniBrandMark(size: 64)),
+              const SizedBox(height: 22),
               const HaniPill(
                 label: 'Secure caregiver space',
                 icon: Icons.lock_outline_rounded,

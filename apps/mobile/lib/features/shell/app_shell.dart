@@ -171,7 +171,7 @@ class _HaniFab extends StatelessWidget {
         heroTag: 'hani-main-fab',
         onPressed: onTap,
         elevation: 8,
-        backgroundColor: HaniColors.primary,
+        backgroundColor: HaniColors.primaryDeep,
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
         child: const HaniPulseMark(

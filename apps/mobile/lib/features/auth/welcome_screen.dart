@@ -186,28 +186,8 @@ class _Brand extends StatelessWidget {
   const _Brand();
 
   @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              gradient: HaniGradients.hero,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
-          ),
-          const SizedBox(width: 10),
-          const Text(
-            'Hani Maak',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 17,
-              letterSpacing: -.4,
-            ),
-          ),
-        ],
-      );
+  Widget build(BuildContext context) =>
+      const HaniBrandMark(size: 48);
 }
 
 class _Hero extends StatelessWidget {
