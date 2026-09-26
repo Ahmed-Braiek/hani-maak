@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../../core/widgets/hani_brand_logo.dart';
 
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.child});
@@ -174,9 +175,10 @@ class _HaniFab extends StatelessWidget {
         backgroundColor: HaniColors.primary,
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
-        child: const HaniPulseMark(
-          size: 42,
-          icon: Icons.graphic_eq_rounded,
+        child: const HaniBrandLogo(
+          variant: HaniBrandVariant.markOnly,
+          light: true,
+          height: 38,
         ),
       ),
     );
