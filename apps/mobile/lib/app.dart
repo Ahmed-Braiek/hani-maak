@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/settings/app_settings.dart';
 import 'core/theme/app_theme.dart';
+import 'core/notification_service.dart';
 import 'features/auth/sign_in_screen.dart';
 import 'features/auth/welcome_screen.dart';
 import 'features/auth/how_hani_works_screen.dart';
@@ -76,6 +77,9 @@ class HaniMaakApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final language = ref.watch(appSettingsProvider.select((s) => s.language));
+    HaniNotificationService.instance.routeHandler = (route) {
+      router.go(route);
+    };
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
