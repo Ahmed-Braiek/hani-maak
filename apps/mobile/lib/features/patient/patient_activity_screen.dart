@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../context/caregiver_context_api.dart';
 import '../context/caregiver_context_provider.dart';
 
 class PatientActivityScreen extends ConsumerStatefulWidget {
@@ -15,7 +17,9 @@ class PatientActivityScreen extends ConsumerStatefulWidget {
 
 class _PatientActivityScreenState
     extends ConsumerState<PatientActivityScreen> {
-  int? active;
+  String? activeId;
+  DateTime? startedAt;
+  bool busy = false;
 
   String t(HaniLanguage l, String tn, String ar, String en, String fr) =>
       switch (l) {
@@ -24,6 +28,97 @@ class _PatientActivityScreenState
         HaniLanguage.english => en,
         HaniLanguage.french => fr,
       };
+
+  IconData iconFor(String type) => switch (type) {
+        'person' => Icons.people_alt_outlined,
+        'place' => Icons.place_outlined,
+        'routine' => Icons.wb_sunny_outlined,
+        'music' => Icons.music_note_outlined,
+        'memory' => Icons.auto_stories_outlined,
+        'activity' => Icons.extension_outlined,
+        _ => Icons.favorite_outline_rounded,
+      };
+
+  Future<void> startItem(Map<String, dynamic> item) async {
+    if (activeId == item['id']?.toString()) {
+      await finishItem(item);
+      return;
+    }
+    setState(() {
+      activeId = item['id']?.toString();
+      startedAt = DateTime.now();
+    });
+  }
+
+  Future<void> finishItem(Map<String, dynamic> item) async {
+    final response = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'How did the moment feel?',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'This is a simple family observation, not a clinical score.',
+              style: TextStyle(color: HaniColors.muted),
+            ),
+            const SizedBox(height: 14),
+            ...[
+              ('calm', Icons.spa_outlined, 'Calm'),
+              ('engaged', Icons.visibility_outlined, 'Engaged'),
+              ('neutral', Icons.remove_circle_outline_rounded, 'Neutral'),
+              ('uncomfortable', Icons.sentiment_dissatisfied_outlined,
+                  'Uncomfortable — stop'),
+            ].map(
+              (choice) => ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: HaniColors.primarySoft,
+                  child: Icon(choice.$2, color: HaniColors.primary),
+                ),
+                title: Text(choice.$3),
+                onTap: () => Navigator.pop(context, choice.$1),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (response == null) return;
+
+    setState(() => busy = true);
+    try {
+      await ref.read(caregiverContextApiProvider).action(
+        'record_patient_activity',
+        args: {
+          'memoryItemId': item['id'],
+          'activityType': item['item_type'] ?? 'activity',
+          'startedAt': (startedAt ?? DateTime.now()).toIso8601String(),
+          'endedAt': DateTime.now().toIso8601String(),
+          'responseLabel': response,
+          'note': 'Caregiver-recorded patient activity.',
+          'metadata': {
+            'title': item['title'],
+            'nonClinical': true,
+          },
+        },
+      );
+      await ref.read(caregiverContextProvider.notifier).refreshContext();
+      if (mounted) {
+        setState(() {
+          activeId = null;
+          startedAt = null;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,57 +135,20 @@ class _PatientActivityScreenState
         error: (_, __) => const Center(child: Text('Activity unavailable.')),
         data: (data) {
           final name = data.patientName;
-          final items = [
-            (
-              Icons.photo_library_outlined,
-              t(language, 'صور ووجوه مألوفة', 'صور ووجوه مألوفة',
-                  'Familiar photos and people', 'Photos et visages familiers'),
-              t(
-                language,
-                'اختار صورة مألوفة واسأل سؤال بسيط بلا ما تحولها لاختبار ذاكرة.',
-                'اختر صورة مألوفة واسأل سؤالًا بسيطًا دون تحويله إلى اختبار للذاكرة.',
-                'Choose a familiar photo and invite a simple story without turning it into a memory test.',
-                'Choisissez une photo familière et invitez un souvenir sans transformer le moment en test.',
-              ),
-            ),
-            (
-              Icons.place_outlined,
-              t(language, 'أماكن وعادات', 'أماكن وعادات', 'Places and routines',
-                  'Lieux et habitudes'),
-              t(
-                language,
-                'احكي على بلاصة معروفة، عادة قديمة، ولا حاجة مرتبطة بالروتين.',
-                'تحدث عن مكان مألوف أو عادة قديمة أو جزء معروف من الروتين.',
-                'Talk about a familiar place, an old routine, or a well-known part of daily life.',
-                'Parlez d’un lieu familier, d’une ancienne habitude ou d’un repère du quotidien.',
-              ),
-            ),
-            (
-              Icons.music_note_outlined,
-              t(language, 'موسيقى مألوفة', 'موسيقى مألوفة', 'Familiar music',
-                  'Musique familière'),
-              t(
-                language,
-                'استعمل موسيقى يعرفها ' + name + ' وخلي النشاط خفيف. إذا بان عليه الضيق، وقف.',
-                'استخدم موسيقى مألوفة لدى ' + name + ' واجعل النشاط خفيفًا. إذا ظهر الانزعاج، توقف.',
-                'Use music familiar to ' + name + ' and keep the moment gentle. Stop if it becomes uncomfortable.',
-                'Utilisez une musique familière à ' + name + ' et gardez le moment léger. Arrêtez si cela devient inconfortable.',
-              ),
-            ),
-          ];
+          final items = data.memoryItems;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 34),
             children: [
               HaniGradientCard(
+                gradient: HaniGradients.soft,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const CircleAvatar(
                       radius: 28,
                       backgroundColor: Colors.white,
-                      child:
-                          Icon(Icons.spa_outlined, color: HaniColors.primary),
+                      child: Icon(Icons.spa_outlined, color: HaniColors.primary),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -99,7 +157,7 @@ class _PatientActivityScreenState
                         children: [
                           Text(
                             t(language, 'نشاط خفيف، موش اختبار',
-                                'نشاط لطيف، وليس اختبارًا',
+                                'نشاط لطيف وليس اختبارًا',
                                 'A gentle moment, not a test',
                                 'Un moment doux, pas un test'),
                             style: const TextStyle(
@@ -111,10 +169,10 @@ class _PatientActivityScreenState
                           Text(
                             t(
                               language,
-                              'هذا مود تجريبي غير علاجي. الهدف لحظة مريحة ومألوفة مع ' + name + '.',
-                              'هذا وضع تجريبي غير علاجي. الهدف لحظة مريحة ومألوفة مع ' + name + '.',
-                              'This is a non-clinical prototype mode for a calm, familiar moment with ' + name + '.',
-                              'Ce mode prototype est non clinique et vise un moment calme et familier avec ' + name + '.',
+                              'استعمل وجوه، بلايص، موسيقى وروتين يعرفهم $name. إذا بان الضيق، النشاط يوقف.',
+                              'استخدم وجوهًا وأماكن وموسيقى وروتينًا مألوفًا لدى $name، وتوقف إذا ظهر الانزعاج.',
+                              'Use people, places, music, and routines familiar to $name. Stop if the moment becomes uncomfortable.',
+                              'Utilisez des personnes, lieux, musiques et routines familiers à $name. Arrêtez si le moment devient inconfortable.',
                             ),
                             style: const TextStyle(
                               color: HaniColors.muted,
@@ -127,61 +185,161 @@ class _PatientActivityScreenState
                   ],
                 ),
               ),
-              const SizedBox(height: 22),
-              ...List.generate(items.length, (i) {
-                final item = items[i];
-                final selected = active == i;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 260),
-                    curve: Curves.easeOutCubic,
-                    decoration: BoxDecoration(
-                      color: selected ? HaniColors.primarySoft : Colors.white,
-                      borderRadius: BorderRadius.circular(26),
-                      border: Border.all(
-                        color:
-                            selected ? HaniColors.primary : HaniColors.line,
-                      ),
+              const SizedBox(height: 20),
+              if (items.isEmpty)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(18),
+                    child: Text(
+                      'No familiar items have been added yet.',
+                      style: TextStyle(color: HaniColors.muted),
                     ),
-                    child: ListTile(
-                      onTap: () =>
-                          setState(() => active = selected ? null : i),
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: CircleAvatar(
-                        backgroundColor: selected
-                            ? HaniColors.primary
-                            : HaniColors.primarySoft,
-                        child: Icon(
-                          item.$1,
+                  ),
+                )
+              else
+                ...items.map((item) {
+                  final id = item['id']?.toString();
+                  final selected = id != null && activeId == id;
+                  final image = item['image_url']?.toString() ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 260),
+                      decoration: BoxDecoration(
+                        color:
+                            selected ? HaniColors.primarySoft : Colors.white,
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
                           color:
-                              selected ? Colors.white : HaniColors.primary,
+                              selected ? HaniColors.primary : HaniColors.line,
                         ),
                       ),
-                      title: Text(
-                        item.$2,
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w900),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: busy ? null : () => startItem(item),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (image.isNotEmpty)
+                              AspectRatio(
+                                aspectRatio: 16 / 7,
+                                child: Image.network(
+                                  image,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: HaniColors.primarySoft,
+                                    child: Icon(
+                                      iconFor(item['item_type']?.toString() ?? ''),
+                                      size: 44,
+                                      color: HaniColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (image.isEmpty)
+                                    CircleAvatar(
+                                      backgroundColor: selected
+                                          ? HaniColors.primary
+                                          : HaniColors.primarySoft,
+                                      child: Icon(
+                                        iconFor(
+                                          item['item_type']?.toString() ?? '',
+                                        ),
+                                        color: selected
+                                            ? Colors.white
+                                            : HaniColors.primary,
+                                      ),
+                                    ),
+                                  if (image.isEmpty) const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item['title']?.toString() ??
+                                              'Familiar activity',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        if ((item['subtitle']?.toString() ?? '')
+                                            .isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            item['subtitle'].toString(),
+                                            style: const TextStyle(
+                                              color: HaniColors.muted,
+                                            ),
+                                          ),
+                                        ],
+                                        if ((item['prompt']?.toString() ?? '')
+                                            .isNotEmpty) ...[
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            item['prompt'].toString(),
+                                            style:
+                                                const TextStyle(height: 1.4),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    selected
+                                        ? Icons.stop_circle_outlined
+                                        : Icons.play_circle_outline_rounded,
+                                    color: HaniColors.primary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 5),
-                        child: Text(
-                          item.$3,
-                          style: const TextStyle(
-                            color: HaniColors.muted,
-                            height: 1.4,
+                    ),
+                  );
+                }),
+              const SizedBox(height: 18),
+              HaniSectionHeader(
+                title: t(language, 'آخر الأنشطة', 'آخر الأنشطة',
+                    'Recent activity', 'Activité récente'),
+                subtitle: '${data.activitySessions.length} sessions',
+              ),
+              const SizedBox(height: 10),
+              ...data.activitySessions.take(8).map(
+                    (session) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Card(
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: HaniColors.primarySoft,
+                            child: Icon(Icons.history_rounded,
+                                color: HaniColors.primary),
+                          ),
+                          title: Text(
+                            session['activity_type']?.toString() ??
+                                'Patient activity',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          subtitle: Text(
+                            [
+                              session['response_label']?.toString(),
+                              session['started_at']?.toString(),
+                            ].whereType<String>().join(' · '),
                           ),
                         ),
                       ),
-                      trailing: Icon(
-                        selected
-                            ? Icons.pause_circle_outline_rounded
-                            : Icons.play_circle_outline_rounded,
-                      ),
                     ),
                   ),
-                );
-              }),
             ],
           );
         },
