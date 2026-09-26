@@ -310,6 +310,22 @@ export async function POST(req: Request) {
     if (!caregiverId || !patientId) return json({ error: "caregiver_and_patient_required" }, { status: 400 });
     await verifyIdentity(req, caregiverId, patientId);
 
+    if (action === "record_wellbeing_checkin") {
+      const rows = await sb("wellbeing_checkins", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          caregiver_profile_id: caregiverId,
+          patient_id: patientId,
+          mood_label: clean(args.moodLabel, 80) || null,
+          energy_label: clean(args.energyLabel, 80) || null,
+          sleep_label: clean(args.sleepLabel, 80) || null,
+          free_text: clean(args.freeText, 1200) || null,
+          source: "manual",
+        }),
+      });
+      return json({ success: true, checkin: rows?.[0] ?? null, private: true });
+    }
     if (action === "respond_task_request") {
       return json({ success: true, request: await respondTask(caregiverId, clean(args.requestId, 120), args) });
     }
