@@ -160,8 +160,11 @@ class AppSettingsController extends StateNotifier<AppSettings> {
           notificationBool('care_circle_requests', state.careCircleRequests),
       appointments:
           notificationBool('appointments', state.appointments),
-      quietHours:
-          notificationBool('quiet_hours_enabled', state.quietHours),
+      quietHours: notificationPreferences.containsKey('quiet_hours_start') ||
+              notificationPreferences.containsKey('quiet_hours_end')
+          ? notificationPreferences['quiet_hours_start'] != null &&
+              notificationPreferences['quiet_hours_end'] != null
+          : state.quietHours,
       showHaniWidget:
           savedBool('show_hani_widget', state.showHaniWidget),
       showPatientWidget:
