@@ -21,7 +21,13 @@ from .tools.hani_backend import call_hani_tool
 _client = create_google_client()
 
 
-def _live_config(system_prompt: str) -> dict:
+def _live_config(system_prompt: str, locale: str) -> dict:
+    language_codes = {
+        "tn": ["ar-TN", "fr-FR", "en-US"],
+        "ar": ["ar", "ar-TN", "fr-FR", "en-US"],
+        "fr": ["fr-FR", "ar-TN", "en-US"],
+        "en": ["en-US", "fr-FR", "ar-TN"],
+    }.get(locale, ["ar-TN", "ar", "fr-FR", "en-US"])
     blocking_tools = [{**tool, "behavior": "BLOCKING"} for tool in TOOL_DECLARATIONS]
     return {
         "response_modalities": ["AUDIO"],
@@ -37,11 +43,12 @@ LIVE CALL RULES
 - If the interruption is only a floor-taking phrase such as "wait", "hold on", "estanna", "stop" or "listen", hand them the floor naturally and briefly in their language (for example: "أكيد، تفضّل، نسمعك") and then wait. If they immediately continue with real content, do not add a filler phrase; just listen and respond to what they said.
 - Never resume the sentence that was interrupted unless the caregiver asks you to continue.
 - Tunisian Derja may mix naturally with French, Arabic and English. Do not switch the whole conversation language merely because one borrowed word or phrase appears.
+- The only supported transcript languages are Tunisian Arabic/Derja, Arabic, French, and English. Never reinterpret clear speech as another unrelated language.
 - If a transcript is incomplete or unclear, ask one short clarification instead of guessing.
 """,
         "tools": [{"function_declarations": blocking_tools}],
         "input_audio_transcription": {
-            "language_codes": [],
+            "language_codes": language_codes,
             "mode": "VERBATIM",
             "custom_vocabulary": [
                 "Hani",
@@ -168,7 +175,7 @@ async def handle_voice_connection(ws: WebSocket) -> None:
 
         async with _client.aio.live.connect(
             model=settings.live_model,
-            config=_live_config(system_prompt),
+            config=_live_config(system_prompt, session.locale),
         ) as live:
             await ws.send_json({"type": "status", "phase": "listening"})
             sender = asyncio.create_task(_pump_client_to_live(ws, live, session))
