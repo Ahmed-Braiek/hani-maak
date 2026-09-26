@@ -71,7 +71,7 @@ LIVE CALL RULES
                 "prebuilt_voice_config": {"voice_name": settings.voice_name}
             }
         },
-        "max_output_tokens": 220,
+        "max_output_tokens": 1024,
     }
 
 
@@ -219,11 +219,22 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
         async for chunk in live.receive():
             touch_session(session.id)
 
-            if chunk.data:
-                await ws.send_bytes(chunk.data)
-
             content = chunk.server_content
             if content:
+                # Forward every audio part in the model turn. A Live API event
+                # may contain multiple parts; relying only on chunk.data can
+                # drop audio and make speech sound abruptly truncated.
+                model_turn = getattr(content, "model_turn", None)
+                if model_turn and getattr(model_turn, "parts", None):
+                    for part in model_turn.parts:
+                        inline_data = getattr(part, "inline_data", None)
+                        audio_data = (
+                            getattr(inline_data, "data", None)
+                            if inline_data is not None
+                            else None
+                        )
+                        if audio_data:
+                            await ws.send_bytes(audio_data)
                 if getattr(content, "interrupted", False):
                     model_final = ""
                     await ws.send_json(
@@ -306,6 +317,17 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                 if getattr(content, "waiting_for_input", False):
                     await ws.send_json({"type": "status", "phase": "listening"})
 
+                generation_complete = bool(
+                    getattr(content, "generation_complete", False)
+                )
+                if generation_complete:
+                    await ws.send_json(
+                        {
+                            "type": "generation_complete",
+                            "modelTurnId": model_turn_id,
+                        }
+                    )
+
                 if getattr(content, "turn_complete", False):
                     if model_final:
                         await ws.send_json(
@@ -317,13 +339,46 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                             }
                         )
 
+                    turn_reason = getattr(content, "turn_complete_reason", None)
+                    interaction_status = getattr(content, "interaction_status", None)
+
                     await ws.send_json(
                         {
                             "type": "turn_complete",
                             "userTurnId": user_turn_id,
                             "modelTurnId": model_turn_id,
+                            "generationComplete": generation_complete,
+                            "reason": (
+                                str(turn_reason)
+                                if turn_reason is not None
+                                else None
+                            ),
+                            "interactionStatus": (
+                                str(interaction_status)
+                                if interaction_status is not None
+                                else None
+                            ),
                         }
                     )
+
+                    if settings.debug_enabled:
+                        print(
+                            "voice turn complete",
+                            {
+                                "turn": model_turn_id,
+                                "generation_complete": generation_complete,
+                                "reason": (
+                                    str(turn_reason)
+                                    if turn_reason is not None
+                                    else None
+                                ),
+                                "interaction_status": (
+                                    str(interaction_status)
+                                    if interaction_status is not None
+                                    else None
+                                ),
+                            },
+                        )
 
                     user_turn_id += 1
                     model_turn_id += 1
