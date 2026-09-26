@@ -1,12 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../context/caregiver_context_api.dart';
 import '../context/caregiver_context_provider.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
+
+  Future<void> save(WidgetRef ref) async {
+    final s = ref.read(appSettingsProvider);
+    try {
+      await ref.read(caregiverContextApiProvider).action(
+        'update_notification_preferences',
+        args: {
+          'enabled': s.notificationsEnabled,
+          'incidentFollowup': s.incidentFollowups,
+          'wellbeingCheckin': s.wellbeingReminders,
+          'careCircleRequests': s.careCircleRequests,
+          'appointments': s.appointments,
+          'quietHours': s.quietHours,
+          'quietHoursStart': '22:00',
+          'quietHoursEnd': '07:00',
+        },
+      );
+      await ref.read(caregiverContextProvider.notifier).refreshContext();
+    } catch (_) {
+      // Local UI stays responsive even if a preview backend is unavailable.
+    }
+  }
+
+  Future<void> openNotification(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> item,
+  ) async {
+    final id = item['id']?.toString();
+    if (id != null && id.isNotEmpty && !id.startsWith('demo-')) {
+      try {
+        await ref.read(caregiverContextApiProvider).action(
+          'open_notification',
+          args: {'notificationId': id},
+        );
+      } catch (_) {}
+    }
+
+    final action = item['action_type']?.toString();
+    if (!context.mounted) return;
+    if (action == 'open_hani_followup') {
+      context.push('/hani');
+    } else if (action == 'open_care_circle') {
+      context.go('/circle');
+    } else if (action == 'open_professional') {
+      context.push('/handoff');
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -14,6 +64,13 @@ class NotificationsScreen extends ConsumerWidget {
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
     final copy = AppCopy(settings.language);
+    final arabicScript = settings.language == HaniLanguage.tounsi ||
+        settings.language == HaniLanguage.arabic;
+
+    Future<void> update(void Function() change) async {
+      change();
+      await save(ref);
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(copy.t('notifications'))),
@@ -39,7 +96,7 @@ class NotificationsScreen extends ConsumerWidget {
                       Text(
                         settings.language == HaniLanguage.french
                             ? 'Calmes et utiles'
-                            : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                            : arabicScript
                                 ? 'إشعارات هادئة ومفيدة'
                                 : 'Quiet and useful',
                         style: const TextStyle(
@@ -51,7 +108,7 @@ class NotificationsScreen extends ConsumerWidget {
                       Text(
                         settings.language == HaniLanguage.french
                             ? 'Seulement ce qui change votre prochaine action.'
-                            : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                            : arabicScript
                                 ? 'كان الحاجة اللي تبدّل شنوّة يلزمك تعمل بعد.'
                                 : 'Only what can change your next action.',
                         style: const TextStyle(
@@ -64,7 +121,7 @@ class NotificationsScreen extends ConsumerWidget {
                 ),
                 Switch(
                   value: settings.notificationsEnabled,
-                  onChanged: controller.setNotifications,
+                  onChanged: (v) => update(() => controller.setNotifications(v)),
                 ),
               ],
             ),
@@ -76,61 +133,80 @@ class NotificationsScreen extends ConsumerWidget {
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Suivi des incidents'
-                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                      : arabicScript
                           ? 'متابعة الحوادث'
                           : 'Incident follow-ups',
-                  subtitle: 'Check back after meaningful care events',
+                  subtitle: settings.language == HaniLanguage.french
+                      ? 'Hani peut reprendre un événement important plus tard.'
+                      : arabicScript
+                          ? 'هاني ينجم يرجع معاك للحادثة وقت تكون مستعد.'
+                          : 'Hani can follow up on a meaningful care event later.',
                   value: settings.incidentFollowups,
                   enabled: settings.notificationsEnabled,
-                  onChanged: controller.setIncidentFollowups,
+                  onChanged: (v) =>
+                      update(() => controller.setIncidentFollowups(v)),
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Bien-être'
-                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                      : arabicScript
                           ? 'الراحة النفسية'
                           : 'Wellbeing check-ins',
-                  subtitle: 'Private caregiver reminders',
+                  subtitle: settings.language == HaniLanguage.french
+                      ? 'Rappels privés pour vous, pas pour la famille.'
+                      : arabicScript
+                          ? 'تذكير خاص بيك، موش للعائلة.'
+                          : 'Private caregiver reminders, not family data.',
                   value: settings.wellbeingReminders,
                   enabled: settings.notificationsEnabled,
-                  onChanged: controller.setWellbeingReminders,
+                  onChanged: (v) =>
+                      update(() => controller.setWellbeingReminders(v)),
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Cercle de soins'
-                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                      : arabicScript
                           ? 'طلبات الدائرة'
                           : 'Care Circle requests',
-                  subtitle: 'Task requests and responses',
+                  subtitle: settings.language == HaniLanguage.french
+                      ? 'Demandes, réponses et alternatives.'
+                      : arabicScript
+                          ? 'طلبات المساعدة، الردود والبدائل.'
+                          : 'Requests, responses, and alternatives.',
                   value: settings.careCircleRequests,
                   enabled: settings.notificationsEnabled,
-                  onChanged: controller.setCareCircleRequests,
+                  onChanged: (v) =>
+                      update(() => controller.setCareCircleRequests(v)),
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Rendez-vous'
-                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                      : arabicScript
                           ? 'المواعيد'
                           : 'Appointments',
-                  subtitle: 'Professional support updates',
+                  subtitle: settings.language == HaniLanguage.french
+                      ? 'Mises à jour du soutien professionnel.'
+                      : arabicScript
+                          ? 'تحديثات الدعم والمواعيد.'
+                          : 'Professional support and appointment updates.',
                   value: settings.appointments,
                   enabled: settings.notificationsEnabled,
-                  onChanged: controller.setAppointments,
+                  onChanged: (v) => update(() => controller.setAppointments(v)),
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Heures calmes'
-                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                      : arabicScript
                           ? 'وقت هادئ'
                           : 'Quiet hours',
-                  subtitle: '22:00–07:00 · safety-critical routes unaffected',
+                  subtitle: '22:00–07:00',
                   value: settings.quietHours,
                   enabled: settings.notificationsEnabled,
-                  onChanged: controller.setQuietHours,
+                  onChanged: (v) => update(() => controller.setQuietHours(v)),
                 ),
               ],
             ),
@@ -139,9 +215,14 @@ class NotificationsScreen extends ConsumerWidget {
           HaniSectionHeader(
             title: settings.language == HaniLanguage.french
                 ? 'Boîte de réception'
-                : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
+                : arabicScript
                     ? 'الإشعارات الأخيرة'
                     : 'Inbox',
+            subtitle: settings.language == HaniLanguage.french
+                ? 'Pas de conversation invisible en arrière-plan.'
+                : arabicScript
+                    ? 'ما فماش محادثة كاملة تصير في الخلفية من غيرك.'
+                    : 'No unseen full conversation runs in the background.',
           ),
           const SizedBox(height: 10),
           value.when(
@@ -180,7 +261,10 @@ class NotificationsScreen extends ConsumerWidget {
                     .map(
                       (item) => Padding(
                         padding: const EdgeInsets.only(bottom: 9),
-                        child: _NotificationCard(item: item),
+                        child: _NotificationCard(
+                          item: item,
+                          onTap: () => openNotification(context, ref, item),
+                        ),
                       ),
                     )
                     .toList(),
@@ -227,15 +311,20 @@ class _Pref extends StatelessWidget {
 }
 
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.item});
+  const _NotificationCard({
+    required this.item,
+    required this.onTap,
+  });
+
   final Map<String, dynamic> item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final opened = item['opened_at'] != null;
-
     return Card(
       child: ListTile(
+        onTap: onTap,
         contentPadding: const EdgeInsets.all(15),
         leading: CircleAvatar(
           backgroundColor:
@@ -258,6 +347,7 @@ class _NotificationCard extends StatelessWidget {
             style: const TextStyle(height: 1.35),
           ),
         ),
+        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }
