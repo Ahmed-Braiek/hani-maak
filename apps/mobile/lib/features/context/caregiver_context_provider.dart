@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/app_settings.dart';
+import '../../core/notification_service.dart';
+import '../../core/widget_service.dart';
 import 'caregiver_context.dart';
 import 'caregiver_context_api.dart';
 
@@ -22,6 +24,8 @@ class CaregiverContextController extends AsyncNotifier<CaregiverContext> {
           data.caregiver,
           data.notificationPreferences,
         );
+    await HaniNotificationService.instance.sync(data);
+    await HaniHomeWidgetService.instance.sync(data);
     return data;
   }
 
@@ -33,6 +37,8 @@ class CaregiverContextController extends AsyncNotifier<CaregiverContext> {
             data.caregiver,
             data.notificationPreferences,
           );
+      await HaniNotificationService.instance.sync(data);
+      await HaniHomeWidgetService.instance.sync(data);
       return data;
     });
   }
