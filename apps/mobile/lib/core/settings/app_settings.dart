@@ -29,6 +29,9 @@ class AppSettings {
     this.wellbeingReminders = true,
     this.careCircleRequests = true,
     this.appointments = true,
+    this.medicationReminders = true,
+    this.dailySummaries = true,
+    this.importantPatientEvents = true,
     this.quietHours = true,
     this.showHaniWidget = true,
     this.showPatientWidget = true,
@@ -42,6 +45,9 @@ class AppSettings {
   final bool wellbeingReminders;
   final bool careCircleRequests;
   final bool appointments;
+  final bool medicationReminders;
+  final bool dailySummaries;
+  final bool importantPatientEvents;
   final bool quietHours;
   final bool showHaniWidget;
   final bool showPatientWidget;
@@ -55,6 +61,9 @@ class AppSettings {
     bool? wellbeingReminders,
     bool? careCircleRequests,
     bool? appointments,
+    bool? medicationReminders,
+    bool? dailySummaries,
+    bool? importantPatientEvents,
     bool? quietHours,
     bool? showHaniWidget,
     bool? showPatientWidget,
@@ -68,6 +77,11 @@ class AppSettings {
       wellbeingReminders: wellbeingReminders ?? this.wellbeingReminders,
       careCircleRequests: careCircleRequests ?? this.careCircleRequests,
       appointments: appointments ?? this.appointments,
+      medicationReminders:
+          medicationReminders ?? this.medicationReminders,
+      dailySummaries: dailySummaries ?? this.dailySummaries,
+      importantPatientEvents:
+          importantPatientEvents ?? this.importantPatientEvents,
       quietHours: quietHours ?? this.quietHours,
       showHaniWidget: showHaniWidget ?? this.showHaniWidget,
       showPatientWidget: showPatientWidget ?? this.showPatientWidget,
@@ -97,6 +111,15 @@ class AppSettingsController extends StateNotifier<AppSettings> {
 
   void setAppointments(bool value) =>
       state = state.copyWith(appointments: value);
+
+  void setMedicationReminders(bool value) =>
+      state = state.copyWith(medicationReminders: value);
+
+  void setDailySummaries(bool value) =>
+      state = state.copyWith(dailySummaries: value);
+
+  void setImportantPatientEvents(bool value) =>
+      state = state.copyWith(importantPatientEvents: value);
 
   void setQuietHours(bool value) =>
       state = state.copyWith(quietHours: value);
@@ -160,6 +183,16 @@ class AppSettingsController extends StateNotifier<AppSettings> {
           notificationBool('care_circle_requests', state.careCircleRequests),
       appointments:
           notificationBool('appointments', state.appointments),
+      medicationReminders: notificationBool(
+        'medication_reminders',
+        state.medicationReminders,
+      ),
+      dailySummaries:
+          notificationBool('daily_summaries', state.dailySummaries),
+      importantPatientEvents: notificationBool(
+        'important_patient_events',
+        state.importantPatientEvents,
+      ),
       quietHours: notificationPreferences.containsKey('quiet_hours_start') ||
               notificationPreferences.containsKey('quiet_hours_end')
           ? notificationPreferences['quiet_hours_start'] != null &&

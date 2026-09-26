@@ -21,6 +21,9 @@ class NotificationsScreen extends ConsumerWidget {
           'wellbeingCheckin': s.wellbeingReminders,
           'careCircleRequests': s.careCircleRequests,
           'appointments': s.appointments,
+          'medicationReminders': s.medicationReminders,
+          'dailySummaries': s.dailySummaries,
+          'importantPatientEvents': s.importantPatientEvents,
           'quietHours': s.quietHours,
           'quietHoursStart': '22:00',
           'quietHoursEnd': '07:00',
@@ -195,6 +198,57 @@ class NotificationsScreen extends ConsumerWidget {
                   value: settings.appointments,
                   enabled: settings.notificationsEnabled,
                   onChanged: (v) => update(() => controller.setAppointments(v)),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                _Pref(
+                  title: settings.language == HaniLanguage.french
+                      ? 'Médicaments'
+                      : arabicScript
+                          ? 'تذكير الأدوية'
+                          : 'Medication reminders',
+                  subtitle: settings.language == HaniLanguage.french
+                      ? 'Rappels natifs pour les prises planifiées.'
+                      : arabicScript
+                          ? 'تذكيرات على الهاتف للجرعات المسجّلة.'
+                          : 'Native phone reminders for scheduled doses.',
+                  value: settings.medicationReminders,
+                  enabled: settings.notificationsEnabled,
+                  onChanged: (v) =>
+                      update(() => controller.setMedicationReminders(v)),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                _Pref(
+                  title: settings.language == HaniLanguage.french
+                      ? 'Résumé quotidien'
+                      : arabicScript
+                          ? 'الملخص اليومي'
+                          : 'Daily summaries',
+                  subtitle: settings.language == HaniLanguage.french
+                      ? 'Résumé des soins, tâches et rappels importants.'
+                      : arabicScript
+                          ? 'ملخّص للرعاية والمهام والحاجات المهمّة.'
+                          : 'Care, tasks, and important reminder summaries.',
+                  value: settings.dailySummaries,
+                  enabled: settings.notificationsEnabled,
+                  onChanged: (v) =>
+                      update(() => controller.setDailySummaries(v)),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                _Pref(
+                  title: settings.language == HaniLanguage.french
+                      ? 'Événements patient importants'
+                      : arabicScript
+                          ? 'أحداث مهمّة للمريض'
+                          : 'Important patient events',
+                  subtitle: settings.language == HaniLanguage.french
+                      ? 'Mises à jour qui nécessitent votre attention.'
+                      : arabicScript
+                          ? 'تحديثات تستحق انتباهك.'
+                          : 'Care changes that deserve your attention.',
+                  value: settings.importantPatientEvents,
+                  enabled: settings.notificationsEnabled,
+                  onChanged: (v) =>
+                      update(() => controller.setImportantPatientEvents(v)),
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 _Pref(

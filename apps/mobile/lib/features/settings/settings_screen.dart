@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../../core/device/device_care_services.dart';
 import '../context/caregiver_context_api.dart';
 import '../context/caregiver_context_provider.dart';
 
@@ -93,6 +94,25 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   onTap: () => context.push('/widgets'),
                 ),
+                const Divider(indent: 70),
+                HaniSettingsTile(
+                  icon: Icons.phone_android_rounded,
+                  title: t(
+                    settings.language,
+                    'إعداد الهاتف',
+                    'إعداد الهاتف',
+                    'Phone setup',
+                    'Configuration du téléphone',
+                  ),
+                  subtitle: t(
+                    settings.language,
+                    'إشعارات حقيقية وWidget على الشاشة الرئيسية',
+                    'إشعارات حقيقية وودجت على الشاشة الرئيسية',
+                    'Native notifications and home-screen widget',
+                    'Notifications natives et widget d’écran d’accueil',
+                  ),
+                  onTap: () => _phoneSetup(context),
+                ),
               ],
             ),
           ),
@@ -167,6 +187,74 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _phoneSetup(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const HaniSectionHeader(
+                title: 'Phone setup',
+                subtitle:
+                    'Enable the device features that make Hani Maak useful outside the app.',
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: () async {
+                  final ok = await DeviceCareServices.requestPermissions();
+                  if (!sheetContext.mounted) return;
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        ok
+                            ? 'Notification permission is ready.'
+                            : 'Notification permission was not granted on this device.',
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.notifications_active_outlined),
+                label: const Text('Enable phone notifications'),
+              ),
+              const SizedBox(height: 9),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final ok = await DeviceCareServices.requestHomeWidget();
+                  if (!sheetContext.mounted) return;
+                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        ok
+                            ? 'Home-screen widget request opened.'
+                            : 'Home-screen widget pinning is unavailable on this platform.',
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.widgets_outlined),
+                label: const Text('Add Hani Maak home widget'),
+              ),
+              const SizedBox(height: 11),
+              const Text(
+                'Remote push notifications need Firebase configuration. Local medication and appointment reminders work independently once the phone grants notification permission.',
+                style: TextStyle(
+                  color: HaniColors.muted,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

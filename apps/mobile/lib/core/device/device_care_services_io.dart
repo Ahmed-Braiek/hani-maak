@@ -179,6 +179,13 @@ class DeviceCareServices {
       await _notifications.cancel(id);
     }
 
+    final preferences = context.notificationPreferences;
+    final notificationsEnabled = preferences['enabled'] != false;
+    if (!notificationsEnabled) return;
+
+    final medicationEnabled = preferences['medication_reminders'] != false;
+    final appointmentsEnabled = preferences['appointments'] != false;
+
     final medicationById = <String, String>{
       for (final med in context.medications)
         if (med['id'] != null)
@@ -188,7 +195,9 @@ class DeviceCareServices {
 
     var id = 40000;
     final now = DateTime.now();
-    final pending = context.medicationEvents
+    final pending = (medicationEnabled
+            ? context.medicationEvents
+            : const <Map<String, dynamic>>[])
         .where((event) =>
             event['status'] == 'pending' &&
             DateTime.tryParse(event['scheduled_for']?.toString() ?? '')
@@ -212,7 +221,9 @@ class DeviceCareServices {
       );
     }
 
-    final appointments = context.appointments
+    final appointments = (appointmentsEnabled
+            ? context.appointments
+            : const <Map<String, dynamic>>[])
         .where((item) =>
             DateTime.tryParse(item['scheduled_for']?.toString() ?? '')
                     ?.isAfter(now) ==
