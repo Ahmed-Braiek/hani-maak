@@ -232,8 +232,9 @@ async function respondTask(caregiverId: string, requestId: string, args: Json) {
   const response = clean(args.response, 40);
   if (!["accepted", "declined", "alternative"].includes(response)) throw new Error("invalid_task_response");
 
+  const storedStatus = response === "alternative" ? "alternative_proposed" : response;
   const patch: Json = {
-    status: response,
+    status: storedStatus,
     responded_at: new Date().toISOString(),
   };
   if (response === "alternative") {

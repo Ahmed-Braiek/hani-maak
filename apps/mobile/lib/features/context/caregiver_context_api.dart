@@ -34,8 +34,9 @@ class CaregiverContextApi {
         }
       }
     } catch (_) {
-      // Production uses the live caregiver context endpoint. The synthetic
-      // fallback keeps judge/demo UX usable during local network outages.
+      // Never silently replace a signed-in caregiver's authorized context with
+      // synthetic demo data. That would be confusing and unsafe in production.
+      if (!identity.isDemo) rethrow;
     }
 
     return CaregiverContext.fromJson(_demoContext);

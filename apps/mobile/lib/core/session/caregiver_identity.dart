@@ -33,40 +33,38 @@ class CaregiverIdentity {
       );
     }
 
-    try {
-      final profiles = await client
-          .from('profiles')
-          .select('id')
-          .eq('auth_user_id', session.user.id)
-          .limit(1);
-      if (profiles is! List || profiles.isEmpty) throw StateError('profile_not_found');
-      final caregiverId = profiles.first['id']?.toString() ?? '';
-      if (caregiverId.isEmpty) throw StateError('profile_not_found');
-
-      final relationships = await client
-          .from('caregiver_patient_relationships')
-          .select('patient_id')
-          .eq('caregiver_profile_id', caregiverId)
-          .eq('access_status', 'active')
-          .limit(1);
-      if (relationships is! List || relationships.isEmpty) {
-        throw StateError('caregiver_relationship_not_found');
-      }
-      final patientId = relationships.first['patient_id']?.toString() ?? '';
-      if (patientId.isEmpty) throw StateError('patient_not_found');
-
-      return CaregiverIdentity(
-        caregiverId: caregiverId,
-        patientId: patientId,
-        accessToken: session.accessToken,
-      );
-    } catch (_) {
-      return const CaregiverIdentity(
-        caregiverId: AppConfig.demoCaregiverId,
-        patientId: AppConfig.demoPatientId,
-        isDemo: true,
-      );
+    final profiles = await client
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', session.user.id)
+        .limit(1);
+    if (profiles is! List || profiles.isEmpty) {
+      throw StateError('signed_in_caregiver_profile_not_found');
     }
+    final caregiverId = profiles.first['id']?.toString() ?? '';
+    if (caregiverId.isEmpty) {
+      throw StateError('signed_in_caregiver_profile_not_found');
+    }
+
+    final relationships = await client
+        .from('caregiver_patient_relationships')
+        .select('patient_id')
+        .eq('caregiver_profile_id', caregiverId)
+        .eq('access_status', 'active')
+        .limit(1);
+    if (relationships is! List || relationships.isEmpty) {
+      throw StateError('signed_in_caregiver_relationship_not_found');
+    }
+    final patientId = relationships.first['patient_id']?.toString() ?? '';
+    if (patientId.isEmpty) {
+      throw StateError('signed_in_patient_not_found');
+    }
+
+    return CaregiverIdentity(
+      caregiverId: caregiverId,
+      patientId: patientId,
+      accessToken: session.accessToken,
+    );
   }
 
   Map<String, String> get authHeaders => accessToken == null

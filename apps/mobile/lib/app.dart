@@ -8,6 +8,7 @@ import 'features/auth/welcome_screen.dart';
 import 'features/auth/how_hani_works_screen.dart';
 import 'features/shell/app_shell.dart';
 import 'features/today/today_screen.dart';
+import 'features/dilemmas/dilemma_library_screen.dart';
 import 'features/patient/patient_screen.dart';
 import 'features/patient/patient_activity_screen.dart';
 import 'features/patient/care_hub_screen.dart';
@@ -42,7 +43,18 @@ final router = GoRouter(
         GoRoute(path: '/me', builder: (_, __) => const WellbeingScreen()),
       ],
     ),
-    GoRoute(parentNavigatorKey: _rootKey, path: '/hani', builder: (_, __) => const HaniChatScreen()),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/hani',
+      builder: (_, state) => HaniChatScreen(
+        initialPrompt: state.uri.queryParameters['prompt'],
+      ),
+    ),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/dilemmas',
+      builder: (_, __) => const DilemmaLibraryScreen(),
+    ),
     GoRoute(parentNavigatorKey: _rootKey, path: '/voice', builder: (_, __) => const HaniVoiceScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/handoff', builder: (_, __) => const HandoffScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/questionnaire', builder: (_, __) => const QuestionnaireScreen()),

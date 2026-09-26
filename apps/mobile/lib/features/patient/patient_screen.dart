@@ -149,6 +149,27 @@ class _PatientScreenState extends ConsumerState<PatientScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          HaniGradientCard(
+            gradient: HaniGradients.soft,
+            onTap: () => context.push('/dilemmas'),
+            child: const Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.psychology_alt_outlined, color: HaniColors.primary),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Daily Dilemma · start from a real care situation',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
           HaniSectionHeader(
             title: t(language, 'الأدوية', 'الأدوية', 'Medications',

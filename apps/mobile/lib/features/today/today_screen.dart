@@ -115,6 +115,11 @@ class _TodayContent extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 18),
+        _DailyDilemmaCard(
+          language: settings.language,
+          onTap: () => context.push('/dilemmas'),
+        ),
+        const SizedBox(height: 10),
         _DiscoverCard(
           language: settings.language,
           onTap: () => context.push('/how-it-works'),
@@ -839,5 +844,86 @@ class _ErrorToday extends StatelessWidget {
             ),
           ),
         ],
+      );
+}
+
+
+class _DailyDilemmaCard extends StatelessWidget {
+  const _DailyDilemmaCard({
+    required this.language,
+    required this.onTap,
+  });
+
+  final HaniLanguage language;
+  final VoidCallback onTap;
+
+  String t(String tn, String ar, String en, String fr) => switch (language) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
+
+  @override
+  Widget build(BuildContext context) => HaniGradientCard(
+        gradient: HaniGradients.soft,
+        onTap: onTap,
+        child: Row(
+          children: [
+            const CircleAvatar(
+              radius: 25,
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.psychology_alt_outlined,
+                color: HaniColors.primary,
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  HaniPill(
+                    label: t(
+                      'موقف يومي',
+                      'موقف يومي',
+                      'DAILY DILEMMA',
+                      'DILEMME DU JOUR',
+                    ),
+                    icon: Icons.route_outlined,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    t(
+                      'شنوّة صاير اليوم؟',
+                      'ما الموقف الذي تواجهه اليوم؟',
+                      'What is happening today?',
+                      'Quelle situation vous préoccupe aujourd’hui ?',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    t(
+                      'اختار من 10 مواقف رعاية أساسية وابدأ مباشرة مع هاني.',
+                      'اختر من 10 مواقف رعاية أساسية وابدأ مباشرة مع هاني.',
+                      'Choose one of 10 core care situations and start directly with Hani.',
+                      'Choisissez l’une des 10 situations de soins principales et commencez avec Hani.',
+                    ),
+                    style: const TextStyle(
+                      color: HaniColors.muted,
+                      height: 1.35,
+                      fontSize: 12.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
       );
 }
