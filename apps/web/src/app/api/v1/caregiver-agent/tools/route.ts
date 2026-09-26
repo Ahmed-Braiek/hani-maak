@@ -24,6 +24,282 @@ function clean(value: unknown, max = 1000) {
   return String(value ?? "").trim().slice(0, max);
 }
 
+type InteractionQuestion = {
+  question_key: string;
+  prompt_i18n: Record<string, string>;
+  response_type: string;
+  required: boolean;
+  display_order: number;
+};
+
+const SAFE_INTERACTION_SHELLS: Record<string, InteractionQuestion[]> = {
+  refusal_to_eat: [
+    {
+      question_key: "what_changed",
+      prompt_i18n: {
+        derja: "شنوّة تبدّل في الأكل اليوم؟",
+        ar: "ما الذي تغير في الأكل اليوم؟",
+        fr: "Qu’est-ce qui a changé autour du repas aujourd’hui ?",
+        en: "What changed around eating today?",
+      },
+      response_type: "text",
+      required: true,
+      display_order: 1,
+    },
+    {
+      question_key: "how_long",
+      prompt_i18n: {
+        derja: "من وقتاش صار الرفض؟",
+        ar: "منذ متى بدأ الرفض؟",
+        fr: "Depuis quand ce refus a-t-il commencé ?",
+        en: "When did the refusal start?",
+      },
+      response_type: "text",
+      required: false,
+      display_order: 2,
+    },
+  ],
+  refusal_to_bathe: [
+    {
+      question_key: "what_happens",
+      prompt_i18n: {
+        derja: "شنوّة يصير بالضبط كي تقترح الحمّام؟",
+        ar: "ماذا يحدث بالضبط عندما تقترح الاستحمام؟",
+        fr: "Que se passe-t-il exactement quand vous proposez la toilette ?",
+        en: "What happens exactly when you suggest bathing?",
+      },
+      response_type: "text",
+      required: true,
+      display_order: 1,
+    },
+  ],
+  agitation_aggression: [
+    {
+      question_key: "immediate_safety",
+      prompt_i18n: {
+        derja: "توا فما خطر مباشر على أي شخص؟",
+        ar: "هل يوجد خطر مباشر على أي شخص الآن؟",
+        fr: "Y a-t-il un danger immédiat pour quelqu’un maintenant ?",
+        en: "Is anyone in immediate danger right now?",
+      },
+      response_type: "boolean",
+      required: true,
+      display_order: 1,
+    },
+    {
+      question_key: "before_it_started",
+      prompt_i18n: {
+        derja: "شنوّة صار قبل ما يبدأ التوتر؟",
+        ar: "ماذا حدث قبل أن يبدأ التوتر؟",
+        fr: "Que s’est-il passé juste avant l’agitation ?",
+        en: "What happened just before the agitation started?",
+      },
+      response_type: "text",
+      required: false,
+      display_order: 2,
+    },
+  ],
+  repeated_questions: [
+    {
+      question_key: "question_pattern",
+      prompt_i18n: {
+        derja: "شنوّة السؤال اللي يتعاود، ووقتاش أكثر حاجة؟",
+        ar: "ما السؤال الذي يتكرر ومتى يحدث غالبًا؟",
+        fr: "Quelle question se répète et à quel moment surtout ?",
+        en: "What question repeats, and when does it happen most?",
+      },
+      response_type: "text",
+      required: true,
+      display_order: 1,
+    },
+  ],
+  sleep_problems: [
+    {
+      question_key: "night_pattern",
+      prompt_i18n: {
+        derja: "شنوّة صار في الليل وشنوّة تبدّل على العادة؟",
+        ar: "ماذا حدث ليلًا وما الذي تغير عن المعتاد؟",
+        fr: "Que s’est-il passé cette nuit et qu’est-ce qui diffère de l’habitude ?",
+        en: "What happened overnight, and what was different from usual?",
+      },
+      response_type: "text",
+      required: true,
+      display_order: 1,
+    },
+  ],
+  wandering: [
+    {
+      question_key: "located_now",
+      prompt_i18n: {
+        derja: "الشخص موجود ومأمون توا؟",
+        ar: "هل الشخص موجود وفي أمان الآن؟",
+        fr: "La personne est-elle localisée et en sécurité maintenant ?",
+        en: "Is the person located and safe right now?",
+      },
+      response_type: "boolean",
+      required: true,
+      display_order: 1,
+    },
+  ],
+  refusing_medication: [
+    {
+      question_key: "what_was_refused",
+      prompt_i18n: {
+        derja: "شنوّة الدواء أو التعليمات اللي ترفضت؟",
+        ar: "ما الدواء أو التعليمات التي تم رفضها؟",
+        fr: "Quel médicament ou quelle instruction a été refusé ?",
+        en: "Which medication or existing instruction was refused?",
+      },
+      response_type: "text",
+      required: true,
+      display_order: 1,
+    },
+  ],
+  sudden_confusion_worsening: [
+    {
+      question_key: "sudden_change",
+      prompt_i18n: {
+        derja: "التبدّل صار فجأة مقارنة بالعادة؟",
+        ar: "هل حدث التغير فجأة مقارنة بالمعتاد؟",
+        fr: "Le changement est-il apparu soudainement par rapport à l’habitude ?",
+        en: "Did the change happen suddenly compared with usual?",
+      },
+      response_type: "boolean",
+      required: true,
+      display_order: 1,
+    },
+    {
+      question_key: "immediate_safety",
+      prompt_i18n: {
+        derja: "فما خطر مباشر توا؟",
+        ar: "هل يوجد خطر مباشر الآن؟",
+        fr: "Y a-t-il un risque immédiat maintenant ?",
+        en: "Is there an immediate safety concern right now?",
+      },
+      response_type: "boolean",
+      required: true,
+      display_order: 2,
+    },
+  ],
+  is_this_normal: [
+    {
+      question_key: "describe_change",
+      prompt_i18n: {
+        derja: "احكيلي شنوّة لاحظت بالضبط وشنوّة الجديد فيه.",
+        ar: "صف ما لاحظته بالضبط وما الجديد فيه.",
+        fr: "Décrivez exactement ce que vous avez remarqué et ce qui est nouveau.",
+        en: "Describe exactly what you noticed and what is new about it.",
+      },
+      response_type: "text",
+      required: true,
+      display_order: 1,
+    },
+  ],
+  caregiver_cannot_take_anymore: [
+    {
+      question_key: "need_now",
+      prompt_i18n: {
+        derja: "توا تحبني نسمعك، نعاونك بخطوة عملية، ولا نوصلك بإنسان؟",
+        ar: "هل تريد الآن أن أستمع، أساعدك بخطوة عملية، أم أوصلك بإنسان؟",
+        fr: "Vous voulez que je vous écoute, que je vous aide avec une étape pratique, ou que je vous mette en relation avec une personne ?",
+        en: "Do you want listening, one practical next step, or help reaching a person?",
+      },
+      response_type: "single_choice",
+      required: true,
+      display_order: 1,
+    },
+  ],
+};
+
+function notificationLanguage(value: unknown) {
+  const lang = clean(value, 20).toLowerCase();
+  if (lang === "tn" || lang === "tounsi" || lang === "derja") return "tn";
+  if (lang === "ar" || lang === "arabic") return "ar";
+  if (lang === "fr" || lang === "french") return "fr";
+  return "en";
+}
+
+function followUpCopy(language: string) {
+  if (language === "tn") {
+    return {
+      title: "كيفاش مشات؟",
+      body: "هاني يتفكر الموقف وتنجم تكمل من وين وقفت كي تكون حاضر.",
+    };
+  }
+  if (language === "ar") {
+    return {
+      title: "كيف سارت الأمور؟",
+      body: "يتذكر هاني هذا الموقف ويمكنك المتابعة من حيث توقفت عندما تكون مستعدًا.",
+    };
+  }
+  if (language === "fr") {
+    return {
+      title: "Comment cela s’est passé ?",
+      body: "Hani se souvient de ce moment de soin. Reprenez quand vous êtes prêt.",
+    };
+  }
+  return {
+    title: "How did it go?",
+    body: "Hani remembers this care moment. Continue when you are ready.",
+  };
+}
+
+function careCircleCopy(language: string, fallbackBody: string) {
+  if (language === "tn") {
+    return {
+      title: "طلب من دائرة العائلة",
+      body: fallbackBody || "فما شخص في دائرة الرعاية طلب منك تعاون في مهمّة.",
+    };
+  }
+  if (language === "ar") {
+    return {
+      title: "طلب من دائرة الرعاية",
+      body: fallbackBody || "طلب منك أحد أفراد دائرة الرعاية المساعدة في مهمة.",
+    };
+  }
+  if (language === "fr") {
+    return {
+      title: "Demande du Cercle de soins",
+      body: fallbackBody || "Un membre du Cercle vous demande de prendre une responsabilité.",
+    };
+  }
+  return {
+    title: "Care Circle request",
+    body: fallbackBody || "A caregiver asked you to cover a responsibility.",
+  };
+}
+
+function afterQuietHours(date: Date, preference: Json | null) {
+  const startRaw = clean(preference?.quiet_hours_start, 8);
+  const endRaw = clean(preference?.quiet_hours_end, 8);
+  if (!startRaw || !endRaw) return date;
+
+  const parse = (raw: string) => {
+    const parts = raw.split(":").map(Number);
+    return parts.length >= 2 &&
+      Number.isFinite(parts[0]) &&
+      Number.isFinite(parts[1])
+      ? parts[0] * 60 + parts[1]
+      : null;
+  };
+
+  const start = parse(startRaw);
+  const end = parse(endRaw);
+  if (start == null || end == null || start === end) return date;
+
+  const tunis = new Date(date.getTime() + 60 * 60 * 1000);
+  const minute = tunis.getUTCHours() * 60 + tunis.getUTCMinutes();
+  const overnight = start > end;
+  const inQuiet = overnight
+    ? minute >= start || minute < end
+    : minute >= start && minute < end;
+
+  if (!inQuiet) return date;
+  if (overnight && minute >= start) tunis.setUTCDate(tunis.getUTCDate() + 1);
+  tunis.setUTCHours(Math.floor(end / 60), end % 60, 0, 0);
+  return new Date(tunis.getTime() - 60 * 60 * 1000);
+}
+
 function headers(extra: Record<string, string> = {}) {
   if (!supabaseKey) throw new Error("supabase_secret_missing");
   const base: Record<string, string> = {
