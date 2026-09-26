@@ -53,6 +53,43 @@ jobs:
           print('voice token ok')
           PY
 
+      - name: Verify live voice WebSocket handshake
+        run: |
+          python3 -m pip install --quiet websockets
+          python3 - <<'PY'
+          import asyncio
+          import json
+          import websockets
+
+          body=json.load(open('/tmp/voice.json'))
+          url=body['wsUrl'] + '?token=' + body['token']
+
+          async def main():
+              async with websockets.connect(
+                  url,
+                  origin='https://hani-maak.vercel.app',
+                  open_timeout=15,
+                  close_timeout=5,
+              ) as ws:
+                  saw_session = False
+                  saw_listening = False
+                  for _ in range(5):
+                      raw = await asyncio.wait_for(ws.recv(), timeout=20)
+                      if not isinstance(raw, str):
+                          continue
+                      event = json.loads(raw)
+                      if event.get('type') == 'session':
+                          saw_session = True
+                      if event.get('type') == 'status' and event.get('phase') == 'listening':
+                          saw_listening = True
+                          break
+                  assert saw_session, 'voice session event missing'
+                  assert saw_listening, 'live model did not reach listening state'
+                  print('live voice websocket ok')
+
+          asyncio.run(main())
+          PY
+
       - name: Verify Hani caregiver chat end to end
         run: |
           curl --fail --silent --show-error             --retry 2 --retry-delay 5             --max-time 55             -X POST https://hani-maak.vercel.app/api/v1/heni/chat             -H 'content-type: application/json'             --data '{"message":"Hello Hani. Give me one short supportive sentence.","locale":"en","role":"patient","caregiverId":"10000000-0000-0000-0000-000000000001","patientId":"30000000-0000-0000-0000-000000000001","history":[]}'             -o /tmp/chat.json
