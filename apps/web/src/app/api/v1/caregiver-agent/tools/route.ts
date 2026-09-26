@@ -392,6 +392,129 @@ async function requireRelationship(caregiverId: string, patientId: string) {
   return row;
 }
 
+function storageLocale(value: unknown) {
+  const locale = clean(value, 20).toLowerCase();
+  if (locale === "tn" || locale === "tounsi" || locale === "derja") {
+    return "derja";
+  }
+  if (["ar", "fr", "en"].includes(locale)) return locale;
+  return "derja";
+}
+
+function validUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
+async function recentHaniMessages(
+  caregiverId: string,
+  patientId: string,
+) {
+  const conversations = await sb(
+    `hani_conversations?select=id,channel,locale,purpose,started_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&private_to_caregiver=eq.true&order=started_at.desc&limit=3`,
+  ) as Json[];
+  const ids = conversations.map((row) => row.id).filter(Boolean);
+  if (!ids.length) return [];
+
+  const messages = await sb(
+    `hani_messages?select=id,conversation_id,sender,content,locale,created_at&conversation_id=in.(${ids.join(",")})&order=created_at.desc&limit=16`,
+  ) as Json[];
+
+  return messages.reverse();
+}
+
+async function recordHaniTurn(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const sessionId = clean(args.sessionId, 120);
+  if (!validUuid(sessionId)) throw new Error("valid_hani_session_required");
+
+  const channel = args.channel === "voice" ? "voice" : "chat";
+  const locale = storageLocale(args.locale);
+  const purpose = ["general", "dilemma", "wellbeing", "care_circle", "handoff"].includes(
+    clean(args.purpose, 40),
+  )
+    ? clean(args.purpose, 40)
+    : "general";
+  const userText = clean(args.userText, 4000);
+  const haniText = clean(args.haniText, 4000);
+
+  let conversation = await first(
+    `hani_conversations?select=id&id=eq.${encodeURIComponent(sessionId)}&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
+  );
+
+  if (!conversation) {
+    const rows = await sb("hani_conversations", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        id: sessionId,
+        caregiver_profile_id: caregiverId,
+        patient_id: patientId,
+        channel,
+        locale,
+        purpose,
+        private_to_caregiver: true,
+        metadata: {
+          source: clean(args.source, 80) || channel,
+          durableContext: true,
+        },
+      }),
+    });
+    conversation = rows?.[0] ?? null;
+  }
+
+  if (!conversation?.id) throw new Error("hani_conversation_persist_failed");
+
+  const latest = await sb(
+    `hani_messages?select=sender,content&conversation_id=eq.${encodeURIComponent(sessionId)}&order=created_at.desc&limit=2`,
+  ) as Json[];
+  const duplicate =
+    latest.length >= 2 &&
+    latest[0]?.sender === "hani" &&
+    clean(latest[0]?.content, 4000) === haniText &&
+    latest[1]?.sender === "user" &&
+    clean(latest[1]?.content, 4000) === userText;
+
+  if (!duplicate) {
+    const rows = [];
+    if (userText) {
+      rows.push({
+        conversation_id: sessionId,
+        sender: "user",
+        content: userText,
+        locale,
+        metadata: { source: clean(args.source, 80) || channel },
+      });
+    }
+    if (haniText) {
+      rows.push({
+        conversation_id: sessionId,
+        sender: "hani",
+        content: haniText,
+        locale,
+        metadata: { source: clean(args.source, 80) || channel },
+      });
+    }
+    if (rows.length) {
+      await sb("hani_messages", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify(rows),
+      });
+    }
+  }
+
+  return {
+    conversationId: sessionId,
+    stored: !duplicate,
+    private: true,
+  };
+}
+
 async function getProfessionalRoutes(patientId: string) {
   const connections = await sb(
     `professional_connections?select=id,professional_id,connection_type,status&patient_id=eq.${encodeURIComponent(patientId)}&status=eq.active`,
@@ -444,10 +567,18 @@ async function caregiverContext(caregiverId: string, patientId: string) {
   }
 
   const professionals = await getProfessionalRoutes(patientId);
-  const [supportSignals, timeline, notifications] = await Promise.all([
+  const [
+    supportSignals,
+    timeline,
+    notifications,
+    incomingTaskRequests,
+    outgoingTaskRequests,
+  ] = await Promise.all([
     sb(`support_signals?select=id,signal_type,severity,confidence,evidence,experimental,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=10`),
     sb(`timeline_events?select=id,event_type,title,summary,occurred_at,source_type,source_id&patient_id=eq.${encodeURIComponent(patientId)}&visible_to_care_circle=eq.true&order=occurred_at.desc&limit=20`),
     sb(`caregiver_notifications?select=id,category,title,body,action_type,action_payload,scheduled_for,opened_at,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=12`),
+    sb(`care_task_requests?select=id,task_id,requester_profile_id,recipient_profile_id,status,message,alternative_note,alternative_starts_at,responded_at,created_at&recipient_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
+    sb(`care_task_requests?select=id,task_id,requester_profile_id,recipient_profile_id,status,message,alternative_note,alternative_starts_at,responded_at,created_at&requester_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
   ]);
 
   const patterns: Json[] = [];
@@ -486,6 +617,28 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     });
   }
 
+  const declinedOutgoing = (outgoingTaskRequests as Json[]).filter(
+    (request) => request.status === "declined",
+  ).length;
+  if (declinedOutgoing >= 2) {
+    patterns.push({
+      type: "repeated_declined_requests",
+      count: declinedOutgoing,
+      diagnostic: false,
+      instruction:
+        "Keep the wording neutral. Offer alternatives or a family conversation without blame or scorekeeping.",
+    });
+  }
+
+  const taskById = new Map((tasks as Json[]).map((task) => [task.id, task]));
+  const taskRequests = [
+    ...(incomingTaskRequests as Json[]),
+    ...(outgoingTaskRequests as Json[]),
+  ].map((request) => ({
+    ...request,
+    task: taskById.get(request.task_id) ?? null,
+  }));
+
   const now = Date.now();
   const visibleNotifications = (notifications as Json[]).filter((n) => {
     if (!n.scheduled_for) return true;
@@ -503,9 +656,11 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     careTasks: tasks,
     privateWellbeing: wellbeing,
     careCircle: circle ? { ...circle, members } : null,
+    taskRequests,
     professionalRoutes: professionals,
     supportSignals,
     timeline,
+    recentHaniMessages: await recentHaniMessages(caregiverId, patientId),
     patterns,
     followUp: visibleNotifications.find((n) =>
       n.category === "incident_followup" && !n.opened_at
@@ -660,6 +815,16 @@ export async function POST(req: Request) {
 
     if (tool === "get_caregiver_context") {
       return NextResponse.json({ success: true, ...(await caregiverContext(caregiverId, patientId)) });
+    }
+
+    if (tool === "record_hani_turn") {
+      return NextResponse.json({
+        success: true,
+        ...(await recordHaniTurn(caregiverId, patientId, {
+          ...args,
+          source: context.source || args.source,
+        })),
+      });
     }
 
     if (tool === "list_dilemma_scenarios") {

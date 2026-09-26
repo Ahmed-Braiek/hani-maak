@@ -60,6 +60,7 @@ def build_runtime_system_prompt(context: dict[str, Any]) -> str:
         + "For caregiver sessions it contains only the authorized caregiver, linked patient, shared care context, "
         + "the caregiver's own private wellbeing/context, approved professional information and recent coordination state. "
         + "Use it actively so the caregiver does not repeat known information. "
+        + "If recentHaniMessages is present, it is the current caregiver's own private recent Hani history; use it for continuity without unnecessarily quoting sensitive text back. "
         + "Never infer missing clinical facts. Never expose another caregiver's private wellbeing or Hani conversation. "
         + "If a necessary fact is absent, use an approved tool or ask one concise question.\n"
         + runtime_json

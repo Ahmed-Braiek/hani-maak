@@ -16,6 +16,7 @@ from .security import origin_allowed, verify_voice_token
 from .session_store import get_or_create_session, touch_session
 from .tools.declarations import TOOL_DECLARATIONS
 from .tools.execute import execute_tool
+from .tools.hani_backend import call_hani_tool
 
 _client = create_google_client()
 
@@ -92,6 +93,37 @@ def _merge_transcript(previous: str, incoming: str) -> str:
     if previous.endswith(incoming):
         return previous
     return f"{previous} {incoming}".strip()
+
+
+async def _persist_voice_turn(
+    session,
+    *,
+    user_text: str,
+    hani_text: str,
+) -> None:
+    if not session.caregiver_id or (not user_text and not hani_text):
+        return
+    try:
+        await call_hani_tool(
+            "record_hani_turn",
+            {
+                "sessionId": session.id,
+                "channel": "voice",
+                "locale": session.locale,
+                "purpose": "general",
+                "userText": user_text,
+                "haniText": hani_text,
+            },
+            patient_id=session.patient_id,
+            caregiver_id=session.caregiver_id,
+            locale=session.locale,
+            source=session.source,
+        )
+    except Exception as persistence_error:
+        print(
+            "Hani voice persistence failed",
+            type(persistence_error).__name__,
+        )
 
 
 async def handle_voice_connection(ws: WebSocket) -> None:
@@ -424,6 +456,12 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                                 ),
                             },
                         )
+
+                    await _persist_voice_turn(
+                        session,
+                        user_text=user_final,
+                        hani_text=model_final,
+                    )
 
                     user_turn_id += 1
                     model_turn_id += 1

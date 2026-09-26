@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/hani_ui.dart';
 
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.child});
@@ -26,7 +27,30 @@ class AppShell extends ConsumerWidget {
         bottom: false,
         child: Stack(
           children: [
-            child,
+            const Positioned.fill(child: HaniAmbientWash()),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 320),
+              reverseDuration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (screen, animation) {
+                final slide = Tween<Offset>(
+                  begin: const Offset(.025, .015),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: slide,
+                    child: screen,
+                  ),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(location),
+                child: child,
+              ),
+            ),
             Positioned(
               top: 10,
               right: 14,
@@ -150,7 +174,10 @@ class _HaniFab extends StatelessWidget {
         backgroundColor: HaniColors.primary,
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
-        child: const Icon(Icons.auto_awesome_rounded, size: 27),
+        child: const HaniPulseMark(
+          size: 42,
+          icon: Icons.graphic_eq_rounded,
+        ),
       ),
     );
   }

@@ -133,7 +133,26 @@ class HowHaniWorksScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          HaniSectionHeader(
+            title: t(
+              l,
+              'رحلة رعاية كاملة',
+              'رحلة رعاية كاملة',
+              'One complete care moment',
+              'Un parcours de soin complet',
+            ),
+            subtitle: t(
+              l,
+              'من الموقف الصعيب للمتابعة، من غير ما تضيع بين الشاشات.',
+              'من الموقف الصعب إلى المتابعة دون التنقل بين شاشات معقدة.',
+              'From a difficult moment to follow-up without dashboard overload.',
+              'Du moment difficile au suivi, sans surcharge de navigation.',
+            ),
+          ),
+          const SizedBox(height: 10),
+          _JourneyMap(language: l, t: t),
+          const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: () => context.push('/hani'),
             icon: const Icon(Icons.auto_awesome_rounded),
@@ -223,4 +242,146 @@ class _StepCard extends StatelessWidget {
           ),
         ),
       );
+}
+
+
+class _JourneyMap extends StatelessWidget {
+  const _JourneyMap({
+    required this.language,
+    required this.t,
+  });
+
+  final HaniLanguage language;
+  final String Function(
+    HaniLanguage,
+    String,
+    String,
+    String,
+    String,
+  ) t;
+
+  @override
+  Widget build(BuildContext context) {
+    final nodes = [
+      (
+        Icons.psychology_alt_outlined,
+        t(language, 'احكي الموقف', 'اشرح الموقف',
+            'Describe the dilemma', 'Décrire le dilemme'),
+      ),
+      (
+        Icons.lock_outline_rounded,
+        t(language, 'مسودة خاصة', 'مسودة خاصة',
+            'Private draft', 'Brouillon privé'),
+      ),
+      (
+        Icons.alt_route_rounded,
+        t(language, 'اختار المساعدة', 'اختر الدعم',
+            'Choose support', 'Choisir le soutien'),
+      ),
+      (
+        Icons.history_rounded,
+        t(language, 'هاني يرجعلك', 'متابعة لاحقة',
+            'Hani follows up', 'Hani assure le suivi'),
+      ),
+    ];
+
+    return HaniGradientCard(
+      gradient: HaniGradients.soft,
+      child: Column(
+        children: [
+          ...List.generate(nodes.length, (index) {
+            final node = nodes[index];
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: index == 0
+                            ? HaniColors.primary
+                            : Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: index == 0
+                              ? HaniColors.primary
+                              : HaniColors.line,
+                        ),
+                      ),
+                      child: Icon(
+                        node.$1,
+                        color: index == 0
+                            ? Colors.white
+                            : HaniColors.primary,
+                        size: 21,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        node.$2,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14.5,
+                        ),
+                      ),
+                    ),
+                    HaniPill(
+                      label: (index + 1).toString(),
+                      background: Colors.white,
+                    ),
+                  ],
+                ),
+                if (index < nodes.length - 1)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      start: 21,
+                      top: 3,
+                      bottom: 3,
+                    ),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Container(
+                        width: 2,
+                        height: 22,
+                        color: HaniColors.line,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.shield_outlined,
+                size: 18,
+                color: HaniColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  t(
+                    language,
+                    'إنت تبقى صاحب القرار في المشاركة، الاتصال، وتقسيم الحمل.',
+                    'تبقى أنت صاحب القرار في المشاركة والتواصل وتقسيم المسؤوليات.',
+                    'You stay in control of sharing, contact, and care redistribution.',
+                    'Vous gardez le contrôle du partage, du contact et de la redistribution.',
+                  ),
+                  style: const TextStyle(
+                    color: HaniColors.muted,
+                    height: 1.4,
+                    fontSize: 12.2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { chatWithHeni } from "@/lib/heni/service";
 import { getStaffIdentity } from "@/lib/staff-auth";
 import type { HeniRole } from "@/lib/heni/types";
+import {
+  caregiverAuthStatus,
+  DEMO_CAREGIVER_ID,
+  DEMO_PATIENT_ID,
+  verifyCaregiverAccess,
+} from "@/lib/caregiver-access";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +135,30 @@ export async function POST(req: Request) {
     }
 
     const role = await resolveRole(body?.role);
+    const caregiverId = String(
+      body?.caregiverId || DEMO_CAREGIVER_ID,
+    );
+    const patientId = String(
+      body?.patientId || DEMO_PATIENT_ID,
+    );
+
+    if (role === "patient") {
+      try {
+        await verifyCaregiverAccess(req, caregiverId, patientId);
+      } catch (error) {
+        const status = caregiverAuthStatus(error);
+        return json(
+          req,
+          {
+            error:
+              error instanceof Error
+                ? error.message
+                : "caregiver_auth_failed",
+          },
+          { status },
+        );
+      }
+    }
 
     if (
       role === "patient" &&
@@ -136,7 +166,12 @@ export async function POST(req: Request) {
       process.env.HENI_AGENT_SHARED_SECRET
     ) {
       try {
-        const result = await externalPatientTurn({ ...body, message });
+        const result = await externalPatientTurn({
+          ...body,
+          message,
+          caregiverId,
+          patientId,
+        });
         if (result) return json(req, result);
       } catch (error) {
         console.error(
@@ -149,9 +184,7 @@ export async function POST(req: Request) {
     const result = await chatWithHeni({
       message,
       locale: body?.locale,
-      patientId:
-        body?.patientId ||
-        "30000000-0000-0000-0000-000000000001",
+      patientId,
       role,
       source: body?.source,
       sessionId: body?.sessionId,

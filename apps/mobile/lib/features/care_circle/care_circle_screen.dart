@@ -444,6 +444,16 @@ class _CareCircleScreenState extends ConsumerState<CareCircleScreen> {
           0,
           (sum, task) => sum + haniTaskLoadScore(task),
         );
+        final sharedContributions = data.tasks.where((task) {
+          final assignee = task['assigned_to_profile_id']?.toString();
+          final status = task['status']?.toString();
+          return assignee != null &&
+              assignee != ownId &&
+              {'accepted', 'in_progress', 'completed'}.contains(status);
+        }).length;
+        final declinedOutgoing = data.outgoingTaskRequests
+            .where((request) => request['status'] == 'declined')
+            .length;
         final loadBand = haniLoadBand(weight);
         final load = loadBand == 'heavy'
             ? t(language, 'ثقيل', 'مرتفع', 'Heavy', 'Élevée')
@@ -542,6 +552,98 @@ class _CareCircleScreenState extends ConsumerState<CareCircleScreen> {
                   ),
                 ),
               ),
+              if (sharedContributions > 0) ...[
+                const SizedBox(height: 12),
+                HaniAnimatedEntrance(
+                  delay: const Duration(milliseconds: 110),
+                  child: HaniGradientCard(
+                    gradient: HaniGradients.soft,
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.volunteer_activism_outlined,
+                            color: HaniColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t(
+                                  language,
+                                  'الرعاية متقسّمة بالفعل',
+                                  'الرعاية موزعة بالفعل',
+                                  'Care is already being shared',
+                                  'La prise en charge est déjà partagée',
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                t(
+                                  language,
+                                  'فما مساهمات من الدائرة. هاني يبيّن التعاون من غير نقاط ولا ترتيب.',
+                                  'هناك مساهمات من دائرة الرعاية. يعرض هاني التعاون دون نقاط أو ترتيب.',
+                                  'Your circle is already carrying part of the care. Hani keeps that visible without scores or rankings.',
+                                  'Votre cercle porte déjà une partie des soins. Hani rend cette contribution visible sans score ni classement.',
+                                ),
+                                style: const TextStyle(
+                                  color: HaniColors.muted,
+                                  height: 1.35,
+                                  fontSize: 12.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (declinedOutgoing >= 2) ...[
+                const SizedBox(height: 12),
+                HaniGradientCard(
+                  gradient: HaniGradients.wellbeing,
+                  onTap: () => context.push('/hani'),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const CircleAvatar(
+                        backgroundColor: Colors.white,
+                        child: Icon(
+                          Icons.forum_outlined,
+                          color: HaniColors.warning,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          t(
+                            language,
+                            'صار أكثر من رفض لطلبات المساعدة. هاني ينجم يعاونك تلقى بديل أو تحضّر حوار عائلي محايد.',
+                            'تكررت بعض حالات رفض طلبات المساعدة. يمكن لهاني مساعدتك في إيجاد بديل أو التحضير لحوار عائلي محايد.',
+                            'A few help requests were declined. Hani can help find an alternative or prepare a neutral family conversation.',
+                            'Plusieurs demandes ont été refusées. Hani peut aider à trouver une alternative ou préparer une discussion familiale neutre.',
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded),
+                    ],
+                  ),
+                ),
+              ],
               if (data.incomingTaskRequests.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 HaniSectionHeader(

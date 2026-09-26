@@ -1,5 +1,11 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import {
+  caregiverAuthStatus,
+  DEMO_CAREGIVER_ID,
+  DEMO_PATIENT_ID,
+  verifyCaregiverAccess,
+} from "@/lib/caregiver-access";
 
 export const dynamic = "force-dynamic";
 
@@ -67,14 +73,28 @@ export async function POST(req: Request) {
   const exp = now + 120;
 
   const caregiverId = String(
-    body?.caregiverId ||
-      "10000000-0000-0000-0000-000000000001",
+    body?.caregiverId || DEMO_CAREGIVER_ID,
   );
 
   const patientId = String(
-    body?.patientId ||
-      "30000000-0000-0000-0000-000000000001",
+    body?.patientId || DEMO_PATIENT_ID,
   );
+
+  try {
+    await verifyCaregiverAccess(req, caregiverId, patientId);
+  } catch (error) {
+    return withCors(
+      NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "caregiver_auth_failed",
+        },
+        { status: caregiverAuthStatus(error) },
+      ),
+    );
+  }
 
   const payload = {
     sid: randomUUID(),
