@@ -3,19 +3,20 @@ import 'package:google_fonts/google_fonts.dart';
 
 abstract final class HaniColors {
   // Official Hani Maak identity sampled from the supplied logo pack.
-  static const brandBlueDeep = Color(0xFF084BB4);
-  static const brandBlue = Color(0xFF0E66C8);
-  static const brandSky = Color(0xFF1896EA);
-  static const brandCyan = Color(0xFF18A8F0);
+  // Sampled from the official Heni Maak blue logo pack supplied by the team.
+  static const brandBlueDeep = Color(0xFF0849B4);
+  static const brandBlue = Color(0xFF106BE0);
+  static const brandSky = Color(0xFF1997EC);
+  static const brandCyan = Color(0xFF1AB2F3);
 
-  static const ink = Color(0xFF083B78);
-  static const inkSoft = Color(0xFF3F6388);
-  static const primary = brandSky;
+  static const ink = Color(0xFF073A78);
+  static const inkSoft = Color(0xFF456B91);
+  static const primary = brandBlue;
   static const primaryDeep = brandBlueDeep;
-  static const primarySoft = Color(0xFFEAF6FF);
-  static const mint = Color(0xFFC7EEFF);
-  static const aqua = Color(0xFFF0FAFF);
-  static const surface = Color(0xFFF8FCFF);
+  static const primarySoft = Color(0xFFEAF5FF);
+  static const mint = Color(0xFFCDEFFF);
+  static const aqua = Color(0xFFF1FAFF);
+  static const surface = Color(0xFFF8FBFE);
   static const card = Color(0xFFFFFFFF);
   static const muted = Color(0xFF6A8198);
   static const line = Color(0xFFDCEBF7);
