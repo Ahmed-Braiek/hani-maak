@@ -264,28 +264,38 @@ jobs:
                   'jvmTarget = JavaVersion.VERSION_11.toString()'
               )
               gradle.write_text(g)
-
-          root_gradle = Path("android/build.gradle.kts")
-          if root_gradle.exists():
-              rg = root_gradle.read_text()
-              rg += """
-          
-          subprojects {
-              tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-                  kotlinOptions.jvmTarget = "11"
-              }
-              tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
-                  sourceCompatibility = "11"
-                  targetCompatibility = "11"
-              }
-          }
-          """
-              root_gradle.write_text(rg)
           PY
 
       - name: Resolve Flutter dependencies
         working-directory: apps/mobile
         run: flutter pub get
+
+      - name: Align Android JVM targets for native plugins
+        working-directory: apps/mobile
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app_gradle = Path("android/app/build.gradle.kts")
+          if app_gradle.exists():
+              text = app_gradle.read_text()
+              text = text.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_11")
+              text = text.replace('JvmTarget.JVM_1_8', 'JvmTarget.JVM_11')
+              text = text.replace('"1.8"', '"11"')
+              app_gradle.write_text(text)
+
+          cache = Path.home() / ".pub-cache" / "hosted" / "pub.dev"
+          for path in cache.glob("home_widget-*/android/build.gradle"):
+              text = path.read_text()
+              text = text.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_11")
+              text = text.replace("VERSION_1_8", "VERSION_11")
+              text = text.replace("jvmTarget = '1.8'", "jvmTarget = '11'")
+              text = text.replace('jvmTarget = "1.8"', 'jvmTarget = "11"')
+              text = text.replace("sourceCompatibility = 1.8", "sourceCompatibility = 11")
+              text = text.replace("targetCompatibility = 1.8", "targetCompatibility = 11")
+              path.write_text(text)
+              print("patched", path)
+          PY
 
       - name: Analyze mobile app
         working-directory: apps/mobile
