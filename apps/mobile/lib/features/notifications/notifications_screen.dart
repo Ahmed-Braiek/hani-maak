@@ -39,7 +39,7 @@ class NotificationsScreen extends ConsumerWidget {
                       Text(
                         settings.language == HaniLanguage.french
                             ? 'Calmes et utiles'
-                            : settings.language == HaniLanguage.tounsi
+                            : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                 ? 'إشعارات هادئة ومفيدة'
                                 : 'Quiet and useful',
                         style: const TextStyle(
@@ -51,7 +51,7 @@ class NotificationsScreen extends ConsumerWidget {
                       Text(
                         settings.language == HaniLanguage.french
                             ? 'Seulement ce qui change votre prochaine action.'
-                            : settings.language == HaniLanguage.tounsi
+                            : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                 ? 'كان الحاجة اللي تبدّل شنوّة يلزمك تعمل بعد.'
                                 : 'Only what can change your next action.',
                         style: const TextStyle(
@@ -76,7 +76,7 @@ class NotificationsScreen extends ConsumerWidget {
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Suivi des incidents'
-                      : settings.language == HaniLanguage.tounsi
+                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                           ? 'متابعة الحوادث'
                           : 'Incident follow-ups',
                   subtitle: 'Check back after meaningful care events',
@@ -88,7 +88,7 @@ class NotificationsScreen extends ConsumerWidget {
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Bien-être'
-                      : settings.language == HaniLanguage.tounsi
+                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                           ? 'الراحة النفسية'
                           : 'Wellbeing check-ins',
                   subtitle: 'Private caregiver reminders',
@@ -100,7 +100,7 @@ class NotificationsScreen extends ConsumerWidget {
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Cercle de soins'
-                      : settings.language == HaniLanguage.tounsi
+                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                           ? 'طلبات الدائرة'
                           : 'Care Circle requests',
                   subtitle: 'Task requests and responses',
@@ -112,7 +112,7 @@ class NotificationsScreen extends ConsumerWidget {
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Rendez-vous'
-                      : settings.language == HaniLanguage.tounsi
+                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                           ? 'المواعيد'
                           : 'Appointments',
                   subtitle: 'Professional support updates',
@@ -124,7 +124,7 @@ class NotificationsScreen extends ConsumerWidget {
                 _Pref(
                   title: settings.language == HaniLanguage.french
                       ? 'Heures calmes'
-                      : settings.language == HaniLanguage.tounsi
+                      : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                           ? 'وقت هادئ'
                           : 'Quiet hours',
                   subtitle: '22:00–07:00 · safety-critical routes unaffected',
@@ -139,7 +139,7 @@ class NotificationsScreen extends ConsumerWidget {
           HaniSectionHeader(
             title: settings.language == HaniLanguage.french
                 ? 'Boîte de réception'
-                : settings.language == HaniLanguage.tounsi
+                : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                     ? 'الإشعارات الأخيرة'
                     : 'Inbox',
           ),
