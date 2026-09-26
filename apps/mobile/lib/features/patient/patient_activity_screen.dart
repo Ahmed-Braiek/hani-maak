@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
@@ -17,6 +20,202 @@ class PatientActivityScreen extends ConsumerStatefulWidget {
 class _PatientActivityScreenState
     extends ConsumerState<PatientActivityScreen> {
   bool busy = false;
+  final _picker = ImagePicker();
+
+  Future<void> _addMemoryItem() async {
+    final title = TextEditingController();
+    final subtitle = TextEditingController();
+    final prompt = TextEditingController();
+    String type = 'person';
+    XFile? photo;
+
+    final draft = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            18,
+            4,
+            18,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 22,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const HaniSectionHeader(
+                  title: 'Add something familiar',
+                  subtitle:
+                      'A person, place, routine, music or memory from the patient’s real life.',
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: const InputDecoration(
+                    labelText: 'Type',
+                    prefixIcon: Icon(Icons.category_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'person', child: Text('Person')),
+                    DropdownMenuItem(value: 'place', child: Text('Place')),
+                    DropdownMenuItem(value: 'routine', child: Text('Routine')),
+                    DropdownMenuItem(value: 'music', child: Text('Music')),
+                    DropdownMenuItem(value: 'memory', child: Text('Memory')),
+                    DropdownMenuItem(value: 'activity', child: Text('Activity')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setSheetState(() => type = value);
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: title,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    hintText: 'e.g. Aunt Salma, family garden',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: subtitle,
+                  decoration: const InputDecoration(
+                    labelText: 'Why it is familiar',
+                    hintText: 'Short context for the caregiver',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: prompt,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Gentle conversation cue',
+                    hintText: 'Optional',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final source = await showModalBottomSheet<ImageSource>(
+                      context: sheetContext,
+                      showDragHandle: true,
+                      builder: (context) => SafeArea(
+                        child: Wrap(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.photo_camera_outlined),
+                              title: const Text('Take a photo'),
+                              onTap: () =>
+                                  Navigator.pop(context, ImageSource.camera),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.photo_library_outlined),
+                              title: const Text('Choose from gallery'),
+                              onTap: () =>
+                                  Navigator.pop(context, ImageSource.gallery),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                    if (source == null) return;
+                    final picked = await _picker.pickImage(
+                      source: source,
+                      imageQuality: 74,
+                      maxWidth: 1280,
+                    );
+                    if (picked != null) {
+                      setSheetState(() => photo = picked);
+                    }
+                  },
+                  icon: Icon(
+                    photo == null
+                        ? Icons.add_a_photo_outlined
+                        : Icons.check_circle_outline_rounded,
+                  ),
+                  label: Text(
+                    photo == null ? 'Add private photo' : 'Photo selected',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Photos are stored in the private Hani Maak care-media bucket and are served through expiring links.',
+                  style: TextStyle(
+                    color: HaniColors.muted,
+                    fontSize: 11.5,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () {
+                    if (title.text.trim().isEmpty) return;
+                    Navigator.pop(sheetContext, {
+                      'itemType': type,
+                      'title': title.text.trim(),
+                      'subtitle': subtitle.text.trim(),
+                      'prompt': prompt.text.trim(),
+                      'photo': photo,
+                    });
+                  },
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Save familiar item'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    title.dispose();
+    subtitle.dispose();
+    prompt.dispose();
+    if (draft == null) return;
+
+    setState(() => busy = true);
+    try {
+      String? dataUrl;
+      final image = draft['photo'] as XFile?;
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final lower = image.name.toLowerCase();
+        final mime = lower.endsWith('.png')
+            ? 'image/png'
+            : lower.endsWith('.webp')
+                ? 'image/webp'
+                : 'image/jpeg';
+        dataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
+      }
+
+      await CareWorkflowApi().run(
+        'save_memory_item',
+        args: {
+          'itemType': draft['itemType'],
+          'title': draft['title'],
+          'subtitle': draft['subtitle'],
+          'prompt': draft['prompt'],
+          if (dataUrl != null) 'imageDataUrl': dataUrl,
+        },
+      );
+      await ref.read(caregiverContextProvider.notifier).refreshContext();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Familiar item saved privately.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
 
   Future<void> _start(Map<String, dynamic> item) async {
     final started = DateTime.now();
@@ -168,6 +367,8 @@ class _PatientActivityScreenState
                   HaniSectionHeader(
                     title: 'Familiar library',
                     subtitle: '${items.length} care memories',
+                    action: 'Add',
+                    onAction: _addMemoryItem,
                   ),
                   const SizedBox(height: 10),
                   ...items.map(
@@ -321,17 +522,18 @@ class _MemoryCard extends StatelessWidget {
           padding: const EdgeInsets.all(15),
           child: Row(
             children: [
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  gradient: HaniGradients.soft,
-                  borderRadius: BorderRadius.circular(19),
-                ),
-                child: Icon(
-                  _PatientActivityScreenState._iconFor(type),
-                  color: HaniColors.primary,
-                  size: 28,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(19),
+                child: SizedBox(
+                  width: 62,
+                  height: 62,
+                  child: (item['image_url']?.toString() ?? '').isNotEmpty
+                      ? Image.network(
+                          item['image_url'].toString(),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _MemoryIcon(type: type),
+                        )
+                      : _MemoryIcon(type: type),
                 ),
               ),
               const SizedBox(width: 13),
@@ -383,5 +585,26 @@ class _ResponseChip extends StatelessWidget {
         avatar: Icon(icon, size: 17),
         label: Text(label),
         onPressed: onTap,
+      );
+}
+
+
+class _MemoryIcon extends StatelessWidget {
+  const _MemoryIcon({required this.type});
+
+  final String? type;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: HaniGradients.soft,
+        ),
+        child: Center(
+          child: Icon(
+            _PatientActivityScreenState._iconFor(type),
+            color: HaniColors.primary,
+            size: 28,
+          ),
+        ),
       );
 }
