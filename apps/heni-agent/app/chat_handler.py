@@ -7,6 +7,7 @@ from typing import Any
 from google.genai import types
 
 from .config import settings
+from .distress import detect_semantic_distress
 from .google_client import create_google_client
 from .language import (
     detect_likely_locale,
@@ -138,6 +139,26 @@ async def run_chat_turn(
     contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
 
     runtime_context = await fetch_runtime_context(session)
+
+    semantic_signal = detect_semantic_distress(message) if session.caregiver_id else None
+    if semantic_signal and session.caregiver_id:
+        try:
+            signal_result = await execute_tool(
+                "record_support_signal",
+                semantic_signal,
+                session,
+            )
+            runtime_context["currentSupportSignal"] = {
+                **semantic_signal,
+                "stored": bool(signal_result.get("success")) if isinstance(signal_result, dict) else False,
+                "instruction": (
+                    "Use this only as a private support cue. Ask/check gently, do not diagnose, "
+                    "and do not break confidentiality automatically."
+                ),
+            }
+        except Exception as signal_error:
+            print("semantic support signal failed", type(signal_error).__name__)
+
     config = types.GenerateContentConfig(
         system_instruction=build_runtime_system_prompt(runtime_context)
         + f"\n\nCURRENT CONVERSATION LANGUAGE: {session.locale}. Reply in this language unless the current user message clearly switches language.",

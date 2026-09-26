@@ -168,6 +168,47 @@ async function caregiverContext(caregiverId: string, patientId: string) {
   }
 
   const professionals = await getProfessionalRoutes(patientId);
+  const [supportSignals, timeline, notifications] = await Promise.all([
+    sb(`support_signals?select=id,signal_type,severity,confidence,evidence,experimental,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=10`),
+    sb(`timeline_events?select=id,event_type,title,summary,occurred_at,source_type,source_id&patient_id=eq.${encodeURIComponent(patientId)}&visible_to_care_circle=eq.true&order=occurred_at.desc&limit=20`),
+    sb(`caregiver_notifications?select=id,category,title,body,action_type,action_payload,scheduled_for,opened_at,created_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=12`),
+  ]);
+
+  const patterns: Json[] = [];
+  const recentSeven = incidents.filter((i) => {
+    const when = new Date(i.occurred_at || i.created_at || 0).getTime();
+    return when > Date.now() - 7 * 24 * 60 * 60 * 1000;
+  });
+  const groups = new Map<string, number>();
+  for (const incident of recentSeven) {
+    const key = String(incident.scenario_id || incident.title || "incident");
+    groups.set(key, (groups.get(key) || 0) + 1);
+  }
+  for (const [key, count] of groups) {
+    if (count >= 2) {
+      patterns.push({
+        type: "repeated_incident",
+        key,
+        count,
+        windowDays: 7,
+        diagnostic: false,
+      });
+    }
+  }
+  const recentWellbeing = (wellbeing as Json[]).slice(0, 5);
+  const heavier = recentWellbeing.filter((w) =>
+    ["low", "poor", "tired", "overwhelmed", "exhausted"].includes(
+      String(w.energy_label || w.sleep_label || w.mood_label || "").toLowerCase(),
+    ),
+  ).length;
+  if (heavier >= 2) {
+    patterns.push({
+      type: "caregiver_strain",
+      count: heavier,
+      windowCount: recentWellbeing.length,
+      diagnostic: false,
+    });
+  }
 
   return {
     caregiver,
@@ -180,6 +221,12 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     privateWellbeing: wellbeing,
     careCircle: circle ? { ...circle, members } : null,
     professionalRoutes: professionals,
+    supportSignals,
+    timeline,
+    patterns,
+    followUp: (notifications as Json[]).find((n) =>
+      n.category === "incident_followup" && !n.opened_at
+    ) ?? null,
   };
 }
 
@@ -480,6 +527,45 @@ export async function POST(req: Request) {
         }),
       });
       return NextResponse.json({ success: true, checkin: rows?.[0], private: true });
+    }
+
+    if (tool === "record_support_signal") {
+      const signalType = clean(args.signalType, 120);
+      const severity = ["low", "moderate", "elevated"].includes(args.severity)
+        ? args.severity
+        : "low";
+      if (!signalType) {
+        return NextResponse.json({ error: "support_signal_type_required" }, { status: 400 });
+      }
+
+      const confidenceValue = Number(args.confidence);
+      const confidence = Number.isFinite(confidenceValue)
+        ? Math.max(0, Math.min(1, confidenceValue))
+        : null;
+
+      const rows = await sb("support_signals", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          caregiver_profile_id: caregiverId,
+          patient_id: patientId,
+          conversation_id: null,
+          signal_type: signalType,
+          severity,
+          confidence,
+          evidence: args.evidence && typeof args.evidence === "object"
+            ? args.evidence
+            : {},
+          experimental: args.experimental === true,
+        }),
+      });
+
+      return NextResponse.json({
+        success: true,
+        signal: rows?.[0] ?? null,
+        private: true,
+        diagnostic: false,
+      });
     }
 
     if (tool === "get_professional_routes" || tool === "request_human_help") {

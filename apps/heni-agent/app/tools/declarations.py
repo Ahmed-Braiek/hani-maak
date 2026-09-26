@@ -82,6 +82,21 @@ TOOL_DECLARATIONS = [
         },
     },
     {
+        "name": "record_support_signal",
+        "description": "Record a caregiver support/distress signal as a private internal support signal. This is not a diagnosis and must never automatically break confidentiality.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "signalType": {"type": "STRING"},
+                "severity": {"type": "STRING", "enum": ["low", "moderate", "elevated"]},
+                "confidence": {"type": "NUMBER"},
+                "evidence": {"type": "OBJECT"},
+                "experimental": {"type": "BOOLEAN"},
+            },
+            "required": ["signalType", "severity"],
+        },
+    },
+    {
         "name": "get_professional_routes",
         "description": "List verified professionals connected to the patient and the available call, WhatsApp or appointment-request routes.",
         "parameters": {"type": "OBJECT", "properties": {}},

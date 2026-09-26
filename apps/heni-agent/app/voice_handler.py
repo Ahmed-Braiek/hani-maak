@@ -8,6 +8,7 @@ from google.genai import types
 from starlette.websockets import WebSocketState
 
 from .config import settings
+from .distress import detect_semantic_distress
 from .google_client import create_google_client
 from .language import detect_requested_locale
 from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
@@ -214,6 +215,8 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
     model_turn_id = 1
     user_final = ""
     model_final = ""
+    interruption_count = 0
+    interaction_signal_recorded = False
 
     while True:
         async for chunk in live.receive():
@@ -237,6 +240,33 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                             await ws.send_bytes(audio_data)
                 if getattr(content, "interrupted", False):
                     model_final = ""
+                    interruption_count += 1
+                    if (
+                        interruption_count >= 3
+                        and not interaction_signal_recorded
+                        and session.caregiver_id
+                    ):
+                        interaction_signal_recorded = True
+                        try:
+                            await execute_tool(
+                                "record_support_signal",
+                                {
+                                    "signalType": "voice_interaction_load",
+                                    "severity": "low",
+                                    "confidence": 0.35,
+                                    "evidence": {
+                                        "source": "repeated_voice_interruptions",
+                                        "count": interruption_count,
+                                    },
+                                    "experimental": True,
+                                },
+                                session,
+                            )
+                        except Exception as interaction_error:
+                            print(
+                                "voice interaction signal failed",
+                                type(interaction_error).__name__,
+                            )
                     await ws.send_json(
                         {
                             "type": "interrupted",
@@ -280,6 +310,21 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                         }
                     )
                     await ws.send_json({"type": "status", "phase": "thinking"})
+
+                    if session.caregiver_id:
+                        semantic_signal = detect_semantic_distress(user_final)
+                        if semantic_signal:
+                            try:
+                                await execute_tool(
+                                    "record_support_signal",
+                                    semantic_signal,
+                                    session,
+                                )
+                            except Exception as signal_error:
+                                print(
+                                    "voice semantic support signal failed",
+                                    type(signal_error).__name__,
+                                )
 
                     try:
                         requested_locale = detect_requested_locale(user_final)
