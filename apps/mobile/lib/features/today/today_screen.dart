@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
+import '../../core/care/care_load.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
 import '../context/caregiver_context.dart';
@@ -589,12 +590,12 @@ class _WidgetGrid extends StatelessWidget {
     if (settings.showCareLoadWidget) {
       final totalWeight = ownTasks.fold<double>(
         0,
-        (sum, task) =>
-            sum + ((task['effort_weight'] as num?)?.toDouble() ?? 1),
+        (sum, task) => sum + haniTaskLoadScore(task),
       );
-      final label = totalWeight >= 5
+      final band = haniLoadBand(totalWeight);
+      final label = band == 'heavy'
           ? 'Heavy load'
-          : totalWeight >= 2
+          : band == 'moderate'
               ? 'Moderate load'
               : 'Light load';
       cards.add(

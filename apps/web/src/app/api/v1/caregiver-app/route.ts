@@ -228,6 +228,102 @@ async function loadContext(caregiverId: string, patientId: string) {
   };
 }
 
+async function createCareTask(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const title = clean(args.title, 200);
+  if (!title) throw new Error("task_title_required");
+
+  const source = ["manual", "routine"].includes(clean(args.source, 40))
+    ? clean(args.source, 40)
+    : "manual";
+  const difficulty = ["light", "moderate", "heavy"].includes(clean(args.difficulty, 40))
+    ? clean(args.difficulty, 40)
+    : "moderate";
+  const effort = Number(args.effortWeight);
+  const effortWeight = Number.isFinite(effort) && effort > 0
+    ? Math.min(10, effort)
+    : 1;
+  const recipientProfileId = clean(args.recipientProfileId, 120) || null;
+
+  if (recipientProfileId) {
+    const circle = await first(
+      `care_circles?select=id&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
+    );
+    if (!circle) throw new Error("care_circle_not_found");
+    const member = await first(
+      `care_circle_members?select=id&care_circle_id=eq.${circle.id}&profile_id=eq.${encodeURIComponent(recipientProfileId)}&status=eq.active&limit=1`,
+    );
+    if (!member) throw new Error("recipient_not_in_care_circle");
+  }
+
+  const taskRows = await sb("care_tasks", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      title,
+      description: clean(args.description, 1000) || null,
+      source,
+      requested_by_profile_id: caregiverId,
+      assigned_to_profile_id: recipientProfileId ? null : caregiverId,
+      status: recipientProfileId ? "requested" : "open",
+      effort_weight: effortWeight,
+      difficulty,
+      due_at: args.dueAt || null,
+      overnight: args.overnight === true,
+      metadata: {
+        createdBy: "caregiver_app",
+        caregiverAdjustedEffort: true,
+      },
+    }),
+  });
+  const task = taskRows?.[0] ?? null;
+  if (!task?.id) throw new Error("task_creation_failed");
+
+  let request = null;
+  if (recipientProfileId) {
+    const requestRows = await sb("care_task_requests", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        task_id: task.id,
+        requester_profile_id: caregiverId,
+        recipient_profile_id: recipientProfileId,
+        status: "pending",
+        message: clean(args.message, 500) || title,
+      }),
+    });
+    request = requestRows?.[0] ?? null;
+
+    const preferences = await first(
+      `notification_preferences?select=enabled,care_circle_requests&caregiver_profile_id=eq.${encodeURIComponent(recipientProfileId)}&limit=1`,
+    );
+    if (preferences?.enabled !== false && preferences?.care_circle_requests !== false) {
+      await sb("caregiver_notifications", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          caregiver_profile_id: recipientProfileId,
+          category: "care_circle_request",
+          title: "Care Circle request",
+          body: title,
+          action_type: "open_care_circle",
+          action_payload: {
+            requestId: request?.id ?? null,
+            taskId: task.id,
+          },
+          scheduled_for: new Date().toISOString(),
+        }),
+      });
+    }
+  }
+
+  return { task, request };
+}
+
 async function respondTask(caregiverId: string, requestId: string, args: Json) {
   const request = await first(
     `care_task_requests?select=*&id=eq.${encodeURIComponent(requestId)}&recipient_profile_id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
@@ -541,6 +637,12 @@ export async function POST(req: Request) {
         }),
       });
       return json({ success: true, checkin: rows?.[0] ?? null, private: true });
+    }
+    if (action === "create_care_task") {
+      return json({
+        success: true,
+        ...(await createCareTask(caregiverId, patientId, args)),
+      });
     }
     if (action === "respond_task_request") {
       return json({ success: true, request: await respondTask(caregiverId, clean(args.requestId, 120), args) });
