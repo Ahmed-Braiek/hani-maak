@@ -251,7 +251,36 @@ jobs:
           if gradle.exists():
               g = gradle.read_text()
               g = g.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
+              g = g.replace(
+                  "sourceCompatibility = JavaVersion.VERSION_1_8",
+                  "sourceCompatibility = JavaVersion.VERSION_11"
+              )
+              g = g.replace(
+                  "targetCompatibility = JavaVersion.VERSION_1_8",
+                  "targetCompatibility = JavaVersion.VERSION_11"
+              )
+              g = g.replace(
+                  'jvmTarget = JavaVersion.VERSION_1_8.toString()',
+                  'jvmTarget = JavaVersion.VERSION_11.toString()'
+              )
               gradle.write_text(g)
+
+          root_gradle = Path("android/build.gradle.kts")
+          if root_gradle.exists():
+              rg = root_gradle.read_text()
+              rg += """
+          
+          subprojects {
+              tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                  kotlinOptions.jvmTarget = "11"
+              }
+              tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
+                  sourceCompatibility = "11"
+                  targetCompatibility = "11"
+              }
+          }
+          """
+              root_gradle.write_text(rg)
           PY
 
       - name: Resolve Flutter dependencies
