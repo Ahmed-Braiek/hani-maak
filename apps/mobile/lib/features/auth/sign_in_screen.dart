@@ -88,6 +88,13 @@ class _SignInScreenState extends State<SignInScreen> {
             children: [
               const Center(child: HaniBrandLogo(height: 66)),
               const SizedBox(height: 18),
+              const Center(
+                child: HaniBrandLogo(
+                  variant: HaniBrandVariant.stacked,
+                  height: 112,
+                ),
+              ),
+              const SizedBox(height: 18),
               const HaniPill(
                 label: 'Secure caregiver space',
                 icon: Icons.lock_outline_rounded,
