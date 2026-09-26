@@ -239,7 +239,7 @@ class HaniVoiceScreen extends ConsumerWidget {
                             ? 'Reconnect voice'
                             : settings.language == HaniLanguage.french
                                 ? 'Démarrer la conversation'
-                                : settings.language == HaniLanguage.tounsi
+                                : settings.(language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                     ? 'ابدأ المكالمة'
                                     : 'Start live conversation',
                       ),
@@ -255,7 +255,7 @@ class HaniVoiceScreen extends ConsumerWidget {
     VoicePhase phase,
     HaniLanguage language,
   ) {
-    if (language == HaniLanguage.tounsi) {
+    if ((language == HaniLanguage.tounsi || language == HaniLanguage.arabic)) {
       return switch (phase) {
         VoicePhase.connecting => 'نربط مع هاني…',
         VoicePhase.listening => 'نسمعك',
@@ -290,14 +290,14 @@ class HaniVoiceScreen extends ConsumerWidget {
   static String _activeHint(HaniLanguage language) =>
       language == HaniLanguage.french
           ? 'Parlez naturellement. Vous pouvez interrompre Hani comme dans une vraie conversation.'
-          : language == HaniLanguage.tounsi
+          : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
               ? 'احكي عادي. تنجم تقاطع هاني كيف مكالمة حقيقية.'
               : 'Talk naturally. You can interrupt Hani like a real conversation.';
 
   static String _idleHint(HaniLanguage language) =>
       language == HaniLanguage.french
           ? 'Une conversation privée et continue avec votre compagnon aidant.'
-          : language == HaniLanguage.tounsi
+          : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
               ? 'مكالمة خاصة ومتصلة مع هاني، مساعدك في الرعاية.'
               : 'A private continuous conversation with your caregiver companion.';
 }
