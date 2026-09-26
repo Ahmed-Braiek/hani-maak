@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - hani-production-mobile-v2
     paths:
       - "apps/mobile/**"
       - ".github/workflows/flutter-android-apk.yml"
@@ -13,15 +14,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: hani-maak-android-apk
+  group: hani-maak-android-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
-      - name: Checkout production
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -39,10 +40,14 @@ jobs:
       - name: Generate Android host
         working-directory: apps/mobile
         run: |
-          flutter create             --platforms=android             --project-name hani_maak_mobile             --org com.hanimaak             .
+          flutter create \
+            --platforms=android \
+            --project-name hani_maak_mobile \
+            --org com.hanimaak \
+            .
           rm -f test/widget_test.dart
 
-      - name: Configure Android permissions and app identity
+      - name: Configure native Android care features
         working-directory: apps/mobile
         run: |
           python3 - <<'PY'
@@ -51,17 +56,60 @@ jobs:
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text()
 
-          permissions = """<uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.RECORD_AUDIO" />
-              <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+          permissions = [
+              '<uses-permission android:name="android.permission.INTERNET" />',
+              '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+              '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+              '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
+          ]
+          for permission in permissions:
+              if permission not in text:
+                  pos = text.find(">")
+                  text = text[:pos+1] + "\n    " + permission + text[pos+1:]
+
+          text = text.replace(
+              'android:label="hani_maak_mobile"',
+              'android:label="Hani Maak"',
+          )
+
+          activity_marker = '</activity>'
+          if 'es.antonborri.home_widget.action.LAUNCH' not in text:
+              widget_filter = """
+                      <intent-filter>
+                          <action android:name="es.antonborri.home_widget.action.LAUNCH" />
+                      </intent-filter>
               """
+              text = text.replace(activity_marker, widget_filter + "\n        " + activity_marker, 1)
 
-          if "android.permission.RECORD_AUDIO" not in text:
-              text = text.replace("<manifest xmlns:android=", "<manifest xmlns:android=", 1)
-              marker = ">\n    <application"
-              text = text.replace(marker, ">\n    " + permissions + "<application", 1)
-
-          text = text.replace('android:label="hani_maak_mobile"', 'android:label="Hani Maak"')
+          application_end = "</application>"
+          native_receivers = """
+                  <receiver
+                      android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+                      android:exported="false" />
+                  <receiver
+                      android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+                      android:exported="false">
+                      <intent-filter>
+                          <action android:name="android.intent.action.BOOT_COMPLETED" />
+                          <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                          <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                          <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                      </intent-filter>
+                  </receiver>
+                  <receiver
+                      android:name=".HaniCareWidgetProvider"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                      </intent-filter>
+                      <meta-data
+                          android:name="android.appwidget.provider"
+                          android:resource="@xml/hani_care_widget_info" />
+                  </receiver>
+          """
+          if ".HaniCareWidgetProvider" not in text:
+              text = text.replace(application_end, native_receivers + "\n    " + application_end)
 
           if "<queries>" not in text:
               queries = """
@@ -85,15 +133,215 @@ jobs:
           manifest.write_text(text)
 
           gradle = Path("android/app/build.gradle.kts")
-          if gradle.exists():
-              g = gradle.read_text()
-              g = g.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
-              gradle.write_text(g)
+          g = gradle.read_text()
+          g = g.replace("minSdk = flutter.minSdkVersion", "minSdk = 23")
+          if "isCoreLibraryDesugaringEnabled = true" not in g:
+              g = g.replace(
+                  "compileOptions {",
+                  "compileOptions {\n        isCoreLibraryDesugaringEnabled = true",
+              )
+          if 'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' not in g:
+              if "dependencies {" in g:
+                  g = g.replace(
+                      "dependencies {",
+                      'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")',
+                  )
+              else:
+                  g += '\n\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+          gradle.write_text(g)
+
+          layout_dir = Path("android/app/src/main/res/layout")
+          xml_dir = Path("android/app/src/main/res/xml")
+          drawable_dir = Path("android/app/src/main/res/drawable")
+          kotlin_dir = Path(
+              "android/app/src/main/kotlin/com/hanimaak/hani_maak_mobile"
+          )
+          for directory in [layout_dir, xml_dir, drawable_dir, kotlin_dir]:
+              directory.mkdir(parents=True, exist_ok=True)
+
+          Path("assets/brand/hani_app_icon.png").replace(
+              drawable_dir / "hani_widget_logo.png"
+          ) if False else None
+
+          import shutil
+          shutil.copyfile(
+              "assets/brand/hani_app_icon.png",
+              drawable_dir / "hani_widget_logo.png",
+          )
+
+          (drawable_dir / "hani_widget_background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android"
+              android:shape="rectangle">
+              <solid android:color="#F7FAFD" />
+              <corners android:radius="24dp" />
+              <stroke android:width="1dp" android:color="#DDEAF5" />
+          </shape>
+          """)
+
+          (layout_dir / "hani_care_widget.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/widget_root"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:padding="14dp"
+              android:background="@drawable/hani_widget_background">
+              <LinearLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:gravity="center_vertical"
+                  android:orientation="horizontal">
+                  <ImageView
+                      android:layout_width="34dp"
+                      android:layout_height="34dp"
+                      android:src="@drawable/hani_widget_logo"
+                      android:contentDescription="Hani Maak" />
+                  <TextView
+                      android:id="@+id/widget_patient"
+                      android:layout_width="0dp"
+                      android:layout_height="wrap_content"
+                      android:layout_weight="1"
+                      android:layout_marginStart="9dp"
+                      android:text="Hani Maak"
+                      android:textColor="#0A2540"
+                      android:textSize="16sp"
+                      android:textStyle="bold" />
+                  <TextView
+                      android:id="@+id/widget_hani"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:paddingHorizontal="10dp"
+                      android:paddingVertical="7dp"
+                      android:text="Hani"
+                      android:textColor="#FFFFFF"
+                      android:textStyle="bold"
+                      android:background="#1478E7" />
+              </LinearLayout>
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="11dp"
+                  android:text="Next medication"
+                  android:textColor="#6F8296"
+                  android:textSize="11sp" />
+              <TextView
+                  android:id="@+id/widget_medication"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:text="No medication due"
+                  android:textColor="#0A2540"
+                  android:textSize="14sp"
+                  android:textStyle="bold"
+                  android:maxLines="1" />
+              <TextView
+                  android:id="@+id/widget_medication_time"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:textColor="#1478E7"
+                  android:textSize="12sp" />
+              <View
+                  android:layout_width="match_parent"
+                  android:layout_height="1dp"
+                  android:layout_marginVertical="9dp"
+                  android:background="#DDEAF5" />
+              <TextView
+                  android:id="@+id/widget_appointment"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:text="No appointment scheduled"
+                  android:textColor="#0A2540"
+                  android:textSize="12sp"
+                  android:maxLines="1" />
+              <TextView
+                  android:id="@+id/widget_tasks"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="4dp"
+                  android:text="0 open tasks"
+                  android:textColor="#6F8296"
+                  android:textSize="11sp" />
+          </LinearLayout>
+          """)
+
+          (xml_dir / "hani_care_widget_info.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+              android:minWidth="250dp"
+              android:minHeight="130dp"
+              android:minResizeWidth="180dp"
+              android:minResizeHeight="100dp"
+              android:updatePeriodMillis="0"
+              android:initialLayout="@layout/hani_care_widget"
+              android:resizeMode="horizontal|vertical"
+              android:widgetCategory="home_screen"
+              android:description="@string/app_name" />
+          """)
+
+          (kotlin_dir / "HaniCareWidgetProvider.kt").write_text("""package com.hanimaak.hani_maak_mobile
+
+          import android.appwidget.AppWidgetManager
+          import android.content.Context
+          import android.content.SharedPreferences
+          import android.net.Uri
+          import android.widget.RemoteViews
+          import es.antonborri.home_widget.HomeWidgetLaunchIntent
+          import es.antonborri.home_widget.HomeWidgetProvider
+
+          class HaniCareWidgetProvider : HomeWidgetProvider() {
+              override fun onUpdate(
+                  context: Context,
+                  appWidgetManager: AppWidgetManager,
+                  appWidgetIds: IntArray,
+                  widgetData: SharedPreferences
+              ) {
+                  appWidgetIds.forEach { widgetId ->
+                      val patient = widgetData.getString("patient_name", "Hani Maak") ?: "Hani Maak"
+                      val medication = widgetData.getString("next_medication", "No medication due") ?: "No medication due"
+                      val medicationTime = widgetData.getString("next_medication_time", "") ?: ""
+                      val appointment = widgetData.getString("next_appointment", "No appointment scheduled") ?: "No appointment scheduled"
+                      val appointmentTime = widgetData.getString("next_appointment_time", "") ?: ""
+                      val openTasks = widgetData.getInt("open_tasks", 0)
+
+                      val views = RemoteViews(context.packageName, R.layout.hani_care_widget).apply {
+                          setTextViewText(R.id.widget_patient, patient)
+                          setTextViewText(R.id.widget_medication, medication)
+                          setTextViewText(R.id.widget_medication_time, medicationTime)
+                          setTextViewText(
+                              R.id.widget_appointment,
+                              if (appointmentTime.isBlank()) appointment else "$appointment · $appointmentTime"
+                          )
+                          setTextViewText(R.id.widget_tasks, "$openTasks open care tasks")
+
+                          setOnClickPendingIntent(
+                              R.id.widget_root,
+                              HomeWidgetLaunchIntent.getActivity(
+                                  context,
+                                  MainActivity::class.java,
+                                  Uri.parse("hanimaak://open?route=/today")
+                              )
+                          )
+                          setOnClickPendingIntent(
+                              R.id.widget_hani,
+                              HomeWidgetLaunchIntent.getActivity(
+                                  context,
+                                  MainActivity::class.java,
+                                  Uri.parse("hanimaak://open?route=/voice")
+                              )
+                          )
+                      }
+                      appWidgetManager.updateAppWidget(widgetId, views)
+                  }
+              }
+          }
+          """)
           PY
 
       - name: Resolve Flutter dependencies
         working-directory: apps/mobile
         run: flutter pub get
+
+      - name: Generate branded launcher icon
+        working-directory: apps/mobile
+        run: dart run flutter_launcher_icons
 
       - name: Analyze mobile app
         working-directory: apps/mobile
@@ -101,8 +349,23 @@ jobs:
 
       - name: Build release APK
         working-directory: apps/mobile
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_SENDER_ID: ${{ secrets.FIREBASE_SENDER_ID }}
+          HANI_WHATSAPP_TEST_RECIPIENT: ${{ secrets.HANI_WHATSAPP_TEST_RECIPIENT }}
         run: |
-          flutter build apk             --release             --dart-define=HANI_API_BASE=https://hani-maak.vercel.app             --dart-define=SUPABASE_URL=https://lhrngmuxmjpigycgonnh.supabase.co             --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_8jxBjLqsE0-8fSxaCZqP7w_7LdAm4SI
+          flutter build apk \
+            --release \
+            --dart-define=HANI_API_BASE=https://hani-maak.vercel.app \
+            --dart-define=SUPABASE_URL=https://lhrngmuxmjpigycgonnh.supabase.co \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_8jxBjLqsE0-8fSxaCZqP7w_7LdAm4SI \
+            --dart-define=FIREBASE_API_KEY="$FIREBASE_API_KEY" \
+            --dart-define=FIREBASE_APP_ID="$FIREBASE_APP_ID" \
+            --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
+            --dart-define=FIREBASE_SENDER_ID="$FIREBASE_SENDER_ID" \
+            --dart-define=HANI_WHATSAPP_TEST_RECIPIENT="$HANI_WHATSAPP_TEST_RECIPIENT"
 
       - name: Prepare team APK
         run: |
