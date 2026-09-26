@@ -46,12 +46,12 @@ class CareCircleScreen extends ConsumerWidget {
             HaniPageHeader(
               title: language == HaniLanguage.french
                   ? 'Cercle de soins'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'دائرة العائلة'
                       : 'Care Circle',
               subtitle: language == HaniLanguage.french
                   ? 'Coordonner les soins de ${data.patientName}, sans jugement ni classement.'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'نظّموا رعاية ${data.patientName} بلا لوم وبلا حساب شكون عمل أكثر.'
                       : 'Coordinate care for ${data.patientName} without blame or scorekeeping.',
             ),
@@ -80,7 +80,7 @@ class CareCircleScreen extends ConsumerWidget {
                         Text(
                           language == HaniLanguage.french
                               ? 'Votre charge actuelle'
-                              : language == HaniLanguage.tounsi
+                              : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                   ? 'حمل الرعاية متاعك'
                                   : 'Your current care load',
                           style: const TextStyle(
@@ -104,7 +104,7 @@ class CareCircleScreen extends ConsumerWidget {
                     child: Text(
                       language == HaniLanguage.french
                           ? 'Aide'
-                          : language == HaniLanguage.tounsi
+                          : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                               ? 'عاونّي'
                               : 'Redistribute',
                     ),
@@ -116,7 +116,7 @@ class CareCircleScreen extends ConsumerWidget {
             HaniSectionHeader(
               title: language == HaniLanguage.french
                   ? 'Les personnes'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'شكون معاكم'
                       : 'People',
               subtitle: '${members.length} active',
@@ -152,7 +152,7 @@ class CareCircleScreen extends ConsumerWidget {
                         current
                             ? (language == HaniLanguage.french
                                 ? 'Aidant principal · Vous'
-                                : language == HaniLanguage.tounsi
+                                : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                                     ? 'المرافق الرئيسي · إنت'
                                     : 'Primary caregiver · You')
                             : (member['member_role']?.toString() ??
@@ -169,7 +169,7 @@ class CareCircleScreen extends ConsumerWidget {
             HaniSectionHeader(
               title: language == HaniLanguage.french
                   ? 'Responsabilités'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'المسؤوليات'
                       : 'Responsibilities',
               subtitle: '${data.openTasks.length} open',
@@ -220,7 +220,7 @@ class CareCircleScreen extends ConsumerWidget {
                     child: Text(
                       language == HaniLanguage.french
                           ? 'Besoin de souffler ? Hani peut vous aider à demander du relais.'
-                          : language == HaniLanguage.tounsi
+                          : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                               ? 'تعبت؟ هاني ينجم يعاونك تطلب من شخص آخر يشدّ مهمّة.'
                               : 'Need relief? Hani can help you ask someone to take a task.',
                       style: const TextStyle(
