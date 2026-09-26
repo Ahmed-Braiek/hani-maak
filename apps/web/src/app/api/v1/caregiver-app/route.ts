@@ -235,6 +235,12 @@ async function loadContext(caregiverId: string, patientId: string) {
     appointments,
     supportSignals,
     taskRequests: requests,
+    medicationSchedules,
+    medicationEvents,
+    careDocuments,
+    memoryItems,
+    activitySessions,
+    summaryDeliveries,
     patterns,
     followUp,
   };
