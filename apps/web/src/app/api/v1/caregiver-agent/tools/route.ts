@@ -424,7 +424,29 @@ export async function POST(req: Request) {
         headers: { Prefer: "return=representation" },
         body: JSON.stringify(payload),
       });
-      return NextResponse.json({ success: true, incident: rows?.[0], shared: false });
+      const incident = rows?.[0] ?? null;
+
+      const preferences = await first(
+        `notification_preferences?select=enabled,incident_followup&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
+      );
+      if (incident && preferences?.enabled !== false && preferences?.incident_followup !== false) {
+        const scheduled = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+        await sb("caregiver_notifications", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            caregiver_profile_id: caregiverId,
+            category: "incident_followup",
+            title: "How did it go?",
+            body: "Hani remembers this care moment and can follow up when you are ready.",
+            action_type: "open_hani_followup",
+            action_payload: { incidentId: incident.id, scenarioKey: scenarioKey || null },
+            scheduled_for: scheduled,
+          }),
+        });
+      }
+
+      return NextResponse.json({ success: true, incident, shared: false });
     }
 
     if (tool === "share_incident") {
@@ -509,6 +531,26 @@ export async function POST(req: Request) {
           message: clean(args.message, 500) || null,
         }),
       });
+
+      const recipientPreferences = await first(
+        `notification_preferences?select=enabled,care_circle_requests&caregiver_profile_id=eq.${encodeURIComponent(recipientProfileId)}&limit=1`,
+      );
+      if (recipientPreferences?.enabled !== false && recipientPreferences?.care_circle_requests !== false) {
+        await sb("caregiver_notifications", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            caregiver_profile_id: recipientProfileId,
+            category: "care_circle_request",
+            title: "Care Circle request",
+            body: clean(args.message, 500) || clean(args.title, 200) || "A caregiver asked for help.",
+            action_type: "open_care_circle",
+            action_payload: { requestId: requestRows?.[0]?.id ?? null, taskId: task.id },
+            scheduled_for: new Date().toISOString(),
+          }),
+        });
+      }
+
       return NextResponse.json({ success: true, task, request: requestRows?.[0] });
     }
 
