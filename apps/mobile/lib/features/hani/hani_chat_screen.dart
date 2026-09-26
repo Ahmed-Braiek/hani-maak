@@ -99,14 +99,12 @@ class _HaniChatScreenState extends ConsumerState<HaniChatScreen> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Hani',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
+            HaniBrandMark(size: 34),
+            SizedBox(height: 2),
             Text(
               'Context-aware · private by default',
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: 10.8,
                 color: HaniColors.muted,
               ),
             ),
