@@ -47,7 +47,7 @@ class _TodayContent extends StatelessWidget {
 
     String greeting() {
       return switch (settings.language) {
-        HaniLanguage.tounsi => 'عسلامة $firstName',
+        HaniLanguage.tounsi => 'عسلامة $firstName',        HaniLanguage.arabic => 'عسلامة $firstName',
         HaniLanguage.french => 'Bonsoir, $firstName',
         HaniLanguage.english => 'Good evening, $firstName',
       };
@@ -55,8 +55,7 @@ class _TodayContent extends StatelessWidget {
 
     String subtitle() {
       return switch (settings.language) {
-        HaniLanguage.tounsi =>
-          '${data.patientName} معاك اليوم. موش لازم تشيل كل شي وحدك.',
+        HaniLanguage.tounsi => '${data.patientName} معاك اليوم. موش لازم تشيل كل شي وحدك.',        HaniLanguage.arabic => '${data.patientName} معاك اليوم. موش لازم تشيل كل شي وحدك.',
         HaniLanguage.french =>
           '${data.patientName} est dans votre cercle. Vous n’avez pas à tout porter seul.',
         HaniLanguage.english =>
@@ -111,17 +110,17 @@ class _TodayContent extends StatelessWidget {
         const SizedBox(height: 24),
         HaniSectionHeader(
           title: switch (settings.language) {
-            HaniLanguage.tounsi => 'شنوّة يلزم اليوم',
+            HaniLanguage.tounsi => 'شنوّة يلزم اليوم',        HaniLanguage.arabic => 'شنوّة يلزم اليوم',
             HaniLanguage.french => 'À faire aujourd’hui',
             HaniLanguage.english => 'What needs you today',
           },
           subtitle: switch (settings.language) {
-            HaniLanguage.tounsi => 'كان الحاجات المهمّة، بلا ضغط زايد.',
+            HaniLanguage.tounsi => 'كان الحاجات المهمّة، بلا ضغط زايد.',        HaniLanguage.arabic => 'كان الحاجات المهمّة، بلا ضغط زايد.',
             HaniLanguage.french => 'Seulement ce qui mérite votre attention.',
             HaniLanguage.english => 'Only what deserves your attention.',
           },
           action: switch (settings.language) {
-            HaniLanguage.tounsi => 'الدائرة',
+            HaniLanguage.tounsi => 'الدائرة',        HaniLanguage.arabic => 'الدائرة',
             HaniLanguage.french => 'Cercle',
             HaniLanguage.english => 'Care Circle',
           },
@@ -144,12 +143,12 @@ class _TodayContent extends StatelessWidget {
           const SizedBox(height: 18),
           HaniSectionHeader(
             title: switch (settings.language) {
-              HaniLanguage.tounsi => 'مسودّة خاصة',
+              HaniLanguage.tounsi => 'مسودّة خاصة',        HaniLanguage.arabic => 'مسودّة خاصة',
               HaniLanguage.french => 'Brouillon privé',
               HaniLanguage.english => 'Private incident draft',
             },
             subtitle: switch (settings.language) {
-              HaniLanguage.tounsi => 'إنت وحدك تشوفها لين توافق تشاركها.',
+              HaniLanguage.tounsi => 'إنت وحدك تشوفها لين توافق تشاركها.',        HaniLanguage.arabic => 'إنت وحدك تشوفها لين توافق تشاركها.',
               HaniLanguage.french =>
                 'Visible seulement par vous jusqu’à votre accord.',
               HaniLanguage.english =>
@@ -175,13 +174,12 @@ class _HaniHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = switch (language) {
-      HaniLanguage.tounsi => 'صار شيء صعيب مع $patientName؟',
+      HaniLanguage.tounsi => 'صار شيء صعيب مع $patientName؟',        HaniLanguage.arabic => 'صار شيء صعيب مع $patientName؟',
       HaniLanguage.french => 'Quelque chose de difficile avec $patientName ?',
       HaniLanguage.english => 'Something difficult with $patientName?',
     };
     final body = switch (language) {
-      HaniLanguage.tounsi =>
-        'احكي عادي. هاني يعرف سياق الرعاية ويسألك كان على اللي يلزم.',
+      HaniLanguage.tounsi => 'احكي عادي. هاني يعرف سياق الرعاية ويسألك كان على اللي يلزم.',        HaniLanguage.arabic => 'احكي عادي. هاني يعرف سياق الرعاية ويسألك كان على اللي يلزم.',
       HaniLanguage.french =>
         'Parlez naturellement. Hani connaît le contexte et ne demande que l’essentiel.',
       HaniLanguage.english =>
@@ -259,7 +257,7 @@ class _HaniHero extends StatelessWidget {
                   label: Text(
                     language == HaniLanguage.french
                         ? 'Message'
-                        : language == HaniLanguage.tounsi
+                        : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                             ? 'اكتب لهاني'
                             : 'Message Hani',
                   ),
@@ -479,7 +477,7 @@ class _IncidentDraftCard extends StatelessWidget {
             label: Text(
               language == HaniLanguage.french
                   ? 'Revoir avec Hani'
-                  : language == HaniLanguage.tounsi
+                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                       ? 'راجعها مع هاني'
                       : 'Review with Hani',
             ),
@@ -510,7 +508,7 @@ class _EmptyToday extends StatelessWidget {
               child: Text(
                 language == HaniLanguage.french
                     ? 'Rien d’urgent pour le moment.'
-                    : language == HaniLanguage.tounsi
+                    : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
                         ? 'ما فما حتى شيء مستعجل توّا.'
                         : 'Nothing urgent right now.',
                 style: const TextStyle(fontWeight: FontWeight.w800),
