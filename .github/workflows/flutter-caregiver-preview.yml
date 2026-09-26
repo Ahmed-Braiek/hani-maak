@@ -3,7 +3,7 @@ name: Flutter caregiver preview
 on:
   push:
     branches:
-      - caregiver-mvp-rebuild
+      - main
     paths:
       - "apps/mobile/**"
       - ".github/workflows/flutter-caregiver-preview.yml"
@@ -20,10 +20,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout rebuild branch
+      - name: Checkout production branch
         uses: actions/checkout@v4
         with:
-          ref: caregiver-mvp-rebuild
+          ref: main
           fetch-depth: 0
 
       - name: Install Flutter
@@ -72,4 +72,4 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add -f apps/web/public/flutter
           git commit -m "Build Flutter caregiver preview [skip flutter]"
-          git push origin HEAD:caregiver-mvp-rebuild
+          git push origin HEAD:main
