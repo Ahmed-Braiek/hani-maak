@@ -5,6 +5,7 @@ import 'dart:typed_data';
 /// packaging. Keeping this interface lets the rest of the voice controller
 /// remain platform-agnostic.
 class HaniPcmPlayer {
+  bool get isPlaying => false;
   Future<void> init() async {}
   Future<void> add(Uint8List pcm) async {}
   Future<void> interrupt() async {}
