@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - caregiver-production-upgrade
+      - hani-production-mobile-v2
     paths:
       - "apps/mobile/**"
+      - "apps/web/**"
+      - "apps/heni-agent/**"
       - ".github/workflows/caregiver-production-check.yml"
 
 permissions:
@@ -16,6 +19,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  web-agent-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Typecheck web
+        run: npm run typecheck
+      - name: Build Next.js
+        run: npm run build
+      - name: Python syntax
+        run: python -m compileall -q apps/heni-agent/app
+
   flutter-check:
     runs-on: ubuntu-latest
     steps:
