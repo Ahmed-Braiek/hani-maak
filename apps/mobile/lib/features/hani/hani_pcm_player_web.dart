@@ -30,7 +30,7 @@ class HaniPcmPlayer {
 
     final context = web_audio.AudioContext();
     _context = context;
-    _nextStart = context.currentTime;
+    _nextStart = (context.currentTime ?? 0).toDouble();
 
     if (context.state == 'suspended') {
       await context.resume();
@@ -61,12 +61,15 @@ class HaniPcmPlayer {
 
     final source = context.createBufferSource();
     source.buffer = audioBuffer;
-    source.connectNode(context.destination);
+
+    final destination = context.destination;
+    if (destination == null) return;
+    source.connectNode(destination);
 
     // Keep a tiny scheduling cushion so network jitter does not make two
     // buffers overlap or restart. Never schedule in the past.
-    final now = context.currentTime;
-    final startAt = math.max(_nextStart, now + 0.025);
+    final now = (context.currentTime ?? 0).toDouble();
+    final startAt = math.max(_nextStart, now + 0.025).toDouble();
     _nextStart = startAt + (sampleCount / sampleRate);
 
     _active.add(source);
@@ -84,7 +87,7 @@ class HaniPcmPlayer {
 
     final context = _context;
     if (context != null) {
-      _nextStart = context.currentTime;
+      _nextStart = (context.currentTime ?? 0).toDouble();
     }
   }
 
