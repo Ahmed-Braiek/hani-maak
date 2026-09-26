@@ -95807,27 +95807,28 @@ A.kJ.prototype={
 a67(a){var s=this.f.LA(a)
 this.scr(s)
 return s},
-a1W(a,b){var s,r,q,p,o,n,m,l,k,j=this,i=a.h(0,"metadata"),h=t.f,g=t.N,f=t.z,e=(h.b(i)?A.dd(i,g,f):A.o(g,f)).h(0,"app_preferences"),d=h.b(e)?A.dd(e,g,f):A.o(g,f)
-h=d.h(0,"language")
-if(h==null)h=a.h(0,"preferred_language")
-s=h==null?null:J.a9(h).toLowerCase()
-A:{if("tn"===s||"derja"===s||"tounsi"===s){h=B.a3
-break A}if("ar"===s||"arabic"===s){h=B.Z
-break A}if("fr"===s||"french"===s){h=B.ac
-break A}if("en"===s||"english"===s){h=B.aI
-break A}h=j.f.a
-break A}g=new A.a6k(d)
-f=new A.a6j(b)
+a1W(a,a0){var s,r,q,p,o,n,m,l,k,j=this,i="quiet_hours_start",h="quiet_hours_end",g=a.h(0,"metadata"),f=t.f,e=t.N,d=t.z,c=(f.b(g)?A.dd(g,e,d):A.o(e,d)).h(0,"app_preferences"),b=f.b(c)?A.dd(c,e,d):A.o(e,d)
+f=b.h(0,"language")
+if(f==null)f=a.h(0,"preferred_language")
+s=f==null?null:J.a9(f).toLowerCase()
+A:{if("tn"===s||"derja"===s||"tounsi"===s){f=B.a3
+break A}if("ar"===s||"arabic"===s){f=B.Z
+break A}if("fr"===s||"french"===s){f=B.ac
+break A}if("en"===s||"english"===s){f=B.aI
+break A}f=j.f.a
+break A}e=new A.a6k(b)
+d=new A.a6j(a0)
 r=j.f
-q=f.$2("enabled",r.b)
-p=f.$2("incident_followup",j.f.c)
-o=f.$2("wellbeing_checkin",j.f.d)
-n=f.$2("care_circle_requests",j.f.e)
-m=f.$2("appointments",j.f.f)
-f=f.$2("quiet_hours_enabled",j.f.r)
-l=g.$2("show_hani_widget",j.f.w)
-k=g.$2("show_patient_widget",j.f.x)
-j.scr(r.jS(m,n,p,h,q,f,g.$2("show_care_load_widget",j.f.y),l,k,g.$2("show_wellbeing_widget",j.f.z),o))}}
+q=d.$2("enabled",r.b)
+p=d.$2("incident_followup",j.f.c)
+o=d.$2("wellbeing_checkin",j.f.d)
+n=d.$2("care_circle_requests",j.f.e)
+d=d.$2("appointments",j.f.f)
+if(a0.aq(i)||a0.aq(h))m=a0.h(0,i)!=null&&a0.h(0,h)!=null
+else m=j.f.r
+l=e.$2("show_hani_widget",j.f.w)
+k=e.$2("show_patient_widget",j.f.x)
+j.scr(r.jS(d,n,p,f,q,m,e.$2("show_care_load_widget",j.f.y),l,k,e.$2("show_wellbeing_widget",j.f.z),o))}}
 A.a6k.prototype={
 $2(a,b){var s=this.a.h(0,a)
 return A.nS(s)?s:b},
