@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/app_settings.dart';
+import '../../core/device/device_care_services.dart';
 import 'caregiver_context.dart';
 import 'caregiver_context_api.dart';
 
@@ -22,6 +24,7 @@ class CaregiverContextController extends AsyncNotifier<CaregiverContext> {
           data.caregiver,
           data.notificationPreferences,
         );
+    unawaited(DeviceCareServices.sync(data));
     return data;
   }
 
@@ -33,6 +36,7 @@ class CaregiverContextController extends AsyncNotifier<CaregiverContext> {
             data.caregiver,
             data.notificationPreferences,
           );
+      unawaited(DeviceCareServices.sync(data));
       return data;
     });
   }
