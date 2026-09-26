@@ -31,37 +31,47 @@ class TodayScreen extends ConsumerWidget {
 }
 
 class _TodayContent extends StatelessWidget {
-  const _TodayContent({required this.data, required this.settings});
+  const _TodayContent({
+    required this.data,
+    required this.settings,
+  });
+
   final CaregiverContext data;
   final AppSettings settings;
+
+  String t(String tn, String ar, String en, String fr) =>
+      switch (settings.language) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
 
   @override
   Widget build(BuildContext context) {
     final firstName = data.caregiverName.split(' ').first;
     final ownId = data.caregiver['id']?.toString();
     final ownTasks = data.openTasks
-        .where((t) => t['assigned_to_profile_id']?.toString() == ownId)
+        .where((task) =>
+            task['assigned_to_profile_id']?.toString() == ownId)
         .toList();
     final latestWellbeing =
         data.wellbeing.isNotEmpty ? data.wellbeing.first : null;
 
-    String greeting() {
-      return switch (settings.language) {
-        HaniLanguage.tounsi => 'عسلامة $firstName',        HaniLanguage.arabic => 'عسلامة $firstName',
-        HaniLanguage.french => 'Bonsoir, $firstName',
-        HaniLanguage.english => 'Good evening, $firstName',
-      };
-    }
-
-    String subtitle() {
-      return switch (settings.language) {
-        HaniLanguage.tounsi => '${data.patientName} معاك اليوم. موش لازم تشيل كل شي وحدك.',        HaniLanguage.arabic => '${data.patientName} معاك اليوم. موش لازم تشيل كل شي وحدك.',
-        HaniLanguage.french =>
-          '${data.patientName} est dans votre cercle. Vous n’avez pas à tout porter seul.',
-        HaniLanguage.english =>
-          '${data.patientName} is in your care circle. You do not have to carry everything alone.',
-      };
-    }
+    final title = t(
+      'عسلامة ' + firstName,
+      'مرحبًا ' + firstName,
+      'Good evening, ' + firstName,
+      'Bonsoir, ' + firstName,
+    );
+    final subtitle = t(
+      data.patientName + ' معاك اليوم. موش لازم تشيل كل شي وحدك.',
+      data.patientName + ' معك اليوم. لست مضطرًا لحمل كل شيء وحدك.',
+      data.patientName +
+          ' is in your care circle. You do not have to carry everything alone.',
+      data.patientName +
+          ' est dans votre cercle. Vous n’avez pas à tout porter seul.',
+    );
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -69,13 +79,13 @@ class _TodayContent extends StatelessWidget {
       children: [
         HaniAnimatedEntrance(
           child: HaniPageHeader(
-            title: greeting(),
-            subtitle: subtitle(),
+            title: title,
+            subtitle: subtitle,
             trailing: CircleAvatar(
               radius: 24,
               backgroundColor: HaniColors.primarySoft,
               child: Text(
-                firstName.isEmpty ? 'M' : firstName[0].toUpperCase(),
+                firstName.isEmpty ? 'C' : firstName[0].toUpperCase(),
                 style: const TextStyle(
                   color: HaniColors.primary,
                   fontWeight: FontWeight.w900,
@@ -84,22 +94,37 @@ class _TodayContent extends StatelessWidget {
             ),
           ),
         ),
-        if (settings.showHaniWidget) ...[
-          const SizedBox(height: 22),
+        if (data.followUp != null) ...[
+          const SizedBox(height: 18),
           HaniAnimatedEntrance(
-            delay: const Duration(milliseconds: 80),
+            delay: const Duration(milliseconds: 50),
+            child: _FollowUpCard(
+              followUp: data.followUp!,
+              language: settings.language,
+            ),
+          ),
+        ],
+        if (settings.showHaniWidget) ...[
+          const SizedBox(height: 18),
+          HaniAnimatedEntrance(
+            delay: const Duration(milliseconds: 90),
             child: _HaniHero(
               patientName: data.patientName,
               language: settings.language,
             ),
           ),
         ],
-        const SizedBox(height: 22),
+        const SizedBox(height: 18),
+        _DiscoverCard(
+          language: settings.language,
+          onTap: () => context.push('/how-it-works'),
+        ),
+        const SizedBox(height: 20),
         if (settings.showPatientWidget ||
             settings.showCareLoadWidget ||
             settings.showWellbeingWidget)
           HaniAnimatedEntrance(
-            delay: const Duration(milliseconds: 120),
+            delay: const Duration(milliseconds: 130),
             child: _WidgetGrid(
               data: data,
               settings: settings,
@@ -107,23 +132,24 @@ class _TodayContent extends StatelessWidget {
               latestWellbeing: latestWellbeing,
             ),
           ),
+        if (data.patterns.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _PatternPulse(
+            pattern: data.patterns.first,
+            language: settings.language,
+          ),
+        ],
         const SizedBox(height: 24),
         HaniSectionHeader(
-          title: switch (settings.language) {
-            HaniLanguage.tounsi => 'شنوّة يلزم اليوم',        HaniLanguage.arabic => 'شنوّة يلزم اليوم',
-            HaniLanguage.french => 'À faire aujourd’hui',
-            HaniLanguage.english => 'What needs you today',
-          },
-          subtitle: switch (settings.language) {
-            HaniLanguage.tounsi => 'كان الحاجات المهمّة، بلا ضغط زايد.',        HaniLanguage.arabic => 'كان الحاجات المهمّة، بلا ضغط زايد.',
-            HaniLanguage.french => 'Seulement ce qui mérite votre attention.',
-            HaniLanguage.english => 'Only what deserves your attention.',
-          },
-          action: switch (settings.language) {
-            HaniLanguage.tounsi => 'الدائرة',        HaniLanguage.arabic => 'الدائرة',
-            HaniLanguage.french => 'Cercle',
-            HaniLanguage.english => 'Care Circle',
-          },
+          title: t('شنوّة يلزم اليوم', 'ما الذي يحتاجك اليوم؟',
+              'What needs you today', 'À faire aujourd’hui'),
+          subtitle: t(
+            'كان الحاجات المهمّة، بلا ضغط زايد.',
+            'فقط ما يحتاج إلى انتباهك، دون ضغط إضافي.',
+            'Only what deserves your attention.',
+            'Seulement ce qui mérite votre attention.',
+          ),
+          action: t('الدائرة', 'الدائرة', 'Care Circle', 'Cercle'),
           onAction: () => context.go('/circle'),
         ),
         const SizedBox(height: 10),
@@ -139,21 +165,62 @@ class _TodayContent extends StatelessWidget {
                   ),
                 ),
               ),
+        const SizedBox(height: 16),
+        HaniGradientCard(
+          onTap: () => context.push('/care-hub'),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(
+                  Icons.hub_outlined,
+                  color: HaniColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('مركز الرعاية', 'مركز الرعاية', 'Care hub',
+                          'Centre de soins'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      t(
+                        'الخط الزمني، المواعيد، تعليمات المختص والنشاطات.',
+                        'الخط الزمني والمواعيد وتعليمات المختص والأنشطة.',
+                        'Timeline, appointments, verified instructions, and patient activities.',
+                        'Chronologie, rendez-vous, instructions vérifiées et activités.',
+                      ),
+                      style: const TextStyle(
+                        color: HaniColors.muted,
+                        fontSize: 12.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
         if (data.privateIncidents.isNotEmpty) ...[
-          const SizedBox(height: 18),
+          const SizedBox(height: 22),
           HaniSectionHeader(
-            title: switch (settings.language) {
-              HaniLanguage.tounsi => 'مسودّة خاصة',        HaniLanguage.arabic => 'مسودّة خاصة',
-              HaniLanguage.french => 'Brouillon privé',
-              HaniLanguage.english => 'Private incident draft',
-            },
-            subtitle: switch (settings.language) {
-              HaniLanguage.tounsi => 'إنت وحدك تشوفها لين توافق تشاركها.',        HaniLanguage.arabic => 'إنت وحدك تشوفها لين توافق تشاركها.',
-              HaniLanguage.french =>
-                'Visible seulement par vous jusqu’à votre accord.',
-              HaniLanguage.english =>
-                'Only you can see it until you approve sharing.',
-            },
+            title: t('مسودّة خاصة', 'مسودة خاصة', 'Private incident draft',
+                'Brouillon privé'),
+            subtitle: t(
+              'إنت وحدك تشوفها لين توافق تشاركها.',
+              'لا يراها غيرك حتى توافق على مشاركتها.',
+              'Only you can see it until you approve sharing.',
+              'Visible seulement par vous jusqu’à votre accord.',
+            ),
           ),
           const SizedBox(height: 10),
           _IncidentDraftCard(
@@ -167,25 +234,23 @@ class _TodayContent extends StatelessWidget {
 }
 
 class _HaniHero extends StatelessWidget {
-  const _HaniHero({required this.patientName, required this.language});
+  const _HaniHero({
+    required this.patientName,
+    required this.language,
+  });
+
   final String patientName;
   final HaniLanguage language;
 
+  String t(String tn, String ar, String en, String fr) => switch (language) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
+
   @override
   Widget build(BuildContext context) {
-    final title = switch (language) {
-      HaniLanguage.tounsi => 'صار شيء صعيب مع $patientName؟',        HaniLanguage.arabic => 'صار شيء صعيب مع $patientName؟',
-      HaniLanguage.french => 'Quelque chose de difficile avec $patientName ?',
-      HaniLanguage.english => 'Something difficult with $patientName?',
-    };
-    final body = switch (language) {
-      HaniLanguage.tounsi => 'احكي عادي. هاني يعرف سياق الرعاية ويسألك كان على اللي يلزم.',        HaniLanguage.arabic => 'احكي عادي. هاني يعرف سياق الرعاية ويسألك كان على اللي يلزم.',
-      HaniLanguage.french =>
-        'Parlez naturellement. Hani connaît le contexte et ne demande que l’essentiel.',
-      HaniLanguage.english =>
-        'Talk naturally. Hani knows the care context and asks only what matters.',
-    };
-
     return HaniGradientCard(
       gradient: HaniGradients.hero,
       child: Column(
@@ -209,8 +274,11 @@ class _HaniHero extends StatelessWidget {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'تونسي · Français · English',
-                      style: TextStyle(color: Color(0xFFD8EEEA), fontSize: 12),
+                      'تونسي · العربية · Français · English',
+                      style: TextStyle(
+                        color: Color(0xFFD8EEEA),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -225,7 +293,12 @@ class _HaniHero extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            title,
+            t(
+              'صار شيء صعيب مع ' + patientName + '؟',
+              'هل حدث شيء صعب مع ' + patientName + '؟',
+              'Something difficult with ' + patientName + '?',
+              'Quelque chose de difficile avec ' + patientName + ' ?',
+            ),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 23,
@@ -236,7 +309,12 @@ class _HaniHero extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           Text(
-            body,
+            t(
+              'احكي عادي. هاني يعرف سياق الرعاية ويسألك كان على اللي يلزم.',
+              'تحدث بشكل طبيعي. يعرف هاني سياق الرعاية ويسأل فقط عما يحتاجه.',
+              'Talk naturally. Hani knows the care context and asks only what matters.',
+              'Parlez naturellement. Hani connaît le contexte et ne demande que l’essentiel.',
+            ),
             style: const TextStyle(
               color: Color(0xFFE8F5F2),
               height: 1.45,
@@ -255,11 +333,7 @@ class _HaniHero extends StatelessWidget {
                   onPressed: () => context.push('/hani'),
                   icon: const Icon(Icons.chat_bubble_outline_rounded),
                   label: Text(
-                    language == HaniLanguage.french
-                        ? 'Message'
-                        : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
-                            ? 'اكتب لهاني'
-                            : 'Message Hani',
+                    t('اكتب لهاني', 'اكتب لهاني', 'Message Hani', 'Message'),
                   ),
                 ),
               ),
@@ -286,16 +360,195 @@ class _HeroOrb extends StatelessWidget {
   const _HeroOrb();
 
   @override
+  Widget build(BuildContext context) => Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .14),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: .25),
+            width: 5,
+          ),
+        ),
+        child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+      );
+}
+
+class _FollowUpCard extends StatelessWidget {
+  const _FollowUpCard({
+    required this.followUp,
+    required this.language,
+  });
+
+  final Map<String, dynamic> followUp;
+  final HaniLanguage language;
+
+  String t(String tn, String ar, String en, String fr) => switch (language) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
+
+  @override
+  Widget build(BuildContext context) => HaniGradientCard(
+        gradient: HaniGradients.wellbeing,
+        onTap: () => context.push('/hani'),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const CircleAvatar(
+              backgroundColor: Colors.white,
+              child:
+                  Icon(Icons.history_rounded, color: HaniColors.warning),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  HaniPill(
+                    label: t('متابعة', 'متابعة', 'FOLLOW-UP', 'SUIVI'),
+                    icon: Icons.schedule_rounded,
+                    background: const Color(0xFFFFE4BE),
+                    foreground: HaniColors.warning,
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    followUp['title']?.toString() ??
+                        t('كيفاش مشات؟', 'كيف سارت الأمور؟',
+                            'How did it go?', 'Comment cela s’est passé ?'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    followUp['body']?.toString() ??
+                        t(
+                          'هاني يتفكر الحادثة وتنجم تكمل من وين وقفت.',
+                          'يتذكر هاني الحدث ويمكنك المتابعة من حيث توقفت.',
+                          'Hani remembers the care moment so you can continue where you left off.',
+                          'Hani se souvient de ce moment de soin pour reprendre là où vous vous êtes arrêté.',
+                        ),
+                    style: const TextStyle(
+                      color: HaniColors.muted,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      );
+}
+
+class _DiscoverCard extends StatelessWidget {
+  const _DiscoverCard({
+    required this.language,
+    required this.onTap,
+  });
+
+  final HaniLanguage language;
+  final VoidCallback onTap;
+
+  String t(String tn, String ar, String en, String fr) => switch (language) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: ListTile(
+          onTap: onTap,
+          contentPadding: const EdgeInsets.all(15),
+          leading: const CircleAvatar(
+            backgroundColor: HaniColors.lilac,
+            child: Icon(
+              Icons.explore_outlined,
+              color: HaniColors.lilacInk,
+            ),
+          ),
+          title: Text(
+            t('شنوّة يعمل هاني بالضبط؟', 'ماذا يفعل هاني بالضبط؟',
+                'What does Hani actually do?', 'Que fait Hani exactement ?'),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          subtitle: Text(
+            t(
+              'شرح سريع للخصوصية، المساعدة، الدائرة والمختصين.',
+              'شرح سريع للخصوصية والدعم ودائرة الرعاية والمختصين.',
+              'A one-minute guide to privacy, support, Care Circle, and human handoff.',
+              'Un guide d’une minute sur la confidentialité, le soutien, le Cercle et le relais humain.',
+            ),
+            style: const TextStyle(
+              color: HaniColors.muted,
+              fontSize: 12.2,
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+        ),
+      );
+}
+
+class _PatternPulse extends StatelessWidget {
+  const _PatternPulse({
+    required this.pattern,
+    required this.language,
+  });
+
+  final Map<String, dynamic> pattern;
+  final HaniLanguage language;
+
+  String t(String tn, String ar, String en, String fr) => switch (language) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .14),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: .25), width: 5),
+    final strain = pattern['type'] == 'caregiver_strain';
+    return Card(
+      child: ListTile(
+        onTap: () => context.push(strain ? '/me' : '/patient'),
+        contentPadding: const EdgeInsets.all(15),
+        leading: CircleAvatar(
+          backgroundColor:
+              strain ? HaniColors.warm : HaniColors.primarySoft,
+          child: Icon(
+            strain ? Icons.insights_outlined : Icons.timeline_rounded,
+            color: strain ? HaniColors.warning : HaniColors.primary,
+          ),
+        ),
+        title: Text(
+          strain
+              ? t('الأيام الأخيرة أثقل شوية',
+                  'الأيام الأخيرة تبدو أثقل قليلًا',
+                  'The last few days look heavier',
+                  'Les derniers jours semblent plus lourds')
+              : t('فما نمط يتعاود', 'هناك نمط متكرر',
+                  'A pattern is repeating', 'Une tendance se répète'),
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(
+          t(
+            'هاني يوريك النمط بلا تشخيص ولا تخمين للسبب.',
+            'يعرض هاني النمط دون تشخيص أو تخمين للسبب.',
+            'Hani can surface the pattern without diagnosing its cause.',
+            'Hani peut montrer la tendance sans diagnostiquer sa cause.',
+          ),
+          style: const TextStyle(color: HaniColors.muted),
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
       ),
-      child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
     );
   }
 }
@@ -322,7 +575,7 @@ class _WidgetGrid extends StatelessWidget {
         HaniMetricCard(
           icon: Icons.favorite_outline_rounded,
           value: data.patientName,
-          label: '${data.stage} · patient',
+          label: data.stage + ' · patient',
           onTap: () => context.go('/patient'),
         ),
       );
@@ -343,7 +596,7 @@ class _WidgetGrid extends StatelessWidget {
         HaniMetricCard(
           icon: Icons.balance_rounded,
           value: label,
-          label: '${ownTasks.length} open responsibilities',
+          label: ownTasks.length.toString() + ' open responsibilities',
           tint: HaniColors.lilac,
           iconColor: HaniColors.lilacInk,
           onTap: () => context.go('/circle'),
@@ -381,7 +634,11 @@ class _WidgetGrid extends StatelessWidget {
 }
 
 class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.task, required this.onTap});
+  const _TaskCard({
+    required this.task,
+    required this.onTap,
+  });
+
   final Map<String, dynamic> task;
   final VoidCallback onTap;
 
@@ -416,7 +673,8 @@ class _TaskCard extends StatelessWidget {
                   children: [
                     Text(
                       task['title']?.toString() ?? 'Care task',
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style:
+                          const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -429,7 +687,10 @@ class _TaskCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: HaniColors.muted),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: HaniColors.muted,
+              ),
             ],
           ),
         ),
@@ -447,53 +708,65 @@ class _IncidentDraftCard extends StatelessWidget {
   final Map<String, dynamic> incident;
   final HaniLanguage language;
 
+  String t(String tn, String ar, String en, String fr) => switch (language) {
+        HaniLanguage.tounsi => tn,
+        HaniLanguage.arabic => ar,
+        HaniLanguage.english => en,
+        HaniLanguage.french => fr,
+      };
+
   @override
-  Widget build(BuildContext context) {
-    return HaniGradientCard(
-      gradient: HaniGradients.wellbeing,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const HaniPill(
-            label: 'PRIVATE',
-            icon: Icons.lock_outline_rounded,
-            background: Color(0xFFFFE7C7),
-            foreground: HaniColors.warning,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            incident['title']?.toString() ?? 'Recent incident',
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            incident['summary']?.toString() ?? '',
-            style: const TextStyle(height: 1.45),
-          ),
-          const SizedBox(height: 13),
-          TextButton.icon(
-            onPressed: () => context.push('/hani'),
-            icon: const Icon(Icons.auto_awesome_rounded),
-            label: Text(
-              language == HaniLanguage.french
-                  ? 'Revoir avec Hani'
-                  : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
-                      ? 'راجعها مع هاني'
-                      : 'Review with Hani',
+  Widget build(BuildContext context) => HaniGradientCard(
+        gradient: HaniGradients.wellbeing,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const HaniPill(
+              label: 'PRIVATE',
+              icon: Icons.lock_outline_rounded,
+              background: Color(0xFFFFE7C7),
+              foreground: HaniColors.warning,
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 12),
+            Text(
+              incident['title']?.toString() ?? 'Recent incident',
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              incident['summary']?.toString() ?? '',
+              style: const TextStyle(height: 1.45),
+            ),
+            const SizedBox(height: 13),
+            TextButton.icon(
+              onPressed: () => context.push('/hani'),
+              icon: const Icon(Icons.auto_awesome_rounded),
+              label: Text(
+                t('راجعها مع هاني', 'راجعها مع هاني', 'Review with Hani',
+                    'Revoir avec Hani'),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _EmptyToday extends StatelessWidget {
   const _EmptyToday({required this.language});
+
   final HaniLanguage language;
 
   @override
   Widget build(BuildContext context) {
+    final text = switch (language) {
+      HaniLanguage.tounsi => 'ما فما حتى شيء مستعجل توّا.',
+      HaniLanguage.arabic => 'لا يوجد شيء مستعجل الآن.',
+      HaniLanguage.english => 'Nothing urgent right now.',
+      HaniLanguage.french => 'Rien d’urgent pour le moment.',
+    };
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -501,17 +774,17 @@ class _EmptyToday extends StatelessWidget {
           children: [
             const CircleAvatar(
               backgroundColor: HaniColors.primarySoft,
-              child: Icon(Icons.check_rounded, color: HaniColors.primary),
+              child: Icon(
+                Icons.check_rounded,
+                color: HaniColors.primary,
+              ),
             ),
             const SizedBox(width: 13),
             Expanded(
               child: Text(
-                language == HaniLanguage.french
-                    ? 'Rien d’urgent pour le moment.'
-                    : (language == HaniLanguage.tounsi || language == HaniLanguage.arabic)
-                        ? 'ما فما حتى شيء مستعجل توّا.'
-                        : 'Nothing urgent right now.',
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                text,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
           ],
@@ -539,6 +812,7 @@ class _LoadingToday extends StatelessWidget {
 
 class _ErrorToday extends StatelessWidget {
   const _ErrorToday({required this.onRetry});
+
   final VoidCallback onRetry;
 
   @override
@@ -551,7 +825,10 @@ class _ErrorToday extends StatelessWidget {
           const Text(
             'Could not load care context.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 16),
           Center(
