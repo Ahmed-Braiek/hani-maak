@@ -92,6 +92,20 @@ jobs:
           </vector>
           """)
 
+          notification_icon = Path("android/app/src/main/res/drawable/hani_notification.xml")
+          notification_icon.parent.mkdir(parents=True, exist_ok=True)
+          notification_icon.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="@android:color/white"
+                  android:pathData="M53,76 C39,63 20,61 20,42 C20,25 38,22 49,37 C57,48 60,62 53,76 M49,38 C58,22 80,22 89,38 C99,57 76,78 53,76 C60,62 58,49 49,38" />
+          </vector>
+          """)
+
           if "<queries>" not in text:
               queries = """
               <queries>
