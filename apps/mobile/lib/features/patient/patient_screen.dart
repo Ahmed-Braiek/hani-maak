@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/hani_ui.dart';
 import '../context/caregiver_context.dart';
 import '../context/caregiver_context_provider.dart';
 
@@ -11,222 +13,265 @@ class PatientScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final value = ref.watch(caregiverContextProvider);
+    final language = ref.watch(appSettingsProvider.select((s) => s.language));
+
     return value.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => Center(
         child: OutlinedButton.icon(
-          onPressed: () => ref
-              .read(caregiverContextProvider.notifier)
-              .refreshContext(),
+          onPressed: () =>
+              ref.read(caregiverContextProvider.notifier).refreshContext(),
           icon: const Icon(Icons.refresh_rounded),
           label: const Text('Retry'),
         ),
       ),
-      data: (data) => _PatientContent(data: data),
+      data: (data) => _PatientContent(data: data, language: language),
     );
   }
 }
 
 class _PatientContent extends StatelessWidget {
-  const _PatientContent({required this.data});
+  const _PatientContent({required this.data, required this.language});
   final CaregiverContext data;
+  final HaniLanguage language;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 122),
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: HaniColors.primarySoft,
-              child: Text(
-                data.patientName.isNotEmpty ? data.patientName[0].toUpperCase() : 'P',
-                style: const TextStyle(
+        HaniPageHeader(
+          title: data.patientName,
+          subtitle: switch (language) {
+            HaniLanguage.tounsi =>
+              'معلومات رعاية مشتركة · المرحلة: ${data.stage}',
+            HaniLanguage.french =>
+              'Informations partagées · Stade : ${data.stage}',
+            HaniLanguage.english =>
+              'Shared care information · Stage: ${data.stage}',
+          },
+          trailing: CircleAvatar(
+            radius: 28,
+            backgroundColor: HaniColors.primarySoft,
+            child: Text(
+              data.patientName.isEmpty ? 'P' : data.patientName[0].toUpperCase(),
+              style: const TextStyle(
+                color: HaniColors.primary,
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        HaniGradientCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(
+                  Icons.verified_user_outlined,
                   color: HaniColors.primary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
                 ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data.patientName,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.6,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Shared care information · Alzheimer stage: ' + data.stage,
-                    style: const TextStyle(color: HaniColors.muted),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  switch (language) {
+                    HaniLanguage.tounsi =>
+                      'تعليمات المختص واضحة كمعلومة موثّقة. ملاحظات العائلة تبقى ملاحظات وما تتخلطش بالتشخيص.',
+                    HaniLanguage.french =>
+                      'Les instructions professionnelles sont identifiées comme vérifiées. Les observations familiales restent des observations.',
+                    HaniLanguage.english =>
+                      'Professional instructions are clearly verified. Family observations remain observations, not diagnoses.',
+                  },
+                  style: const TextStyle(height: 1.45),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 22),
-        const _InfoBanner(
-          icon: Icons.verified_user_outlined,
-          title: 'Care information is separated by source',
-          text:
-              'Professional instructions are shown as verified. Caregiver observations remain observations.',
-        ),
-        const SizedBox(height: 22),
-        _SectionTitle(
-          title: 'Medications',
-          action: data.medications.isEmpty ? null : '${data.medications.length} active',
+        const SizedBox(height: 24),
+        HaniSectionHeader(
+          title: language == HaniLanguage.french
+              ? 'Médicaments'
+              : language == HaniLanguage.tounsi
+                  ? 'الأدوية'
+                  : 'Medications',
+          subtitle: language == HaniLanguage.tounsi
+              ? 'هاني ما يبدّلش الجرعة ولا التوقيت.'
+              : language == HaniLanguage.french
+                  ? 'Hani ne modifie jamais dose ou horaire.'
+                  : 'Hani never changes dose or timing.',
+          action: data.medications.isEmpty ? null : '${data.medications.length}',
         ),
         const SizedBox(height: 10),
         if (data.medications.isEmpty)
-          const _EmptyCard(
-            text: 'No active medication information is loaded for this demo patient.',
-          )
+          const _Empty(text: 'No active medication information.')
         else
           ...data.medications.map(
             (med) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Card(
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: CircleAvatar(
-                    backgroundColor: med['verified'] == true
-                        ? HaniColors.primarySoft
-                        : const Color(0xFFFFF3E6),
-                    child: Icon(
-                      Icons.medication_outlined,
-                      color: med['verified'] == true
-                          ? HaniColors.primary
-                          : HaniColors.warning,
-                    ),
-                  ),
-                  title: Text(
-                    med['medication_name']?.toString() ?? 'Medication',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  subtitle: Text(
-                    [
-                      med['dose_text']?.toString(),
-                      med['schedule_text']?.toString(),
-                    ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
-                  ),
-                  trailing: med['verified'] == true
-                      ? const Icon(Icons.verified_rounded, color: HaniColors.primary)
-                      : const Icon(Icons.info_outline_rounded),
-                ),
-              ),
+              child: _MedicationCard(med: med),
             ),
           ),
-        const SizedBox(height: 18),
-        _SectionTitle(
-          title: 'Professional instructions',
-          action: data.instructions.isEmpty ? null : '${data.instructions.length}',
+        const SizedBox(height: 16),
+        HaniSectionHeader(
+          title: language == HaniLanguage.french
+              ? 'Instructions vérifiées'
+              : language == HaniLanguage.tounsi
+                  ? 'تعليمات المختص'
+                  : 'Verified instructions',
+          action: '${data.instructions.length}',
         ),
         const SizedBox(height: 10),
         if (data.instructions.isEmpty)
-          const _EmptyCard(
-            text: 'No verified professional instructions are loaded yet.',
-          )
+          const _Empty(text: 'No verified professional instructions yet.')
         else
           ...data.instructions.map(
             (instruction) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(17),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.verified_rounded, size: 17, color: HaniColors.primary),
-                          SizedBox(width: 6),
-                          Text(
-                            'Professional instruction',
-                            style: TextStyle(
-                              color: HaniColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        instruction['title']?.toString() ?? 'Instruction',
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        instruction['body']?.toString() ?? '',
-                        style: const TextStyle(height: 1.45),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              child: _InstructionCard(instruction: instruction),
             ),
           ),
-        const SizedBox(height: 18),
-        _SectionTitle(
-          title: 'Recent care timeline',
-          action: '${data.sharedIncidents.length} shared',
+        const SizedBox(height: 16),
+        HaniSectionHeader(
+          title: language == HaniLanguage.french
+              ? 'Chronologie récente'
+              : language == HaniLanguage.tounsi
+                  ? 'آخر الملاحظات'
+                  : 'Recent care timeline',
+          subtitle: '${data.sharedIncidents.length} shared',
         ),
         const SizedBox(height: 10),
         if (data.incidents.isEmpty)
-          const _EmptyCard(text: 'No incidents have been recorded yet.')
+          const _Empty(text: 'No incidents recorded yet.')
         else
           ...data.incidents.take(8).map(
-            (incident) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _IncidentCard(incident: incident),
-            ),
-          ),
-        const SizedBox(height: 18),
-        Card(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: () => context.push('/hani'),
-            child: const Padding(
-              padding: EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: HaniColors.primarySoft,
-                    child: Icon(Icons.auto_awesome_rounded, color: HaniColors.primary),
-                  ),
-                  SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Something changed?', style: TextStyle(fontWeight: FontWeight.w700)),
-                        SizedBox(height: 4),
-                        Text(
-                          'Tell Hani what you noticed. It can help structure a private incident draft.',
-                          style: TextStyle(color: HaniColors.muted, height: 1.35),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right_rounded),
-                ],
+                (incident) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _IncidentCard(incident: incident),
+                ),
               ),
-            ),
+        const SizedBox(height: 18),
+        HaniGradientCard(
+          onTap: () => context.push('/hani'),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: HaniColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  language == HaniLanguage.french
+                      ? 'Quelque chose a changé ? Dites-le à Hani.'
+                      : language == HaniLanguage.tounsi
+                          ? 'تبدّل شيء؟ احكيه لهاني وخليه يرتّبلك الملاحظة.'
+                          : 'Something changed? Tell Hani and structure a private draft.',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
           ),
         ),
       ],
     );
   }
+}
+
+class _MedicationCard extends StatelessWidget {
+  const _MedicationCard({required this.med});
+  final Map<String, dynamic> med;
+
+  @override
+  Widget build(BuildContext context) {
+    final verified = med['verified'] == true;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor:
+                  verified ? HaniColors.primarySoft : HaniColors.warm,
+              child: Icon(
+                Icons.medication_outlined,
+                color: verified ? HaniColors.primary : HaniColors.warning,
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    med['medication_name']?.toString() ?? 'Medication',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      med['dose_text']?.toString(),
+                      med['schedule_text']?.toString(),
+                    ].whereType<String>().where((e) => e.isNotEmpty).join(' · '),
+                    style: const TextStyle(
+                      color: HaniColors.muted,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              verified ? Icons.verified_rounded : Icons.info_outline_rounded,
+              color: verified ? HaniColors.primary : HaniColors.warning,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InstructionCard extends StatelessWidget {
+  const _InstructionCard({required this.instruction});
+  final Map<String, dynamic> instruction;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(17),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const HaniPill(
+                label: 'VERIFIED',
+                icon: Icons.verified_rounded,
+              ),
+              const SizedBox(height: 11),
+              Text(
+                instruction['title']?.toString() ?? 'Instruction',
+                style: const TextStyle(
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                instruction['body']?.toString() ?? '',
+                style: const TextStyle(height: 1.45),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _IncidentCard extends StatelessWidget {
@@ -236,139 +281,53 @@ class _IncidentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final private = incident['visibility'] == 'private_draft';
-    final support =
-        incident['support_level']?.toString().replaceAll('_', ' ') ?? 'routine';
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(17),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  private ? Icons.lock_outline_rounded : Icons.groups_outlined,
-                  size: 17,
-                  color: private ? HaniColors.muted : HaniColors.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  private ? 'Private draft' : 'Shared care timeline',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.5,
-                    color: private ? HaniColors.muted : HaniColors.primary,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  support,
-                  style: const TextStyle(fontSize: 11.5, color: HaniColors.muted),
-                ),
-              ],
-            ),
-            const SizedBox(height: 9),
-            Text(
-              incident['title']?.toString() ?? 'Care incident',
-              style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              incident['summary']?.toString() ?? '',
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(height: 1.4),
-            ),
-            if (private) ...[
-              const SizedBox(height: 9),
-              TextButton.icon(
-                onPressed: () => context.push('/hani'),
-                icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-                label: const Text('Review and share with Hani'),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(26),
+        onTap: private ? () => context.push('/hani') : null,
+        child: Padding(
+          padding: const EdgeInsets.all(17),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              HaniPill(
+                label: private ? 'PRIVATE DRAFT' : 'CARE TIMELINE',
+                icon: private
+                    ? Icons.lock_outline_rounded
+                    : Icons.groups_outlined,
+                background: private ? HaniColors.warm : HaniColors.primarySoft,
+                foreground:
+                    private ? HaniColors.warning : HaniColors.primaryDeep,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                incident['title']?.toString() ?? 'Care incident',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                incident['summary']?.toString() ?? '',
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(height: 1.4),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({
-    required this.icon,
-    required this.title,
-    required this.text,
-  });
-  final IconData icon;
-  final String title;
+class _Empty extends StatelessWidget {
+  const _Empty({required this.text});
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HaniColors.primarySoft,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: HaniColors.primary),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Text(text, style: const TextStyle(fontSize: 12.5, height: 1.35)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, this.action});
-  final String title;
-  final String? action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(17),
+          child: Text(text, style: const TextStyle(color: HaniColors.muted)),
         ),
-        if (action != null)
-          Text(
-            action!,
-            style: const TextStyle(color: HaniColors.muted, fontSize: 12),
-          ),
-      ],
-    );
-  }
-}
-
-class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(17),
-        child: Text(text, style: const TextStyle(color: HaniColors.muted)),
-      ),
-    );
-  }
+      );
 }
