@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../context/caregiver_context_api.dart';
+import '../context/caregiver_context_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -208,11 +210,30 @@ class SettingsScreen extends ConsumerWidget {
                             color: HaniColors.primary,
                           )
                         : null,
-                    onTap: () {
+                    onTap: () async {
                       ref
                           .read(appSettingsProvider.notifier)
                           .setLanguage(language);
                       Navigator.pop(context);
+                      try {
+                        final current = ref.read(appSettingsProvider);
+                        await ref.read(caregiverContextApiProvider).action(
+                          'update_app_preferences',
+                          args: {
+                            'language': language.code,
+                            'showHaniWidget': current.showHaniWidget,
+                            'showPatientWidget': current.showPatientWidget,
+                            'showCareLoadWidget': current.showCareLoadWidget,
+                            'showWellbeingWidget': current.showWellbeingWidget,
+                          },
+                        );
+                        await ref
+                            .read(caregiverContextProvider.notifier)
+                            .refreshContext();
+                      } catch (_) {
+                        // The selected language remains active locally; a signed-in
+                        // production session will retry persistence on the next change.
+                      }
                     },
                   ),
                 )
