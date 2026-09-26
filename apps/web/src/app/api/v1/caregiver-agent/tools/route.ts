@@ -210,6 +210,13 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     });
   }
 
+  const now = Date.now();
+  const visibleNotifications = (notifications as Json[]).filter((n) => {
+    if (!n.scheduled_for) return true;
+    const scheduled = new Date(n.scheduled_for).getTime();
+    return Number.isNaN(scheduled) || scheduled <= now;
+  });
+
   return {
     caregiver,
     patient,
@@ -224,7 +231,7 @@ async function caregiverContext(caregiverId: string, patientId: string) {
     supportSignals,
     timeline,
     patterns,
-    followUp: (notifications as Json[]).find((n) =>
+    followUp: visibleNotifications.find((n) =>
       n.category === "incident_followup" && !n.opened_at
     ) ?? null,
   };
