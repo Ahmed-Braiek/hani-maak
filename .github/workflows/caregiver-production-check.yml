@@ -43,6 +43,12 @@ jobs:
       - name: Hani deterministic evaluations
         run: npm run evals
 
+      - name: Voice bridge syntax check
+        run: npm run voice:check
+
+      - name: Next production build
+        run: npm run build
+
       - name: Python syntax
         run: python -m compileall -q apps/heni-agent/app apps/heni-agent/tests
 
