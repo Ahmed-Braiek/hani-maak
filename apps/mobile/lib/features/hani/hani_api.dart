@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../core/config/app_config.dart';
+import '../../core/session/caregiver_identity.dart';
 
 class HaniApiResponse {
   const HaniApiResponse({
@@ -44,18 +45,23 @@ class HaniApiClient {
     String? confirmationToken,
     List<Map<String, String>> history = const [],
   }) async {
+    final identity = await CaregiverIdentity.resolve();
     final uri = Uri.parse('${AppConfig.apiBase}/api/v1/heni/chat');
     final response = await _client
         .post(
           uri,
-          headers: const {'content-type': 'application/json'},
+          headers: {
+            'content-type': 'application/json',
+            ...identity.authHeaders,
+          },
           body: jsonEncode({
             'message': message,
             'locale': locale,
             'source': 'flutter',
-            'caregiverId': AppConfig.demoCaregiverId,
-            'patientId': AppConfig.demoPatientId,
-            if (sessionId != null && sessionId.isNotEmpty) 'sessionId': sessionId,
+            'caregiverId': identity.caregiverId,
+            'patientId': identity.patientId,
+            if (sessionId != null && sessionId.isNotEmpty)
+              'sessionId': sessionId,
             if (confirmationToken != null && confirmationToken.isNotEmpty)
               'confirmationToken': confirmationToken,
             'history': history.takeLast(16),

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/config/app_config.dart';
+import '../../core/session/caregiver_identity.dart';
 import 'caregiver_context.dart';
 
 class CaregiverContextApi {
@@ -11,10 +12,18 @@ class CaregiverContextApi {
   final http.Client _client;
 
   Future<CaregiverContext> load() async {
+    final identity = await CaregiverIdentity.resolve();
+
     try {
-      final uri = Uri.parse('${AppConfig.apiBase}/api/v1/caregiver-demo');
-      final response =
-          await _client.get(uri).timeout(const Duration(seconds: 6));
+      final uri = Uri.parse('${AppConfig.apiBase}/api/v1/caregiver-app').replace(
+        queryParameters: {
+          'caregiverId': identity.caregiverId,
+          'patientId': identity.patientId,
+        },
+      );
+      final response = await _client
+          .get(uri, headers: identity.authHeaders)
+          .timeout(const Duration(seconds: 12));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = jsonDecode(response.body);
@@ -25,11 +34,42 @@ class CaregiverContextApi {
         }
       }
     } catch (_) {
-      // The coach/demo build has a synthetic fallback so the mobile UX remains
-      // usable when the preview backend is rate-limited or unavailable.
+      // Production uses the live caregiver context endpoint. The synthetic
+      // fallback keeps judge/demo UX usable during local network outages.
     }
 
     return CaregiverContext.fromJson(_demoContext);
+  }
+
+  Future<Map<String, dynamic>?> action(
+    String action, {
+    Map<String, dynamic> args = const {},
+  }) async {
+    final identity = await CaregiverIdentity.resolve();
+    final response = await _client
+        .post(
+          Uri.parse('${AppConfig.apiBase}/api/v1/caregiver-app'),
+          headers: {
+            'content-type': 'application/json',
+            ...identity.authHeaders,
+          },
+          body: jsonEncode({
+            'caregiverId': identity.caregiverId,
+            'patientId': identity.patientId,
+            'action': action,
+            'args': args,
+          }),
+        )
+        .timeout(const Duration(seconds: 12));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError('caregiver_action_failed');
+    }
+
+    final decoded = jsonDecode(response.body);
+    return decoded is Map
+        ? Map<String, dynamic>.from(decoded)
+        : null;
   }
 
   void dispose() => _client.close();
@@ -148,10 +188,7 @@ class CaregiverContextApi {
     },
     'professionalRoutes': [
       {
-        'connection': {
-          'connection_type': 'neurology',
-          'status': 'active',
-        },
+        'connection': {'connection_type': 'neurology', 'status': 'active'},
         'professional': {
           'id': '20000000-0000-0000-0000-000000000001',
           'full_name': 'Dr Leila Ben Salem',
@@ -178,13 +215,6 @@ class CaregiverContextApi {
         'body':
             'You have a heavier evening task tomorrow. Hani can help you ask Sami to cover one responsibility.',
       },
-      {
-        'id': 'demo-notification-3',
-        'category': 'wellbeing_checkin',
-        'title': 'A moment for you',
-        'body':
-            'Your recent check-ins suggest the last few days have been heavier.',
-      },
     ],
     'notificationPreferences': {
       'enabled': true,
@@ -194,5 +224,17 @@ class CaregiverContextApi {
       'appointments': true,
     },
     'questionnaires': [],
+    'timeline': [],
+    'appointments': [],
+    'supportSignals': [],
+    'taskRequests': [],
+    'patterns': [
+      {'type': 'caregiver_strain', 'count': 2, 'windowCount': 2},
+    ],
+    'followUp': {
+      'category': 'incident_followup',
+      'title': 'How did the evening go?',
+      'body': 'Continue the conversation with Hani when you are ready.',
+    },
   };
 }

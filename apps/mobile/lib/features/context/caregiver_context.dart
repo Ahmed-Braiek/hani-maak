@@ -13,6 +13,12 @@ class CaregiverContext {
     required this.notifications,
     required this.notificationPreferences,
     required this.questionnaires,
+    required this.timeline,
+    required this.appointments,
+    required this.supportSignals,
+    required this.taskRequests,
+    required this.patterns,
+    required this.followUp,
   });
 
   final Map<String, dynamic> caregiver;
@@ -28,6 +34,12 @@ class CaregiverContext {
   final List<Map<String, dynamic>> notifications;
   final Map<String, dynamic> notificationPreferences;
   final List<Map<String, dynamic>> questionnaires;
+  final List<Map<String, dynamic>> timeline;
+  final List<Map<String, dynamic>> appointments;
+  final List<Map<String, dynamic>> supportSignals;
+  final List<Map<String, dynamic>> taskRequests;
+  final List<Map<String, dynamic>> patterns;
+  final Map<String, dynamic>? followUp;
 
   factory CaregiverContext.fromJson(Map<String, dynamic> json) {
     List<Map<String, dynamic>> maps(dynamic value) => (value as List? ?? const [])
@@ -54,6 +66,14 @@ class CaregiverContext {
       notifications: maps(json['notifications']),
       notificationPreferences: map(json['notificationPreferences']),
       questionnaires: maps(json['questionnaires']),
+      timeline: maps(json['timeline']),
+      appointments: maps(json['appointments']),
+      supportSignals: maps(json['supportSignals']),
+      taskRequests: maps(json['taskRequests']),
+      patterns: maps(json['patterns']),
+      followUp: json['followUp'] is Map
+          ? Map<String, dynamic>.from(json['followUp'] as Map)
+          : null,
     );
   }
 
@@ -86,6 +106,22 @@ class CaregiverContext {
     return (raw as List? ?? const [])
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  List<Map<String, dynamic>> get incomingTaskRequests {
+    final id = caregiver['id']?.toString();
+    return taskRequests
+        .where((item) =>
+            item['recipient_profile_id']?.toString() == id &&
+            item['status'] == 'pending')
+        .toList();
+  }
+
+  List<Map<String, dynamic>> get outgoingTaskRequests {
+    final id = caregiver['id']?.toString();
+    return taskRequests
+        .where((item) => item['requester_profile_id']?.toString() == id)
         .toList();
   }
 }
