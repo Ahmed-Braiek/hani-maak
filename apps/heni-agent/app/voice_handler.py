@@ -215,6 +215,19 @@ async def handle_voice_connection(ws: WebSocket) -> None:
                     raise exc
 
     except WebSocketDisconnect:
+        if not session.voice_finalized and audio_buffer.byte_length > 0:
+            try:
+                await _finalize_voice_call(
+                    ws,
+                    session,
+                    audio_buffer,
+                    send_ack=False,
+                )
+            except Exception as finalize_error:
+                print(
+                    "voice disconnect finalization failed",
+                    type(finalize_error).__name__,
+                )
         return
     except Exception as exc:
         if ws.client_state == WebSocketState.CONNECTED:
@@ -291,7 +304,20 @@ async def _finalize_voice_call(
     ws: WebSocket,
     session,
     audio_buffer: PatientAudioBuffer,
+    *,
+    send_ack: bool = True,
 ) -> None:
+    if session.voice_finalized:
+        if send_ack and ws.client_state == WebSocketState.CONNECTED:
+            await ws.send_json(
+                {
+                    "type": "call_ended",
+                    "sessionId": session.id,
+                    "analysisStatus": "processing",
+                }
+            )
+        return
+    session.voice_finalized = True
     analysis_enabled = bool(
         settings.emotion_analysis_enabled
         and settings.emotion_service_url
@@ -317,13 +343,14 @@ async def _finalize_voice_call(
         asyncio.create_task(_run_emotion_analysis(session, wav_path))
         analysis_status = "processing"
 
-    await ws.send_json(
-        {
-            "type": "call_ended",
-            "sessionId": session.id,
-            "analysisStatus": analysis_status,
-        }
-    )
+    if send_ack and ws.client_state == WebSocketState.CONNECTED:
+        await ws.send_json(
+            {
+                "type": "call_ended",
+                "sessionId": session.id,
+                "analysisStatus": analysis_status,
+            }
+        )
 
 
 async def _pump_client_to_live(
