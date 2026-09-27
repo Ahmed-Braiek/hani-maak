@@ -12,6 +12,11 @@ abstract class HaniNotificationService {
   Future<void> requestPermissions();
   Future<void> sync(CaregiverContext context, HaniLanguage language);
   Future<void> showTest();
+  Future<void> showAction({
+    required String title,
+    required String body,
+    required String route,
+  });
   Future<void> showPostCall({
     required String conversationId,
     required HaniLanguage language,
