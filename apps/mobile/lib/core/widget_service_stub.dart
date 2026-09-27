@@ -7,4 +7,7 @@ final HaniHomeWidgetService homeWidgetServiceInstance =
 class _StubHomeWidgetService implements HaniHomeWidgetService {
   @override
   Future<void> sync(CaregiverContext context) async {}
+
+  @override
+  Future<bool> requestPin() async => false;
 }

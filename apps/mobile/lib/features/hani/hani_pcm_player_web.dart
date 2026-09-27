@@ -90,6 +90,8 @@ class HaniPcmPlayer {
     );
   }
 
+  Future<void> flush() async {}
+
   Future<void> interrupt() async {
     for (final source in _active.toList()) {
       try {
