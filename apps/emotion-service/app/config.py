@@ -11,7 +11,7 @@ class Settings:
         "EMOTION_MODEL_ID",
         "Aniemore/wavlm-emotion-v1-crosslingual",
     )
-    model_subfolder: str = os.getenv("EMOTION_MODEL_SUBFOLDER", "int4")
+    model_subfolder: str = os.getenv("EMOTION_MODEL_SUBFOLDER", "int8")
     device: str = os.getenv("EMOTION_DEVICE", "cpu")
     min_speech_seconds: float = float(os.getenv("EMOTION_MIN_SPEECH_SECONDS", "3"))
     target_segment_seconds: float = float(os.getenv("EMOTION_TARGET_SEGMENT_SECONDS", "6"))
