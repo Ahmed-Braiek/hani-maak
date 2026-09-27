@@ -29,7 +29,7 @@ _client = create_google_client()
 
 def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
     contents: list[types.Content] = []
-    for item in history[-12:]:
+    for item in history[-8:]:
         role = "model" if item.get("role") in {"assistant", "model", "heni"} else "user"
         text = str(item.get("content") or item.get("text") or "").strip()
         if text:
@@ -46,6 +46,95 @@ async def _generate(*, contents: list[types.Content], config: types.GenerateCont
         ),
         timeout=settings.model_timeout_seconds,
     )
+
+
+def _explicit_action_intent(message: str) -> bool:
+    """Keep tool calls out of ordinary conversation unless an action is explicit."""
+    text = " ".join(message.lower().replace("-", " ").split())
+    markers = (
+        "appointment",
+        "book ",
+        "booking",
+        "schedule ",
+        "rendez vous",
+        "rendez-vous",
+        "rdv",
+        "réserver",
+        "reserver",
+        "whatsapp",
+        "send ",
+        "contact ",
+        "call the doctor",
+        "create a task",
+        "add medication",
+        "remind me",
+        "موعد",
+        "احجز",
+        "حجز",
+        "واتساب",
+        "ابعث",
+        "بعث",
+        "اتصل",
+        "ذكّرني",
+        "ذكرني",
+    )
+    return any(marker in text for marker in markers)
+
+
+def _finish_reason(response: Any) -> str:
+    try:
+        candidate = response.candidates[0] if response.candidates else None
+        return str(getattr(candidate, "finish_reason", "") or "")
+    except Exception:
+        return ""
+
+
+async def _complete_truncated_reply(
+    *,
+    contents: list[types.Content],
+    config: types.GenerateContentConfig,
+    response: Any,
+) -> str:
+    first = (response.text or "").strip()
+    if "MAX_TOKENS" not in _finish_reason(response).upper():
+        return first
+
+    candidate_content = response.candidates[0].content if response.candidates else None
+    if candidate_content is None:
+        return first
+
+    continuation_contents = [
+        *contents,
+        candidate_content,
+        types.Content(
+            role="user",
+            parts=[
+                types.Part(
+                    text=(
+                        "Finish the previous answer from exactly where it stopped. "
+                        "Do not repeat earlier sentences. Keep it concise and answer "
+                        "the latest user message only."
+                    )
+                )
+            ],
+        ),
+    ]
+    continuation_config = types.GenerateContentConfig(
+        system_instruction=config.system_instruction,
+        max_output_tokens=320,
+        temperature=0.2,
+    )
+    try:
+        continuation = await _generate(
+            contents=continuation_contents,
+            config=continuation_config,
+        )
+        tail = (continuation.text or "").strip()
+        if not tail:
+            return first
+        return (first + " " + tail).strip()
+    except Exception:
+        return first
 
 
 def _base_result(message: str, session, *, tool: str | None = None, tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -216,6 +305,7 @@ async def run_chat_turn(
         except Exception as signal_error:
             print("semantic support signal failed", type(signal_error).__name__)
 
+    allow_tools = _explicit_action_intent(message)
     config = types.GenerateContentConfig(
         system_instruction=build_runtime_system_prompt(runtime_context)
         + (
@@ -223,13 +313,21 @@ async def run_chat_turn(
             + session.locale
             + ". Locale tn means Tunisian Derja; locale ar means Modern Standard Arabic; "
               "fr means French; en means English. Reply in this language unless the current user message clearly switches language."
+            "\nLATEST-MESSAGE PRIORITY: The newest user message is the task to answer now. Older turns are context only. Never answer an older request instead of the newest message."
             "\nCONTEXT CONTINUITY: Keep discussing the same patient/person, symptom, medication, routine, or family event across short follow-up turns unless the caregiver explicitly changes topic."
             "\nDo not replace a patient-care answer with a generic capabilities message about appointments, directions, or facility help. If the caregiver says something like 'kamet mn noum mawjouaa' after discussing Fatma, interpret it as a follow-up about Fatma and respond to that context."
             "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
+            "\nINTENT SAFETY: Words such as 'doura', 'nokhrej', 'nخرج', 'دورة', 'نخرج', 'walk', 'outing', or 'tour' usually describe an outing/walk/activity. They are NOT appointment-booking requests unless the user explicitly asks to book, reserve, schedule, contact, call, or send something."
+            "\nACTION TOOLS: Only perform external actions when the current message explicitly requests that action. For ordinary conversation, advice, observations, patient updates, routines, or suggested outings, answer conversationally and do not invent an appointment or administrative action."
+            "\nRESPONSE STYLE: Answer directly in 1-4 short sentences unless more detail is necessary. Do not end mid-sentence."
         ),
-        tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
+        tools=(
+            [types.Tool(function_declarations=TOOL_DECLARATIONS)]
+            if allow_tools
+            else None
+        ),
         max_output_tokens=640,
-        temperature=0.3,
+        temperature=0.25,
     )
 
     response = await _generate(contents=contents, config=config)
@@ -274,7 +372,11 @@ async def run_chat_turn(
         contents.append(types.Content(role="user", parts=response_parts))
         response = await _generate(contents=contents, config=config)
 
-    reply = (response.text or "").strip()
+    reply = await _complete_truncated_reply(
+        contents=contents,
+        config=config,
+        response=response,
+    )
     if not reply:
         reply = locale_message(
             session.locale,
