@@ -35,7 +35,7 @@ def preload_model() -> None:
         "emotion startup smoke passed",
         {
             "model": settings.model_id,
-            "subfolder": settings.model_subfolder,
+            "file": settings.model_filename,
             "device": resolved_device(),
             "dominant": dominant,
         },

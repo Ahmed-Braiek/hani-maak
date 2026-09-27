@@ -1,19 +1,20 @@
 from __future__ import annotations
 
+import json
 import threading
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import onnxruntime as ort
 import soundfile as sf
-import torch
-from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
+from huggingface_hub import hf_hub_download
 
 from .config import settings
 from .schemas import CANONICAL_EMOTIONS
 
-_MODEL: Any | None = None
-_FEATURE_EXTRACTOR: Any | None = None
+_SESSION: ort.InferenceSession | None = None
+_ID2LABEL: dict[int, str] | None = None
 _LOCK = threading.Lock()
 
 ALIASES = {
@@ -25,54 +26,71 @@ ALIASES = {
     "fearful": "fearful",
     "happiness": "happy",
     "happy": "happy",
-    "enthusiasm": "happy",
-    "enthusiastic": "happy",
-    "positive": "happy",
+    "joy": "happy",
     "neutral": "neutral",
-    "other": "other",
+    "neutrality": "neutral",
+    "calm": "neutral",
     "sadness": "sad",
     "sad": "sad",
     "surprise": "surprised",
     "surprised": "surprised",
+    "ps": "surprised",
+    "other": "other",
     "unknown": "unknown",
 }
 
 
 def resolved_device() -> str:
-    if settings.device and settings.device != "auto":
-        return settings.device
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    return "cpu"
 
 
-def load_model() -> Any:
-    global _MODEL, _FEATURE_EXTRACTOR
-    if _MODEL is not None and _FEATURE_EXTRACTOR is not None:
-        return _MODEL
+def _download(filename: str) -> str:
+    return hf_hub_download(
+        repo_id=settings.model_id,
+        filename=filename,
+        cache_dir=settings.model_cache_dir,
+    )
+
+
+def load_model() -> ort.InferenceSession:
+    global _SESSION, _ID2LABEL
+    if _SESSION is not None and _ID2LABEL is not None:
+        return _SESSION
 
     with _LOCK:
-        if _MODEL is None or _FEATURE_EXTRACTOR is None:
-            kwargs: dict[str, Any] = {
-                "trust_remote_code": True,
-            }
-            if settings.model_subfolder:
-                kwargs["subfolder"] = settings.model_subfolder
-
-            _FEATURE_EXTRACTOR = AutoFeatureExtractor.from_pretrained(
-                settings.model_id,
-                **kwargs,
+        if _SESSION is None:
+            model_path = _download(settings.model_filename)
+            options = ort.SessionOptions()
+            options.intra_op_num_threads = settings.onnx_intra_threads
+            options.inter_op_num_threads = 1
+            options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            _SESSION = ort.InferenceSession(
+                model_path,
+                sess_options=options,
+                providers=["CPUExecutionProvider"],
             )
-            _MODEL = AutoModelForAudioClassification.from_pretrained(
-                settings.model_id,
-                **kwargs,
-            )
-            _MODEL.eval()
-            _MODEL.to(resolved_device())
 
-    return _MODEL
+        if _ID2LABEL is None:
+            config_path = _download("config.json")
+            config = json.loads(Path(config_path).read_text())
+            raw = config.get("id2label") or {}
+            _ID2LABEL = {int(key): str(value) for key, value in raw.items()}
+            if not _ID2LABEL:
+                _ID2LABEL = {
+                    0: "angry",
+                    1: "disgust",
+                    2: "fear",
+                    3: "happy",
+                    4: "neutral",
+                    5: "sad",
+                    6: "surprise",
+                }
+
+    return _SESSION
 
 
 def model_loaded() -> bool:
-    return _MODEL is not None and _FEATURE_EXTRACTOR is not None
+    return _SESSION is not None and _ID2LABEL is not None
 
 
 def _canonical(label: str) -> str:
@@ -89,12 +107,23 @@ def _empty_distribution() -> dict[str, float]:
     return {name: 0.0 for name in CANONICAL_EMOTIONS}
 
 
-def normalize_logits(labels: dict[int, str], probabilities: torch.Tensor) -> dict[str, float]:
+def _softmax(logits: np.ndarray) -> np.ndarray:
+    values = np.asarray(logits, dtype=np.float32)
+    values = values - np.max(values)
+    exp = np.exp(values)
+    total = float(np.sum(exp))
+    if total <= 0:
+        return np.zeros_like(values)
+    return exp / total
+
+
+def normalize_logits(probabilities: np.ndarray) -> dict[str, float]:
     values = _empty_distribution()
+    labels = _ID2LABEL or {}
+
     for index, probability in enumerate(probabilities.tolist()):
         label = labels.get(index, str(index))
-        canonical = _canonical(label)
-        values[canonical] += float(probability)
+        values[_canonical(label)] += float(probability)
 
     total = sum(max(0.0, value) for value in values.values())
     if total <= 0:
@@ -106,33 +135,34 @@ def normalize_logits(labels: dict[int, str], probabilities: torch.Tensor) -> dic
     }
 
 
-def infer_waveform(waveform: np.ndarray) -> dict[str, float]:
-    model = load_model()
-    assert _FEATURE_EXTRACTOR is not None
-
+def _normalize_waveform(waveform: np.ndarray) -> np.ndarray:
     waveform = np.asarray(waveform, dtype=np.float32)
-    inputs = _FEATURE_EXTRACTOR(
-        waveform,
-        sampling_rate=16000,
-        return_tensors="pt",
-        padding=True,
+    if waveform.size == 0:
+        return waveform
+    mean = float(np.mean(waveform))
+    variance = float(np.var(waveform))
+    return (waveform - mean) / np.sqrt(variance + 1e-7)
+
+
+def infer_waveform(waveform: np.ndarray) -> dict[str, float]:
+    session = load_model()
+
+    normalized = _normalize_waveform(waveform)
+    input_meta = session.get_inputs()[0]
+    input_name = input_meta.name
+
+    result = session.run(
+        None,
+        {input_name: normalized.reshape(1, -1).astype(np.float32, copy=False)},
     )
-    device = resolved_device()
-    inputs = {
-        key: value.to(device)
-        for key, value in inputs.items()
-        if isinstance(value, torch.Tensor)
-    }
+    if not result:
+        raise RuntimeError("onnx_no_output")
 
-    with torch.inference_mode():
-        logits = model(**inputs).logits
-        probabilities = logits.softmax(dim=-1)[0].detach().cpu()
-
-    id2label = {
-        int(key): str(value)
-        for key, value in dict(model.config.id2label).items()
-    }
-    return normalize_logits(id2label, probabilities)
+    logits = np.asarray(result[0])
+    if logits.ndim == 2:
+        logits = logits[0]
+    probabilities = _softmax(logits)
+    return normalize_logits(probabilities)
 
 
 def infer_file(path: str | Path) -> dict[str, float]:
