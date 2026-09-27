@@ -7,8 +7,12 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Settings:
     service_secret: str = os.getenv("EMOTION_SERVICE_SECRET", "")
-    model_id: str = os.getenv("EMOTION_MODEL_ID", "iic/emotion2vec_plus_base")
-    device: str = os.getenv("EMOTION_DEVICE", "auto")
+    model_id: str = os.getenv(
+        "EMOTION_MODEL_ID",
+        "Aniemore/wav2vec2-bert-tiny2-s-emotion-v1-crosslingual",
+    )
+    model_subfolder: str = os.getenv("EMOTION_MODEL_SUBFOLDER", "int4")
+    device: str = os.getenv("EMOTION_DEVICE", "cpu")
     min_speech_seconds: float = float(os.getenv("EMOTION_MIN_SPEECH_SECONDS", "3"))
     target_segment_seconds: float = float(os.getenv("EMOTION_TARGET_SEGMENT_SECONDS", "6"))
     max_segment_seconds: float = float(os.getenv("EMOTION_MAX_SEGMENT_SECONDS", "10"))
