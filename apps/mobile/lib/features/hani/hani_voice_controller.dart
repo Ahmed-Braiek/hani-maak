@@ -401,9 +401,20 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
       case 'turn_complete':
         _dropOldModelAudio = false;
-        if (mounted && state.connected && !_pcmPlayer.isPlaying) {
-          state = state.copyWith(phase: VoicePhase.listening);
-        }
+        unawaited(
+          _pcmPlayer.flush().whenComplete(() {
+            if (mounted && state.connected) {
+              state = state.copyWith(phase: VoicePhase.listening);
+            }
+          }).catchError((_) {
+            if (mounted && state.connected) {
+              state = state.copyWith(
+                phase: VoicePhase.error,
+                error: 'Hani audio playback failed. Reconnect the voice call.',
+              );
+            }
+          }),
+        );
         break;
 
       case 'error':
