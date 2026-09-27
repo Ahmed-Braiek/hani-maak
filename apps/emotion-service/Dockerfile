@@ -17,6 +17,7 @@ COPY requirements.txt .
 # which is too large for Railway Hobby.
 RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 \
     && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --no-deps accelerate==1.10.1 \
     && pip install --no-cache-dir --no-deps compressed-tensors==0.19.0
 
 COPY app ./app
