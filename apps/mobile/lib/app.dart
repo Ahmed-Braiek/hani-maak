@@ -5,7 +5,6 @@ import 'core/settings/app_settings.dart';
 import 'core/theme/app_theme.dart';
 import 'core/notification_service.dart';
 import 'features/auth/sign_in_screen.dart';
-import 'features/auth/welcome_screen.dart';
 import 'features/auth/how_hani_works_screen.dart';
 import 'features/shell/app_shell.dart';
 import 'features/today/today_screen.dart';
@@ -32,9 +31,9 @@ final _rootKey = GlobalKey<NavigatorState>();
 
 final router = GoRouter(
   navigatorKey: _rootKey,
-  initialLocation: '/welcome',
+  initialLocation: '/sign-in',
   routes: [
-    GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
+    GoRoute(path: '/welcome', redirect: (_, __) => '/sign-in'),
     GoRoute(path: '/sign-in', builder: (_, __) => const SignInScreen()),
     GoRoute(
       path: '/how-it-works',
