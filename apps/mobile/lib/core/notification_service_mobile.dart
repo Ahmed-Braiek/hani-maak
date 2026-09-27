@@ -12,8 +12,31 @@ class _MobileNotificationService implements HaniNotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
+  void Function(String route)? _routeHandler;
+  String? _pendingLaunchRoute;
+
   @override
-  void Function(String route)? routeHandler;
+  void Function(String route)? get routeHandler => _routeHandler;
+
+  @override
+  set routeHandler(void Function(String route)? handler) {
+    _routeHandler = handler;
+    final pending = _pendingLaunchRoute;
+    if (handler != null && pending != null && pending.isNotEmpty) {
+      _pendingLaunchRoute = null;
+      Future<void>.microtask(() => handler(pending));
+    }
+  }
+
+  void _dispatchRoute(String? route) {
+    if (route == null || route.isEmpty) return;
+    final handler = _routeHandler;
+    if (handler != null) {
+      handler(route);
+    } else {
+      _pendingLaunchRoute = route;
+    }
+  }
 
   static const _careChannel = AndroidNotificationChannel(
     'hani_care',
@@ -42,12 +65,17 @@ class _MobileNotificationService implements HaniNotificationService {
     await _plugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (response) {
-        final payload = response.payload;
-        if (payload != null && payload.isNotEmpty) {
-          routeHandler?.call(payload);
-        }
+        _dispatchRoute(response.payload);
       },
     );
+
+    // Preserve the deep link when Android launches Hani Maak from a
+    // notification while the process was not running yet. The app/router is
+    // attached a little later, so keep the route until routeHandler is ready.
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp == true) {
+      _pendingLaunchRoute = launchDetails?.notificationResponse?.payload;
+    }
 
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
