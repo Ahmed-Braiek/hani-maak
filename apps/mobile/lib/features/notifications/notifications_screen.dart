@@ -230,8 +230,28 @@ class NotificationsScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () async {
-              await HaniNotificationService.instance.requestPermissions();
-              await HaniNotificationService.instance.showTest();
+              try {
+                await HaniNotificationService.instance.initialize();
+                await HaniNotificationService.instance.requestPermissions();
+                await HaniNotificationService.instance.showTest();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Test notification sent. Check the Android notification shade.',
+                    ),
+                  ),
+                );
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Notification test failed: $error',
+                    ),
+                  ),
+                );
+              }
             },
             icon: const Icon(Icons.phone_android_rounded),
             label: const Text('Test phone notification'),
