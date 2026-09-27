@@ -190,19 +190,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     letterSpacing: -.8,
                   ),
                 ),
-                const SizedBox(height: 9),
-                Text(
-                  t(
-                    'دخول بسيط وآمن. ما فماش صفحات ترحيب زايدة.',
-                    'دخول بسيط وآمن دون خطوات تمهيدية غير ضرورية.',
-                    'Simple, secure access with no unnecessary onboarding.',
-                    'Accès simple et sécurisé, sans étapes d’accueil inutiles.',
-                  ),
-                  style: const TextStyle(
-                    color: HaniColors.muted,
-                    height: 1.45,
-                  ),
-                ),
                 const SizedBox(height: 28),
                 SegmentedButton<bool>(
                   segments: [
