@@ -33,6 +33,12 @@ class Settings:
     session_ttl_seconds: int = int(os.getenv("HENI_SESSION_TTL_SECONDS", "1800"))
     backend_timeout_seconds: float = float(os.getenv("HENI_BACKEND_TIMEOUT_SECONDS", "12"))
     model_timeout_seconds: float = float(os.getenv("HENI_MODEL_TIMEOUT_SECONDS", "24"))
+    emotion_analysis_enabled: bool = _bool("EMOTION_ANALYSIS_ENABLED", False)
+    emotion_service_url: str = os.getenv("EMOTION_SERVICE_URL", "").rstrip("/")
+    emotion_service_secret: str = os.getenv("EMOTION_SERVICE_SECRET", "")
+    emotion_request_timeout_seconds: float = float(
+        os.getenv("EMOTION_REQUEST_TIMEOUT_SECONDS", "60")
+    )
 
     @property
     def is_production(self) -> bool:
