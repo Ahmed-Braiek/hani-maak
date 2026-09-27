@@ -102,7 +102,7 @@ class _MobileHomeWidgetService implements HaniHomeWidgetService {
             best = {
               ...medication,
               '_next_time':
-                  '\${candidate.hour.toString().padLeft(2, '0')}:\${candidate.minute.toString().padLeft(2, '0')}',
+                  "${candidate.hour.toString().padLeft(2, '0')}:${candidate.minute.toString().padLeft(2, '0')}",
             };
           }
         }
