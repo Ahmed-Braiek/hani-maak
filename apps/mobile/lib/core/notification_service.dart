@@ -1,4 +1,5 @@
 import '../features/context/caregiver_context.dart';
+import 'settings/app_settings.dart';
 import 'notification_service_stub.dart'
     if (dart.library.io) 'notification_service_mobile.dart';
 
@@ -9,6 +10,11 @@ abstract class HaniNotificationService {
 
   Future<void> initialize();
   Future<void> requestPermissions();
-  Future<void> sync(CaregiverContext context);
+  Future<void> sync(CaregiverContext context, HaniLanguage language);
   Future<void> showTest();
+  Future<void> showPostCall({
+    required String conversationId,
+    required HaniLanguage language,
+    required bool analysisReady,
+  });
 }
