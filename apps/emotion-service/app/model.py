@@ -53,7 +53,6 @@ def load_model() -> Any:
         if _MODEL is None or _FEATURE_EXTRACTOR is None:
             kwargs: dict[str, Any] = {
                 "trust_remote_code": True,
-                "low_cpu_mem_usage": True,
             }
             if settings.model_subfolder:
                 kwargs["subfolder"] = settings.model_subfolder

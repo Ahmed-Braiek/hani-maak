@@ -11,8 +11,13 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY requirements.txt .
+
+# Install the CPU wheel explicitly. Installing compressed-tensors with normal
+# dependency resolution can replace this with the latest CUDA-enabled torch,
+# which is too large for Railway Hobby.
 RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --no-deps compressed-tensors==0.19.0
 
 COPY app ./app
 
