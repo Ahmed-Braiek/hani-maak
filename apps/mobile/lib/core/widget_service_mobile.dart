@@ -1,4 +1,4 @@
-import 'package:home_widget/home_widget.dart';
+import 'package:flutter/services.dart';
 
 import '../features/context/caregiver_context.dart';
 import 'widget_service.dart';
@@ -7,6 +7,9 @@ final HaniHomeWidgetService homeWidgetServiceInstance =
     _MobileHomeWidgetService();
 
 class _MobileHomeWidgetService implements HaniHomeWidgetService {
+  static const MethodChannel _channel =
+      MethodChannel('com.hanimaak/native');
+
   @override
   Future<void> sync(CaregiverContext context) async {
     final nextMedication = _nextMedication(context);
@@ -16,45 +19,38 @@ class _MobileHomeWidgetService implements HaniHomeWidgetService {
       ..sort((a, b) => (a['scheduled_for']?.toString() ?? '')
           .compareTo(b['scheduled_for']?.toString() ?? ''));
 
-    await HomeWidget.saveWidgetData<String>(
-      'patient_name',
-      context.patientName,
-    );
-    await HomeWidget.saveWidgetData<String>(
-      'next_medication',
-      nextMedication.isEmpty
-          ? 'No medication due'
-          : [
-              nextMedication['medication_name']?.toString() ?? 'Medication',
-              nextMedication['dose_text']?.toString(),
-              nextMedication['_next_time']?.toString(),
-            ].whereType<String>().where((e) => e.isNotEmpty).join(' · '),
-    );
-    await HomeWidget.saveWidgetData<String>(
-      'next_appointment',
-      nextAppointment.isEmpty
-          ? 'No upcoming appointment'
-          : [
-              nextAppointment.first['reason']?.toString() ?? 'Appointment',
-              nextAppointment.first['scheduled_for']?.toString(),
-            ].whereType<String>().join(' · '),
-    );
-    await HomeWidget.saveWidgetData<int>(
-      'open_tasks',
-      context.openTasks.length,
-    );
-    await HomeWidget.saveWidgetData<String>(
-      'care_status',
-      context.followUp == null
+    final medicationText = nextMedication.isEmpty
+        ? 'No medication due'
+        : [
+            nextMedication['medication_name']?.toString() ?? 'Medication',
+            nextMedication['dose_text']?.toString(),
+            nextMedication['_next_time']?.toString(),
+          ].whereType<String>().where((e) => e.isNotEmpty).join(' · ');
+
+    final appointmentText = nextAppointment.isEmpty
+        ? 'No upcoming appointment'
+        : [
+            nextAppointment.first['reason']?.toString() ?? 'Appointment',
+            nextAppointment.first['scheduled_for']?.toString(),
+          ].whereType<String>().join(' · ');
+
+    await _channel.invokeMethod<void>('updateWidget', {
+      'patientName': context.patientName,
+      'nextMedication': medicationText,
+      'nextAppointment': appointmentText,
+      'openTasks': context.openTasks.length,
+      'careStatus': context.followUp == null
           ? 'Care plan up to date'
           : context.followUp!['title']?.toString() ?? 'Follow-up available',
-    );
-
-    await HomeWidget.updateWidget(
-      name: 'HaniMaakWidgetProvider',
-      androidName: 'HaniMaakWidgetProvider',
-    );
+    });
   }
+
+  @override
+  Future<bool> requestPin() async {
+    final result = await _channel.invokeMethod<bool>('requestPinWidget');
+    return result ?? false;
+  }
+
   Map<String, dynamic> _nextMedication(CaregiverContext context) {
     final now = DateTime.now();
     Map<String, dynamic>? best;
@@ -69,10 +65,11 @@ class _MobileHomeWidgetService implements HaniHomeWidgetService {
       );
       if (medication.isEmpty) continue;
 
-      final days = (schedule['days_of_week'] as List? ?? const [1,2,3,4,5,6,7])
-          .map((value) => int.tryParse(value.toString()) ?? 0)
-          .where((value) => value >= 1 && value <= 7)
-          .toSet();
+      final days =
+          (schedule['days_of_week'] as List? ?? const [1, 2, 3, 4, 5, 6, 7])
+              .map((value) => int.tryParse(value.toString()) ?? 0)
+              .where((value) => value >= 1 && value <= 7)
+              .toSet();
       final times = (schedule['times'] as List? ?? const [])
           .map((value) => value.toString())
           .toList();
