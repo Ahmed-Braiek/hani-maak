@@ -223,6 +223,9 @@ async def run_chat_turn(
             + session.locale
             + ". Locale tn means Tunisian Derja; locale ar means Modern Standard Arabic; "
               "fr means French; en means English. Reply in this language unless the current user message clearly switches language."
+            "\nCONTEXT CONTINUITY: Keep discussing the same patient/person, symptom, medication, routine, or family event across short follow-up turns unless the caregiver explicitly changes topic."
+            "\nDo not replace a patient-care answer with a generic capabilities message about appointments, directions, or facility help. If the caregiver says something like 'kamet mn noum mawjouaa' after discussing Fatma, interpret it as a follow-up about Fatma and respond to that context."
+            "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
         ),
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
         max_output_tokens=420,
