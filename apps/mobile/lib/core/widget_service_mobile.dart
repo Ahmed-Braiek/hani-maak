@@ -90,6 +90,13 @@ class _MobileHomeWidgetService implements HaniHomeWidgetService {
         en: 'tasks',
         fr: 'tâches',
       ),
+      'callLabel': haniText(
+        language,
+        tn: 'احكي مع هاني',
+        ar: 'اتصل بهاني',
+        en: 'Call Hani',
+        fr: 'Appeler Hani',
+      ),
     });
   }
 
