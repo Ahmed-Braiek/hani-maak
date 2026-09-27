@@ -352,6 +352,7 @@ class _CompletedAnalysis extends StatelessWidget {
     final dominant = analysis.dominantEmotion ?? 'unknown';
     final confidence = analysis.confidence ?? 0;
     final isTextFallback =
+        analysis.resultSource == 'gemini_transcript_fallback' ||
         analysis.model?.startsWith('gemini_text_emotion_fallback:') == true;
     final sorted = analysis.distribution.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -395,7 +396,9 @@ class _CompletedAnalysis extends StatelessWidget {
         ],
         const SizedBox(height: 12),
         Text(
-          _summary(dominant),
+          (analysis.emotionalSummary?.trim().isNotEmpty == true)
+              ? analysis.emotionalSummary!.trim()
+              : _summary(dominant),
           style: const TextStyle(
             color: HaniColors.muted,
             height: 1.45,
