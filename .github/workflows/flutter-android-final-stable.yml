@@ -3,7 +3,10 @@ name: Build Hani Maak Final Stable APK
 on:
   push:
     branches:
-      - android-final-stable-emotion
+      - main
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/flutter-android-final-stable.yml"
   workflow_dispatch:
 
 permissions:
