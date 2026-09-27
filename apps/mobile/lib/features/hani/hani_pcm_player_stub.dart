@@ -8,6 +8,7 @@ class HaniPcmPlayer {
   bool get isPlaying => false;
   Future<void> init() async {}
   Future<void> add(Uint8List pcm) async {}
+  Future<void> flush() async {}
   Future<void> interrupt() async {}
   Future<void> dispose() async {}
 }
