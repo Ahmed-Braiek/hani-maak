@@ -37,15 +37,36 @@ def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
     return contents
 
 
-async def _generate(*, contents: list[types.Content], config: types.GenerateContentConfig):
+async def _generate(
+    *,
+    contents: list[types.Content],
+    config: types.GenerateContentConfig,
+    timeout_seconds: float | None = None,
+):
     return await asyncio.wait_for(
         _client.aio.models.generate_content(
             model=settings.text_model,
             contents=contents,
             config=config,
         ),
-        timeout=settings.model_timeout_seconds,
+        timeout=timeout_seconds or settings.model_timeout_seconds,
     )
+
+
+def _needs_action_tools(message: str) -> bool:
+    text = " ".join(message.lower().split())
+    action_terms = (
+        "appointment", "rendez-vous", "rendez vous", "rdv", "موعد",
+        "doctor", "docteur", "médecin", "طبيب",
+        "whatsapp", "appel", "اتصل", "عيط",
+        "book", "booking", "reserve", "réserver", "احجز",
+        "share", "partage", "شارك",
+        "save", "record", "سجل", "سجّل",
+        "task", "tâche", "مهمة",
+        "human", "staff", "موظف", "إنسان",
+        "contacte", "contact ",
+    )
+    return any(term in text for term in action_terms)
 
 
 def _base_result(message: str, session, *, tool: str | None = None, tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -216,6 +237,8 @@ async def run_chat_turn(
         except Exception as signal_error:
             print("semantic support signal failed", type(signal_error).__name__)
 
+    action_tools_enabled = _needs_action_tools(message)
+
     config = types.GenerateContentConfig(
         system_instruction=build_runtime_system_prompt(runtime_context)
         + (
@@ -224,15 +247,30 @@ async def run_chat_turn(
             + ". Locale tn means Tunisian Derja; locale ar means Modern Standard Arabic; "
               "fr means French; en means English. Reply in this language unless the current user message clearly switches language."
             "\nCONTEXT CONTINUITY: Keep discussing the same patient/person, symptom, medication, routine, or family event across short follow-up turns unless the caregiver explicitly changes topic."
-            "\nDo not replace a patient-care answer with a generic capabilities message about appointments, directions, or facility help. If the caregiver says something like 'kamet mn noum mawjouaa' after discussing Fatma, interpret it as a follow-up about Fatma and respond to that context."
+            "\nLATEST-MESSAGE PRIORITY: Answer the literal meaning of the newest user message first. Do not reinterpret an ordinary activity, walk, outing, meal, sleep, pain, or family comment as a booking, appointment, directions, or facility request unless the user explicitly asks for that action."
+            "\nExample: 'nheb nokhrej naaml beha doura' means the caregiver wants to take the patient for a walk/outing; respond about doing that safely and naturally. It is NOT an appointment request."
+            "\nIf the newest message is ambiguous, ask one short clarification instead of switching topics."
             "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
+            "\nRESPONSE STYLE: Give a complete answer in 1-4 short sentences. Finish the thought. Avoid long lists unless the user asks."
         ),
-        tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
-        max_output_tokens=640,
-        temperature=0.3,
+        tools=(
+            [types.Tool(function_declarations=TOOL_DECLARATIONS)]
+            if action_tools_enabled
+            else None
+        ),
+        max_output_tokens=900,
+        temperature=0.2,
     )
 
-    response = await _generate(contents=contents, config=config)
+    response = await _generate(
+        contents=contents,
+        config=config,
+        timeout_seconds=(
+            settings.model_timeout_seconds
+            if action_tools_enabled
+            else min(12.0, settings.model_timeout_seconds)
+        ),
+    )
 
     tool_events: list[dict[str, Any]] = []
     for _ in range(3):
@@ -272,9 +310,55 @@ async def run_chat_turn(
             )
 
         contents.append(types.Content(role="user", parts=response_parts))
-        response = await _generate(contents=contents, config=config)
+        response = await _generate(
+            contents=contents,
+            config=config,
+            timeout_seconds=settings.model_timeout_seconds,
+        )
 
     reply = (response.text or "").strip()
+
+    # Rarely Gemini can stop at the output-token boundary. Recover only in
+    # that case so normal chat remains a single fast model request.
+    finish_reason = None
+    if response.candidates:
+        finish_reason = getattr(response.candidates[0], "finish_reason", None)
+    if reply and finish_reason is not None and "MAX_TOKENS" in str(finish_reason):
+        try:
+            candidate_content = response.candidates[0].content
+            continuation_contents = [
+                *contents,
+                candidate_content,
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part(
+                            text=(
+                                "Finish only the incomplete final thought from your previous "
+                                "answer. Do not restart, repeat, or change topic. Keep it brief."
+                            )
+                        )
+                    ],
+                ),
+            ]
+            continuation = await _generate(
+                contents=continuation_contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        "Continue the same Hani answer in the same language and context. "
+                        "Return only the missing ending."
+                    ),
+                    max_output_tokens=220,
+                    temperature=0.1,
+                ),
+                timeout_seconds=min(5.0, settings.model_timeout_seconds),
+            )
+            ending = (continuation.text or "").strip()
+            if ending:
+                reply = f"{reply} {ending}".strip()
+        except Exception:
+            pass
+
     if not reply:
         reply = locale_message(
             session.locale,
