@@ -5,7 +5,6 @@ import '../../core/settings/app_settings.dart';
 import '../../core/notification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
-import '../context/caregiver_context_api.dart';
 import '../context/caregiver_context_provider.dart';
 
 class NotificationsScreen extends ConsumerWidget {
@@ -56,6 +55,22 @@ class NotificationsScreen extends ConsumerWidget {
       context.go('/circle');
     } else if (action == 'open_professional') {
       context.push('/handoff');
+    } else if (action == 'open_medication') {
+      context.push('/medications');
+    } else if (action == 'open_patient') {
+      context.go('/patient');
+    } else if (action == 'open_summary') {
+      context.push('/summary');
+    } else if (action == 'open_care_hub') {
+      context.push('/care-hub');
+    } else if (action == 'open_appointment') {
+      context.go('/patient');
+    } else {
+      final payload = item['action_payload'];
+      final route = payload is Map ? payload['route']?.toString() : null;
+      if (route != null && route.startsWith('/')) {
+        context.push(route);
+      }
     }
   }
 
