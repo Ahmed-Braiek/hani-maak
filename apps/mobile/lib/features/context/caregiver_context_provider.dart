@@ -24,8 +24,13 @@ class CaregiverContextController extends AsyncNotifier<CaregiverContext> {
           data.caregiver,
           data.notificationPreferences,
         );
-    await HaniNotificationService.instance.sync(data);
-    await HaniHomeWidgetService.instance.sync(data);
+    final language = ref.read(appSettingsProvider).language;
+    try {
+      await HaniNotificationService.instance.sync(data, language);
+    } catch (_) {}
+    try {
+      await HaniHomeWidgetService.instance.sync(data, language);
+    } catch (_) {}
     return data;
   }
 
@@ -37,8 +42,13 @@ class CaregiverContextController extends AsyncNotifier<CaregiverContext> {
             data.caregiver,
             data.notificationPreferences,
           );
-      await HaniNotificationService.instance.sync(data);
-      await HaniHomeWidgetService.instance.sync(data);
+      final language = ref.read(appSettingsProvider).language;
+      try {
+        await HaniNotificationService.instance.sync(data, language);
+      } catch (_) {}
+      try {
+        await HaniHomeWidgetService.instance.sync(data, language);
+      } catch (_) {}
       return data;
     });
   }

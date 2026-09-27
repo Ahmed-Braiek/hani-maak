@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../features/context/caregiver_context.dart';
+import 'settings/app_settings.dart';
 import 'notification_service.dart';
 
 final HaniNotificationService notificationServiceInstance =
@@ -83,7 +84,7 @@ class _MobileNotificationService implements HaniNotificationService {
   }
 
   @override
-  Future<void> sync(CaregiverContext context) async {
+  Future<void> sync(CaregiverContext context, HaniLanguage language) async {
     await initialize();
     await requestPermissions();
 
@@ -94,8 +95,14 @@ class _MobileNotificationService implements HaniNotificationService {
         (m) => m['id']?.toString() == medicationId,
         orElse: () => const <String, dynamic>{},
       );
-      final name =
-          medication['medication_name']?.toString() ?? 'Medication';
+      final name = medication['medication_name']?.toString() ??
+          haniText(
+            language,
+            tn: 'دواء',
+            ar: 'دواء',
+            en: 'Medication',
+            fr: 'Médicament',
+          );
       final dose = medication['dose_text']?.toString() ?? '';
       final times = (schedule['times'] as List? ?? const [])
           .map((e) => e.toString())
@@ -132,7 +139,13 @@ class _MobileNotificationService implements HaniNotificationService {
           final key = '${schedule['id']}-$offset-$hour-$minute';
           await _schedule(
             id: _id(key),
-            title: 'Medication reminder',
+            title: haniText(
+              language,
+              tn: 'تذكير بالدواء',
+              ar: 'تذكير بالدواء',
+              en: 'Medication reminder',
+              fr: 'Rappel médicament',
+            ),
             body: dose.isEmpty ? name : '$name · $dose',
             when: when,
             route: '/medications',
@@ -147,8 +160,21 @@ class _MobileNotificationService implements HaniNotificationService {
       if (scheduled == null) continue;
       await _schedule(
         id: _id('appointment-${appointment['id']}'),
-        title: 'Upcoming appointment',
-        body: appointment['reason']?.toString() ?? 'Care appointment',
+        title: haniText(
+          language,
+          tn: 'موعد قريب',
+          ar: 'موعد قريب',
+          en: 'Upcoming appointment',
+          fr: 'Rendez-vous à venir',
+        ),
+        body: appointment['reason']?.toString() ??
+            haniText(
+              language,
+              tn: 'موعد رعاية',
+              ar: 'موعد رعاية',
+              en: 'Care appointment',
+              fr: 'Rendez-vous de soins',
+            ),
         when: scheduled.subtract(const Duration(hours: 1)),
         route: '/patient',
       );
@@ -181,9 +207,44 @@ class _MobileNotificationService implements HaniNotificationService {
     await initialize();
     await requestPermissions();
     await _channel.invokeMethod<void>('showTestNotification', {
-      'title': 'Hani Maak is ready',
+      'title': 'Hani Maak',
       'body': 'Phone notifications are enabled.',
       'route': '/notifications',
+    });
+  }
+
+  @override
+  Future<void> showPostCall({
+    required String conversationId,
+    required HaniLanguage language,
+    required bool analysisReady,
+  }) async {
+    await initialize();
+    await requestPermissions();
+    await _channel.invokeMethod<void>('showTestNotification', {
+      'title': haniText(
+        language,
+        tn: 'مكالمة هاني كمّلت',
+        ar: 'انتهت مكالمة هاني',
+        en: 'Hani call completed',
+        fr: 'Appel Hani terminé',
+      ),
+      'body': analysisReady
+          ? haniText(
+              language,
+              tn: 'الملخّص والتحليل الصوتي جاهزين.',
+              ar: 'الملخص والتحليل الصوتي جاهزان.',
+              en: 'Your call summary and vocal emotion analysis are ready.',
+              fr: 'Le résumé et l’analyse de l’émotion vocale sont prêts.',
+            )
+          : haniText(
+              language,
+              tn: 'المكالمة تسجّلت. التحليل الصوتي قاعد يتحضّر.',
+              ar: 'تم حفظ المكالمة. يجري إعداد التحليل الصوتي.',
+              en: 'The call is saved. Vocal emotion analysis is being prepared.',
+              fr: 'L’appel est enregistré. L’analyse vocale est en préparation.',
+            ),
+      'route': '/voice-result/$conversationId',
     });
   }
 }

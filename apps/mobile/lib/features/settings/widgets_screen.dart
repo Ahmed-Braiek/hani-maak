@@ -33,6 +33,8 @@ class WidgetsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appSettingsProvider);
     final c = ref.read(appSettingsProvider.notifier);
+    String t(String tn, String ar, String en, String fr) =>
+        haniText(s.language, tn: tn, ar: ar, en: en, fr: fr);
 
     void update(void Function() change) {
       change();
@@ -40,27 +42,32 @@ class WidgetsScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Today widgets')),
+      appBar: AppBar(title: Text(t('ويدجات هاني', 'عناصر هاني', 'Hani widgets', 'Widgets Hani'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
         children: [
-          const HaniGradientCard(
+          HaniGradientCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 HaniPill(
-                  label: 'Personalize Today',
+                  label: t('خصّص الويدجات', 'خصّص العناصر', 'Personalize widgets', 'Personnaliser les widgets'),
                   icon: Icons.dashboard_customize_outlined,
                 ),
-                SizedBox(height: 13),
+                const SizedBox(height: 13),
                 Text(
-                  'Keep the home screen calm.',
-                  style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+                  t('خلي الشاشة خفيفة.', 'حافظ على شاشة بسيطة.', 'Keep the home screen calm.', 'Gardez un écran d’accueil léger.'),
+                  style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
                 ),
-                SizedBox(height: 5),
+                const SizedBox(height: 5),
                 Text(
-                  'Show only the information that helps you act without adding mental load.',
-                  style: TextStyle(color: HaniColors.muted, height: 1.4),
+                  t(
+                    'ورّي كان المعلومات اللي تعاونك تتحرّك بسرعة.',
+                    'اعرض فقط المعلومات التي تساعدك على التصرف بسرعة.',
+                    'Show only information that helps you act quickly.',
+                    'Affichez uniquement les informations utiles pour agir rapidement.',
+                  ),
+                  style: const TextStyle(color: HaniColors.muted, height: 1.4),
                 ),
               ],
             ),
@@ -75,19 +82,34 @@ class WidgetsScreen extends ConsumerWidget {
                 SnackBar(
                   content: Text(
                     supported
-                        ? 'Android opened the Hani Maak widget request.'
-                        : 'Long-press your phone home screen, choose Widgets, then Hani Maak.',
+                        ? t(
+                            'أندرويد حلّ طلب إضافة ويدجات هاني.',
+                            'فتح أندرويد طلب إضافة عنصر هاني.',
+                            'Android opened the Hani Maak widget request.',
+                            'Android a ouvert la demande d’ajout du widget Hani Maak.',
+                          )
+                        : t(
+                            'اضغط مطوّل على الشاشة الرئيسية، اختار Widgets وبعد Hani Maak.',
+                            'اضغط مطولًا على الشاشة الرئيسية، اختر Widgets ثم Hani Maak.',
+                            'Long-press the home screen, choose Widgets, then Hani Maak.',
+                            'Appuyez longuement sur l’écran d’accueil, choisissez Widgets puis Hani Maak.',
+                          ),
                   ),
                 ),
               );
             },
             icon: const Icon(Icons.add_to_home_screen_rounded),
-            label: const Text('Add Hani Maak widget to phone'),
+            label: Text(t('زيد ويدجات هاني للتليفون', 'أضف عنصر هاني للهاتف', 'Add Hani Maak widget to phone', 'Ajouter le widget Hani Maak')),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'If Android does not show a confirmation, long-press the phone home screen → Widgets → Hani Maak.',
-            style: TextStyle(color: HaniColors.muted, fontSize: 12.2),
+          Text(
+            t(
+              'كان أندرويد ما ورّاش التأكيد: اضغط مطوّل على الشاشة → Widgets → Hani Maak.',
+              'إذا لم يظهر التأكيد: اضغط مطولًا على الشاشة → Widgets → Hani Maak.',
+              'If Android shows no confirmation: long-press home → Widgets → Hani Maak.',
+              'Si Android n’affiche rien : appui long sur l’accueil → Widgets → Hani Maak.',
+            ),
+            style: const TextStyle(color: HaniColors.muted, fontSize: 12.2),
           ),
           const SizedBox(height: 18),
           Card(
@@ -95,32 +117,32 @@ class WidgetsScreen extends ConsumerWidget {
               children: [
                 _Toggle(
                   icon: Icons.auto_awesome_rounded,
-                  title: 'Hani companion',
-                  subtitle: 'Fast text and live voice access',
+                  title: t('هاني', 'هاني', 'Hani companion', 'Compagnon Hani'),
+                  subtitle: t('وصول سريع للنص والصوت', 'وصول سريع للنص والصوت', 'Fast text and live voice access', 'Accès rapide au texte et à la voix'),
                   value: s.showHaniWidget,
                   onChanged: (v) => update(() => c.setHaniWidget(v)),
                 ),
                 const Divider(indent: 70),
                 _Toggle(
                   icon: Icons.favorite_outline_rounded,
-                  title: 'Patient snapshot',
-                  subtitle: 'Care stage and current context',
+                  title: t('لمحة على المريض', 'ملخص المريض', 'Patient snapshot', 'Aperçu patient'),
+                  subtitle: t('مرحلة الرعاية والسياق الحالي', 'مرحلة الرعاية والسياق الحالي', 'Care stage and current context', 'Étape de soins et contexte actuel'),
                   value: s.showPatientWidget,
                   onChanged: (v) => update(() => c.setPatientWidget(v)),
                 ),
                 const Divider(indent: 70),
                 _Toggle(
                   icon: Icons.balance_rounded,
-                  title: 'Care load',
-                  subtitle: 'Your open responsibilities at a glance',
+                  title: t('حمل الرعاية', 'عبء الرعاية', 'Care load', 'Charge de soins'),
+                  subtitle: t('مسؤولياتك المفتوحة بسرعة', 'مسؤولياتك المفتوحة بنظرة سريعة', 'Your open responsibilities at a glance', 'Vos responsabilités ouvertes en un coup d’œil'),
                   value: s.showCareLoadWidget,
                   onChanged: (v) => update(() => c.setCareLoadWidget(v)),
                 ),
                 const Divider(indent: 70),
                 _Toggle(
                   icon: Icons.self_improvement_rounded,
-                  title: 'Wellbeing pulse',
-                  subtitle: 'Private check-in shortcut',
+                  title: t('حالتك', 'مؤشر الرفاه', 'Wellbeing pulse', 'État de bien-être'),
+                  subtitle: t('اختصار خاص للتقييم', 'اختصار خاص للتقييم', 'Private check-in shortcut', 'Raccourci privé de suivi'),
                   value: s.showWellbeingWidget,
                   onChanged: (v) => update(() => c.setWellbeingWidget(v)),
                 ),

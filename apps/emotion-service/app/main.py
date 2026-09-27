@@ -22,12 +22,11 @@ app = FastAPI(title="Hani Maak Emotion Service", version="1.0.0")
 def preload_model() -> None:
     load_model()
 
-    # Validate one realistic 6-second inference at startup. This catches
-    # quantized-loader/runtime failures and verifies that the Railway memory
-    # ceiling can handle actual inference, not just model loading.
+    # Warm the quantized model with a short realistic inference. Long warmups
+    # make ONNX retain unnecessarily large activation buffers on 1 GB plans.
     import numpy as np
 
-    t = np.arange(16000 * 6, dtype=np.float32) / 16000.0
+    t = np.arange(16000 * 2, dtype=np.float32) / 16000.0
     waveform = 0.02 * np.sin(2.0 * np.pi * 220.0 * t)
     scores = infer_waveform(waveform)
     dominant = max(scores, key=scores.get)

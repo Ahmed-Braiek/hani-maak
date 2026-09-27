@@ -18,9 +18,9 @@ class Settings:
     model_cache_dir: str = os.getenv("EMOTION_MODEL_CACHE_DIR", "/tmp/hf")
     device: str = "cpu"
     onnx_intra_threads: int = int(os.getenv("EMOTION_ONNX_THREADS", "2"))
-    min_speech_seconds: float = float(os.getenv("EMOTION_MIN_SPEECH_SECONDS", "3"))
-    target_segment_seconds: float = float(os.getenv("EMOTION_TARGET_SEGMENT_SECONDS", "6"))
-    max_segment_seconds: float = float(os.getenv("EMOTION_MAX_SEGMENT_SECONDS", "10"))
+    min_speech_seconds: float = float(os.getenv("EMOTION_MIN_SPEECH_SECONDS", "2.5"))
+    target_segment_seconds: float = float(os.getenv("EMOTION_TARGET_SEGMENT_SECONDS", "3.5"))
+    max_segment_seconds: float = float(os.getenv("EMOTION_MAX_SEGMENT_SECONDS", "4.5"))
     min_confidence: float = float(os.getenv("EMOTION_MIN_CONFIDENCE", "0.45"))
 
 

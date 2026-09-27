@@ -95,20 +95,10 @@ class _TodayContent extends StatelessWidget {
             ),
           ),
         ),
-        if (data.followUp != null) ...[
-          const SizedBox(height: 18),
-          HaniAnimatedEntrance(
-            delay: const Duration(milliseconds: 50),
-            child: _FollowUpCard(
-              followUp: data.followUp!,
-              language: settings.language,
-            ),
-          ),
-        ],
         if (settings.showHaniWidget) ...[
           const SizedBox(height: 18),
           HaniAnimatedEntrance(
-            delay: const Duration(milliseconds: 90),
+            delay: const Duration(milliseconds: 60),
             child: _HaniHero(
               patientName: data.patientName,
               language: settings.language,
@@ -116,16 +106,6 @@ class _TodayContent extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 18),
-        _DailyDilemmaCard(
-          language: settings.language,
-          onTap: () => context.push('/dilemmas'),
-        ),
-        const SizedBox(height: 10),
-        _DiscoverCard(
-          language: settings.language,
-          onTap: () => context.push('/how-it-works'),
-        ),
-        const SizedBox(height: 20),
         if (settings.showPatientWidget ||
             settings.showCareLoadWidget ||
             settings.showWellbeingWidget)
