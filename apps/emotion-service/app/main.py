@@ -10,7 +10,7 @@ from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 
 from .config import settings, validate_settings
 from .inference import analyze_wav
-from .model import load_model, model_loaded, resolved_device
+from .model import infer_waveform, load_model, model_loaded, resolved_device
 from .schemas import EmotionAnalysisResponse
 
 validate_settings()
@@ -21,6 +21,25 @@ app = FastAPI(title="Hani Maak Emotion Service", version="1.0.0")
 @app.on_event("startup")
 def preload_model() -> None:
     load_model()
+
+    # Validate one realistic 6-second inference at startup. This catches
+    # quantized-loader/runtime failures and verifies that the Railway memory
+    # ceiling can handle actual inference, not just model loading.
+    import numpy as np
+
+    t = np.arange(16000 * 6, dtype=np.float32) / 16000.0
+    waveform = 0.02 * np.sin(2.0 * np.pi * 220.0 * t)
+    scores = infer_waveform(waveform)
+    dominant = max(scores, key=scores.get)
+    print(
+        "emotion startup smoke passed",
+        {
+            "model": settings.model_id,
+            "subfolder": settings.model_subfolder,
+            "device": resolved_device(),
+            "dominant": dominant,
+        },
+    )
 
 
 def _authorize(authorization: str | None) -> None:
