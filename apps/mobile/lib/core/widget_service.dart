@@ -6,4 +6,5 @@ abstract class HaniHomeWidgetService {
   static HaniHomeWidgetService get instance => homeWidgetServiceInstance;
 
   Future<void> sync(CaregiverContext context);
+  Future<bool> requestPin();
 }
