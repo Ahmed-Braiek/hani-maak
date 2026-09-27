@@ -56,9 +56,6 @@ class _TodayContent extends StatelessWidget {
         .where((task) =>
             task['assigned_to_profile_id']?.toString() == ownId)
         .toList();
-    final latestWellbeing =
-        data.wellbeing.isNotEmpty ? data.wellbeing.first : null;
-
     final title = t(
       'عسلامة ' + firstName,
       'مرحبًا ' + firstName,
@@ -106,16 +103,13 @@ class _TodayContent extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 18),
-        if (settings.showPatientWidget ||
-            settings.showCareLoadWidget ||
-            settings.showWellbeingWidget)
+        if (settings.showPatientWidget || settings.showCareLoadWidget)
           HaniAnimatedEntrance(
             delay: const Duration(milliseconds: 130),
             child: _WidgetGrid(
               data: data,
               settings: settings,
               ownTasks: ownTasks,
-              latestWellbeing: latestWellbeing,
             ),
           ),
         if (data.patterns.isNotEmpty) ...[
@@ -242,24 +236,24 @@ class _HaniHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              _HeroOrb(),
-              SizedBox(width: 12),
+              const _HeroOrb(),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hani Live',
-                      style: TextStyle(
+                      t('هاني مباشر', 'هاني مباشر', 'Hani Live', 'Hani en direct'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 19,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    SizedBox(height: 2),
-                    Text(
+                    const SizedBox(height: 2),
+                    const Text(
                       'تونسي · العربية · Français · English',
                       style: TextStyle(
                         color: Color(0xFFD8EEEA),
@@ -270,9 +264,9 @@ class _HaniHero extends StatelessWidget {
                 ),
               ),
               HaniPill(
-                label: 'LIVE',
+                label: t('مباشر', 'مباشر', 'LIVE', 'DIRECT'),
                 icon: Icons.waves_rounded,
-                background: Color(0x2BFFFFFF),
+                background: const Color(0x2BFFFFFF),
                 foreground: Colors.white,
               ),
             ],
@@ -325,7 +319,7 @@ class _HaniHero extends StatelessWidget {
               ),
               const SizedBox(width: 9),
               IconButton.filled(
-                tooltip: 'Live voice',
+                tooltip: t('مكالمة صوتية', 'مكالمة صوتية', 'Live voice', 'Appel vocal'),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: .15),
                   foregroundColor: Colors.white,
@@ -544,13 +538,14 @@ class _WidgetGrid extends StatelessWidget {
     required this.data,
     required this.settings,
     required this.ownTasks,
-    required this.latestWellbeing,
   });
 
   final CaregiverContext data;
   final AppSettings settings;
   final List<Map<String, dynamic>> ownTasks;
-  final Map<String, dynamic>? latestWellbeing;
+
+  String t(String tn, String ar, String en, String fr) =>
+      haniText(settings.language, tn: tn, ar: ar, en: en, fr: fr);
 
   @override
   Widget build(BuildContext context) {
@@ -561,7 +556,9 @@ class _WidgetGrid extends StatelessWidget {
         HaniMetricCard(
           icon: Icons.favorite_outline_rounded,
           value: data.patientName,
-          label: data.stage + ' · patient',
+          label: data.stage +
+              ' · ' +
+              t('مريض', 'مريض', 'patient', 'patient'),
           onTap: () => context.go('/patient'),
         ),
       );
@@ -574,32 +571,21 @@ class _WidgetGrid extends StatelessWidget {
       );
       final band = haniLoadBand(totalWeight);
       final label = band == 'heavy'
-          ? 'Heavy load'
+          ? t('حمل كبير', 'عبء مرتفع', 'Heavy load', 'Charge élevée')
           : band == 'moderate'
-              ? 'Moderate load'
-              : 'Light load';
+              ? t('حمل متوسط', 'عبء متوسط', 'Moderate load', 'Charge modérée')
+              : t('حمل خفيف', 'عبء خفيف', 'Light load', 'Charge légère');
       cards.add(
         HaniMetricCard(
           icon: Icons.balance_rounded,
           value: label,
-          label: ownTasks.length.toString() + ' open responsibilities',
+          label: ownTasks.length.toString() +
+              ' ' +
+              t('مسؤوليات مفتوحة', 'مسؤوليات مفتوحة',
+                  'open responsibilities', 'responsabilités ouvertes'),
           tint: HaniColors.lilac,
           iconColor: HaniColors.lilacInk,
           onTap: () => context.go('/circle'),
-        ),
-      );
-    }
-
-    if (settings.showWellbeingWidget) {
-      final mood = latestWellbeing?['mood_label']?.toString() ?? 'Check in';
-      cards.add(
-        HaniMetricCard(
-          icon: Icons.self_improvement_rounded,
-          value: mood,
-          label: 'Your private wellbeing',
-          tint: HaniColors.warm,
-          iconColor: HaniColors.warning,
-          onTap: () => context.go('/me'),
         ),
       );
     }
