@@ -1,92 +1,136 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
+import 'package:just_audio/just_audio.dart';
 
-/// Low-latency native PCM16LE playback for Gemini Live.
+/// Android/iOS PCM16LE playback for Gemini Live using just_audio.
 ///
-/// Gemini Live sends mono signed PCM16 at 24 kHz. This implementation feeds
-/// the raw samples directly to Android/iOS instead of silently dropping them.
+/// Gemini Live returns mono signed PCM16 at 24 kHz. We buffer small chunks,
+/// wrap them in an in-memory WAV container, and play them sequentially.
+/// This avoids the flutter_pcm_sound native plugin that was crashing on the
+/// user's Android device while keeping Hani's spoken replies audible.
 class HaniPcmPlayer {
   static const int sampleRate = 24000;
+  static const int _targetBytes = 24000; // ~500 ms of mono PCM16 at 24 kHz.
 
-  bool _ready = false;
-  bool _playing = false;
+  final AudioPlayer _player = AudioPlayer();
+  final BytesBuilder _buffer = BytesBuilder(copy: false);
   Future<void> _serial = Future<void>.value();
+  bool _disposed = false;
+  bool _playing = false;
 
   bool get isPlaying => _playing;
 
-  Future<void> init() {
-    return _enqueue(() async {
-      if (_ready) return;
-      await FlutterPcmSound.setup(
-        sampleRate: sampleRate,
-        channelCount: 1,
-        iosAudioCategory: IosAudioCategory.playAndRecord,
-      );
-      await FlutterPcmSound.setFeedThreshold(sampleRate ~/ 10);
-      FlutterPcmSound.setFeedCallback((remainingFrames) {
-        _playing = remainingFrames > 0;
-      });
-      _ready = true;
-    });
+  Future<void> init() async {
+    // just_audio initializes lazily when the first in-memory WAV is loaded.
   }
 
   Future<void> add(Uint8List pcm) {
-    return _enqueue(() async {
-      if (pcm.length < 2) return;
-      if (!_ready) {
-        await FlutterPcmSound.setup(
-          sampleRate: sampleRate,
-          channelCount: 1,
-          iosAudioCategory: IosAudioCategory.playAndRecord,
-        );
-        await FlutterPcmSound.setFeedThreshold(sampleRate ~/ 10);
-        FlutterPcmSound.setFeedCallback((remainingFrames) {
-          _playing = remainingFrames > 0;
-        });
-        _ready = true;
-      }
+    if (_disposed || pcm.isEmpty) return Future<void>.value();
+    _buffer.add(pcm);
+    if (_buffer.length < _targetBytes) return Future<void>.value();
 
-      final evenLength = pcm.length - (pcm.length % 2);
-      final data = ByteData.sublistView(pcm, 0, evenLength);
-      final samples = List<int>.generate(
-        evenLength ~/ 2,
-        (index) => data.getInt16(index * 2, Endian.little),
-        growable: false,
-      );
-
-      if (samples.isEmpty) return;
-      _playing = true;
-      await FlutterPcmSound.feed(PcmArrayInt16.fromList(samples));
-      FlutterPcmSound.start();
-    });
+    final bytes = _buffer.takeBytes();
+    return _enqueue(() => _playPcm(bytes));
   }
 
-  Future<void> interrupt() {
-    return _enqueue(() async {
-      if (!_ready) {
-        _playing = false;
-        return;
-      }
+  Future<void> flush() {
+    if (_disposed || _buffer.length == 0) return Future<void>.value();
+    final bytes = _buffer.takeBytes();
+    return _enqueue(() => _playPcm(bytes));
+  }
 
-      // flutter_pcm_sound 3.x intentionally has no public clear/stop queue API.
-      // Releasing is the supported deterministic way to drop queued model
-      // audio during a real barge-in. The next chunk lazily reinitializes.
-      FlutterPcmSound.setFeedCallback(null);
-      await FlutterPcmSound.release();
-      _ready = false;
+  Future<void> _playPcm(Uint8List pcm) async {
+    if (_disposed || pcm.length < 2) return;
+    final evenLength = pcm.length - (pcm.length % 2);
+    final payload = evenLength == pcm.length
+        ? pcm
+        : Uint8List.sublistView(pcm, 0, evenLength);
+
+    final wav = _wavBytes(payload);
+    _playing = true;
+    try {
+      await _player.setAudioSource(_MemoryAudioSource(wav));
+      await _player.play();
+      await _player.playerStateStream.firstWhere(
+        (state) => state.processingState == ProcessingState.completed,
+      );
+    } finally {
       _playing = false;
-    });
+    }
+  }
+
+  Future<void> interrupt() async {
+    _buffer.clear();
+    await _player.stop();
+    _playing = false;
   }
 
   Future<void> dispose() async {
-    await interrupt();
+    _disposed = true;
+    _buffer.clear();
+    await _player.dispose();
+    _playing = false;
   }
 
   Future<void> _enqueue(Future<void> Function() operation) {
     final next = _serial.then((_) => operation());
     _serial = next.catchError((_) {});
     return next;
+  }
+
+  Uint8List _wavBytes(Uint8List pcm) {
+    const channels = 1;
+    const bitsPerSample = 16;
+    const byteRate = sampleRate * channels * bitsPerSample ~/ 8;
+    const blockAlign = channels * bitsPerSample ~/ 8;
+    final dataSize = pcm.length;
+    final fileSize = 36 + dataSize;
+
+    final out = BytesBuilder(copy: false);
+    void ascii(String value) => out.add(value.codeUnits);
+    void u16(int value) {
+      final b = ByteData(2)..setUint16(0, value, Endian.little);
+      out.add(b.buffer.asUint8List());
+    }
+    void u32(int value) {
+      final b = ByteData(4)..setUint32(0, value, Endian.little);
+      out.add(b.buffer.asUint8List());
+    }
+
+    ascii('RIFF');
+    u32(fileSize);
+    ascii('WAVE');
+    ascii('fmt ');
+    u32(16);
+    u16(1); // PCM
+    u16(channels);
+    u32(sampleRate);
+    u32(byteRate);
+    u16(blockAlign);
+    u16(bitsPerSample);
+    ascii('data');
+    u32(dataSize);
+    out.add(pcm);
+    return out.toBytes();
+  }
+}
+
+class _MemoryAudioSource extends StreamAudioSource {
+  _MemoryAudioSource(this.bytes);
+
+  final Uint8List bytes;
+
+  @override
+  Future<StreamAudioResponse> request([int? start, int? end]) async {
+    final first = start ?? 0;
+    final last = end ?? bytes.length;
+    return StreamAudioResponse(
+      sourceLength: bytes.length,
+      contentLength: last - first,
+      offset: first,
+      stream: Stream.value(bytes.sublist(first, last)),
+      contentType: 'audio/wav',
+    );
   }
 }
