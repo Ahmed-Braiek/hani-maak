@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
@@ -201,7 +202,17 @@ class HaniVoiceScreen extends ConsumerWidget {
                         children: [
                           FloatingActionButton.large(
                             heroTag: 'end-live-voice',
-                            onPressed: controller.disconnect,
+                            onPressed: state.phase == VoicePhase.ending
+                                ? null
+                                : () async {
+                                    final sessionId =
+                                        await controller.endCall();
+                                    if (context.mounted &&
+                                        sessionId != null &&
+                                        sessionId.isNotEmpty) {
+                                      context.go('/voice-result/$sessionId');
+                                    }
+                                  },
                             backgroundColor: HaniColors.danger,
                             foregroundColor: Colors.white,
                             child: const Icon(Icons.call_end_rounded),
@@ -250,6 +261,7 @@ class HaniVoiceScreen extends ConsumerWidget {
         VoicePhase.listening => 'نسمعك',
         VoicePhase.thinking => 'نخمّم…',
         VoicePhase.speaking => 'هاني يحكي',
+        VoicePhase.ending => 'نكمّل المكالمة…',
         VoicePhase.error => 'فما مشكل في الربط',
         VoicePhase.idle => 'احكي مع هاني',
       };
@@ -261,6 +273,7 @@ class HaniVoiceScreen extends ConsumerWidget {
         VoicePhase.listening => 'Je vous écoute',
         VoicePhase.thinking => 'Je réfléchis…',
         VoicePhase.speaking => 'Hani parle',
+        VoicePhase.ending => 'Fin de l’appel…',
         VoicePhase.error => 'Problème de connexion',
         VoicePhase.idle => 'Parler à Hani',
       };
@@ -271,6 +284,7 @@ class HaniVoiceScreen extends ConsumerWidget {
       VoicePhase.listening => 'I’m listening',
       VoicePhase.thinking => 'Thinking…',
       VoicePhase.speaking => 'Hani is speaking',
+      VoicePhase.ending => 'Ending call…',
       VoicePhase.error => 'Connection issue',
       VoicePhase.idle => 'Talk with Hani',
     };

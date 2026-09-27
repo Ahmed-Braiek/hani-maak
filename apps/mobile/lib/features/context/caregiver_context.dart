@@ -25,6 +25,7 @@ class CaregiverContext {
     required this.taskRequests,
     required this.patterns,
     required this.followUp,
+    required this.recentVoiceEmotion,
   });
 
   final Map<String, dynamic> caregiver;
@@ -52,6 +53,7 @@ class CaregiverContext {
   final List<Map<String, dynamic>> taskRequests;
   final List<Map<String, dynamic>> patterns;
   final Map<String, dynamic>? followUp;
+  final Map<String, dynamic>? recentVoiceEmotion;
 
   factory CaregiverContext.fromJson(Map<String, dynamic> json) {
     List<Map<String, dynamic>> maps(dynamic value) => (value as List? ?? const [])
@@ -91,6 +93,9 @@ class CaregiverContext {
       patterns: maps(json['patterns']),
       followUp: json['followUp'] is Map
           ? Map<String, dynamic>.from(json['followUp'] as Map)
+          : null,
+      recentVoiceEmotion: json['recentVoiceEmotion'] is Map
+          ? Map<String, dynamic>.from(json['recentVoiceEmotion'] as Map)
           : null,
     );
   }

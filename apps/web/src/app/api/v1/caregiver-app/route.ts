@@ -132,6 +132,7 @@ async function loadContext(caregiverId: string, patientId: string) {
     memoryItems,
     activitySessions,
     summaryDeliveries,
+    recentVoiceEmotion,
   ] = await Promise.all([
     first(`profiles?select=id,full_name,preferred_language,timezone,role,avatar_url,metadata&id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
     first(`patients?select=id,display_name,preferred_name,date_of_birth,sex,alzheimer_stage,primary_language,important_notes,photo_url,is_demo&id=eq.${encodeURIComponent(patientId)}&limit=1`),
@@ -155,6 +156,7 @@ async function loadContext(caregiverId: string, patientId: string) {
     sb(`patient_memory_items?select=id,item_type,title,subtitle,image_url,media_url,prompt,sort_order,active,metadata,created_at&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true&order=sort_order.asc,created_at.asc`),
     sb(`patient_activity_sessions?select=id,memory_item_id,activity_type,started_at,ended_at,response_label,note,metadata,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=started_at.desc&limit=40`),
     sb(`summary_deliveries?select=id,channel,recipient,summary_type,status,summary_text,provider_message_id,error,created_at,sent_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&order=created_at.desc&limit=20`),
+    first(`voice_emotion_analyses?select=id,conversation_id,status,dominant_emotion,confidence,distribution,audio_duration_ms,analyzed_speech_ms,segment_count,model_name,analysis_version,created_at,completed_at&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&status=eq.completed&order=completed_at.desc.nullslast&limit=1`),
   ]);
 
   if (!patient) throw new Error("patient_not_found");
@@ -241,6 +243,7 @@ async function loadContext(caregiverId: string, patientId: string) {
     memoryItems,
     activitySessions,
     summaryDeliveries,
+    recentVoiceEmotion,
     patterns,
     followUp,
   };
