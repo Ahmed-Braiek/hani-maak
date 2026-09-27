@@ -17,6 +17,24 @@ class CareHubScreen extends ConsumerWidget {
         HaniLanguage.french => fr,
       };
 
+  String _emotionSubtitle(Map<String, dynamic> emotion) {
+    final raw = emotion['dominant_emotion']?.toString() ?? 'unknown';
+    final label = switch (raw) {
+      'angry' => 'Angry',
+      'disgusted' => 'Disgusted',
+      'fearful' => 'Fearful',
+      'happy' => 'Happy',
+      'neutral' => 'Neutral',
+      'other' => 'Other',
+      'sad' => 'Sad',
+      'surprised' => 'Surprised',
+      _ => 'Uncertain',
+    };
+    final confidence =
+        double.tryParse(emotion['confidence']?.toString() ?? '') ?? 0;
+    return '$label · ${(confidence * 100).round()}% · non-diagnostic';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final language = ref.watch(appSettingsProvider.select((s) => s.language));
@@ -146,6 +164,27 @@ class CareHubScreen extends ConsumerWidget {
                   'Activité, médicaments, rendez-vous et alertes'),
               onTap: () => context.push('/summary'),
             ),
+            if (ctx.recentVoiceEmotion != null) ...[
+              const SizedBox(height: 9),
+              _HubTile(
+                icon: Icons.multiline_chart_rounded,
+                title: t(
+                  language,
+                  'الإشارة الصوتية الأخيرة',
+                  'الإشارة الصوتية الأخيرة',
+                  'Recent vocal emotion',
+                  'Émotion vocale récente',
+                ),
+                subtitle: _emotionSubtitle(ctx.recentVoiceEmotion!),
+                onTap: () {
+                  final conversationId =
+                      ctx.recentVoiceEmotion!['conversation_id']?.toString();
+                  if (conversationId != null && conversationId.isNotEmpty) {
+                    context.push('/voice-result/$conversationId');
+                  }
+                },
+              ),
+            ],
             const SizedBox(height: 9),
             _HubTile(
               icon: Icons.timeline_rounded,
