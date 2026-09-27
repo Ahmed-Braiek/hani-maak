@@ -45,6 +45,7 @@ class HaniEmotionAnalysis {
     this.analyzedSpeechMs = 0,
     this.model,
     this.analysisVersion,
+    this.summary,
     this.failureCode,
     this.failureMessage,
   });
@@ -58,6 +59,7 @@ class HaniEmotionAnalysis {
   final int analyzedSpeechMs;
   final String? model;
   final String? analysisVersion;
+  final String? summary;
   final String? failureCode;
   final String? failureMessage;
 
@@ -88,6 +90,7 @@ class HaniEmotionAnalysis {
           int.tryParse(analysis['analyzedSpeechMs']?.toString() ?? '') ?? 0,
       model: analysis['model']?.toString(),
       analysisVersion: analysis['analysisVersion']?.toString(),
+      summary: analysis['summary']?.toString(),
       failureCode: analysis['failureCode']?.toString(),
       failureMessage: analysis['failureMessage']?.toString(),
     );
