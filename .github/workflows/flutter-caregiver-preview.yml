@@ -1,17 +1,13 @@
 name: Flutter caregiver preview
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "apps/mobile/**"
-      - ".github/workflows/flutter-caregiver-preview.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Manual preview only. The production Flutter web workflow owns automatic
+# main-branch publishing so two workflows never race to commit the same bundle.
 concurrency:
   group: flutter-caregiver-preview
   cancel-in-progress: true
