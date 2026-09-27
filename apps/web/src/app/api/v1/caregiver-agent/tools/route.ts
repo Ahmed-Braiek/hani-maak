@@ -672,6 +672,17 @@ async function completeVoiceEmotionAnalysis(
       analysis_version: clean(result.analysis_version, 80) || analysis.analysis_version || "v2-parallel-fallback",
       failure_code: status === "failed" ? clean(result.failure_code, 80) || "MODEL_INFERENCE_FAILED" : null,
       failure_message: status === "failed" ? clean(result.failure_message, 500) || "Emotion analysis failed" : null,
+      emotional_summary: status === "completed"
+        ? clean(result.emotional_summary, 500) || null
+        : null,
+      result_source: status === "completed"
+        ? (
+            clean(result.fallback_source, 80) === "patient_transcript" ||
+            clean(result.model, 160).startsWith("gemini_text_emotion_fallback:")
+              ? "gemini_transcript_fallback"
+              : "vocal_model"
+          )
+        : null,
       completed_at: completedAt,
     }),
   });
