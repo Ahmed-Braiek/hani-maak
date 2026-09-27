@@ -88,7 +88,6 @@ class _MobileNotificationService implements HaniNotificationService {
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await androidPlugin?.requestNotificationsPermission();
-    await androidPlugin?.requestExactAlarmsPermission();
   }
 
   NotificationDetails _details({
@@ -165,7 +164,7 @@ class _MobileNotificationService implements HaniNotificationService {
             when,
             _details(),
             payload: '/medications',
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           );
         }
       }
@@ -187,7 +186,7 @@ class _MobileNotificationService implements HaniNotificationService {
         when,
         _details(),
         payload: '/patient',
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
     }
 
@@ -211,7 +210,7 @@ class _MobileNotificationService implements HaniNotificationService {
         when,
         _details(),
         payload: route,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
     }
   }
