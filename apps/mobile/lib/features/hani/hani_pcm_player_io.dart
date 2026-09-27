@@ -1,37 +1,34 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:just_audio/just_audio.dart';
 
-/// Android/iOS PCM16LE playback for Gemini Live using just_audio.
+/// Stable Android/iOS playback for Gemini Live PCM16LE audio.
 ///
-/// Gemini Live returns mono signed PCM16 at 24 kHz. We buffer small chunks,
-/// wrap them in an in-memory WAV container, and play them sequentially.
-/// This avoids the flutter_pcm_sound native plugin that was crashing on the
-/// user's Android device while keeping Hani's spoken replies audible.
+/// Gemini Live returns mono signed PCM16 at 24 kHz. We buffer one assistant
+/// turn, wrap it as WAV, write it to a temporary file, and let Android's native
+/// media stack play that file through just_audio. This is substantially more
+/// compatible across devices than the previous in-memory stream source.
 class HaniPcmPlayer {
   static const int sampleRate = 24000;
-  static const int _targetBytes = 24000; // ~500 ms of mono PCM16 at 24 kHz.
 
   final AudioPlayer _player = AudioPlayer();
   final BytesBuilder _buffer = BytesBuilder(copy: false);
   Future<void> _serial = Future<void>.value();
   bool _disposed = false;
   bool _playing = false;
+  File? _activeFile;
 
   bool get isPlaying => _playing;
 
   Future<void> init() async {
-    // just_audio initializes lazily when the first in-memory WAV is loaded.
+    // just_audio initializes lazily on the first file source.
   }
 
-  Future<void> add(Uint8List pcm) {
-    if (_disposed || pcm.isEmpty) return Future<void>.value();
+  Future<void> add(Uint8List pcm) async {
+    if (_disposed || pcm.isEmpty) return;
     _buffer.add(pcm);
-    if (_buffer.length < _targetBytes) return Future<void>.value();
-
-    final bytes = _buffer.takeBytes();
-    return _enqueue(() => _playPcm(bytes));
   }
 
   Future<void> flush() {
@@ -42,27 +39,45 @@ class HaniPcmPlayer {
 
   Future<void> _playPcm(Uint8List pcm) async {
     if (_disposed || pcm.length < 2) return;
+
     final evenLength = pcm.length - (pcm.length % 2);
     final payload = evenLength == pcm.length
         ? pcm
         : Uint8List.sublistView(pcm, 0, evenLength);
 
     final wav = _wavBytes(payload);
+    final file = File(
+      '${Directory.systemTemp.path}/hani_voice_${DateTime.now().microsecondsSinceEpoch}.wav',
+    );
+    _activeFile = file;
+    await file.writeAsBytes(wav, flush: true);
+
     _playing = true;
     try {
-      await _player.setAudioSource(_MemoryAudioSource(wav));
+      await _player.setFilePath(file.path);
       await _player.play();
       await _player.playerStateStream.firstWhere(
         (state) => state.processingState == ProcessingState.completed,
       );
     } finally {
       _playing = false;
+      if (_activeFile?.path == file.path) _activeFile = null;
+      try {
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
     }
   }
 
   Future<void> interrupt() async {
     _buffer.clear();
     await _player.stop();
+    final file = _activeFile;
+    _activeFile = null;
+    if (file != null) {
+      try {
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
+    }
     _playing = false;
   }
 
@@ -70,6 +85,13 @@ class HaniPcmPlayer {
     _disposed = true;
     _buffer.clear();
     await _player.dispose();
+    final file = _activeFile;
+    _activeFile = null;
+    if (file != null) {
+      try {
+        if (await file.exists()) await file.delete();
+      } catch (_) {}
+    }
     _playing = false;
   }
 
@@ -103,7 +125,7 @@ class HaniPcmPlayer {
     ascii('WAVE');
     ascii('fmt ');
     u32(16);
-    u16(1); // PCM
+    u16(1);
     u16(channels);
     u32(sampleRate);
     u32(byteRate);
@@ -113,24 +135,5 @@ class HaniPcmPlayer {
     u32(dataSize);
     out.add(pcm);
     return out.toBytes();
-  }
-}
-
-class _MemoryAudioSource extends StreamAudioSource {
-  _MemoryAudioSource(this.bytes);
-
-  final Uint8List bytes;
-
-  @override
-  Future<StreamAudioResponse> request([int? start, int? end]) async {
-    final first = start ?? 0;
-    final last = end ?? bytes.length;
-    return StreamAudioResponse(
-      sourceLength: bytes.length,
-      contentLength: last - first,
-      offset: first,
-      stream: Stream.value(bytes.sublist(first, last)),
-      contentType: 'audio/wav',
-    );
   }
 }
