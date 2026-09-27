@@ -106,22 +106,11 @@ def normalize_logits(labels: dict[int, str], probabilities: torch.Tensor) -> dic
     }
 
 
-def infer_file(path: str | Path) -> dict[str, float]:
+def infer_waveform(waveform: np.ndarray) -> dict[str, float]:
     model = load_model()
     assert _FEATURE_EXTRACTOR is not None
 
-    waveform, sample_rate = sf.read(
-        str(path),
-        dtype="float32",
-        always_2d=False,
-    )
-    if sample_rate != 16000:
-        raise ValueError("audio_must_be_16khz")
-
-    if isinstance(waveform, np.ndarray) and waveform.ndim > 1:
-        waveform = waveform.mean(axis=1)
     waveform = np.asarray(waveform, dtype=np.float32)
-
     inputs = _FEATURE_EXTRACTOR(
         waveform,
         sampling_rate=16000,
@@ -144,3 +133,16 @@ def infer_file(path: str | Path) -> dict[str, float]:
         for key, value in dict(model.config.id2label).items()
     }
     return normalize_logits(id2label, probabilities)
+
+
+def infer_file(path: str | Path) -> dict[str, float]:
+    waveform, sample_rate = sf.read(
+        str(path),
+        dtype="float32",
+        always_2d=False,
+    )
+    if sample_rate != 16000:
+        raise ValueError("audio_must_be_16khz")
+    if isinstance(waveform, np.ndarray) and waveform.ndim > 1:
+        waveform = waveform.mean(axis=1)
+    return infer_waveform(np.asarray(waveform, dtype=np.float32))
