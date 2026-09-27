@@ -20,8 +20,9 @@ class TodayScreen extends ConsumerWidget {
       onRefresh: () =>
           ref.read(caregiverContextProvider.notifier).refreshContext(),
       child: value.when(
-        loading: () => const _LoadingToday(),
+        loading: () => _LoadingToday(language: settings.language),
         error: (_, __) => _ErrorToday(
+          language: settings.language,
           onRetry: () =>
               ref.read(caregiverContextProvider.notifier).refreshContext(),
         ),
@@ -767,24 +768,40 @@ class _EmptyToday extends StatelessWidget {
 }
 
 class _LoadingToday extends StatelessWidget {
-  const _LoadingToday();
+  const _LoadingToday({required this.language});
+
+  final HaniLanguage language;
 
   @override
   Widget build(BuildContext context) => ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
-        children: const [
-          SizedBox(height: 150),
-          Center(child: CircularProgressIndicator()),
-          SizedBox(height: 16),
-          Center(child: Text('Loading care context…')),
+        children: [
+          const SizedBox(height: 150),
+          const Center(child: CircularProgressIndicator()),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              haniText(
+                language,
+                tn: 'نحضّر معلومات الرعاية…',
+                ar: 'جارٍ تحميل معلومات الرعاية…',
+                en: 'Loading care context…',
+                fr: 'Chargement du contexte de soins…',
+              ),
+            ),
+          ),
         ],
       );
 }
 
 class _ErrorToday extends StatelessWidget {
-  const _ErrorToday({required this.onRetry});
+  const _ErrorToday({
+    required this.language,
+    required this.onRetry,
+  });
 
+  final HaniLanguage language;
   final VoidCallback onRetry;
 
   @override
@@ -794,10 +811,16 @@ class _ErrorToday extends StatelessWidget {
           const SizedBox(height: 120),
           const Icon(Icons.cloud_off_rounded, size: 48),
           const SizedBox(height: 14),
-          const Text(
-            'Could not load care context.',
+          Text(
+            haniText(
+              language,
+              tn: 'ما نجّمش نحمّل معلومات الرعاية.',
+              ar: 'تعذر تحميل معلومات الرعاية.',
+              en: 'Could not load care context.',
+              fr: 'Impossible de charger le contexte de soins.',
+            ),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w900,
             ),
@@ -807,7 +830,15 @@ class _ErrorToday extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
+              label: Text(
+                haniText(
+                  language,
+                  tn: 'عاود جرّب',
+                  ar: 'حاول مجددًا',
+                  en: 'Retry',
+                  fr: 'Réessayer',
+                ),
+              ),
             ),
           ),
         ],
