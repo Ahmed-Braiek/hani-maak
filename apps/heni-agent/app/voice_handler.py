@@ -393,8 +393,11 @@ async def _pump_client_to_live(
             await _finalize_voice_call(ws, session, audio_buffer)
             return
 
+        # audio_stream_end is reserved for the real call_end path above.
+        # Ending the realtime input stream between normal user turns can make
+        # Gemini stop accepting microphone audio after the first response.
         if control_type == "audio_stream_end":
-            await live.send_realtime_input(audio_stream_end=True)
+            continue
 
         elif control_type == "debug_text" and settings.debug_enabled:
             text = str(control.get("text") or "").strip()
