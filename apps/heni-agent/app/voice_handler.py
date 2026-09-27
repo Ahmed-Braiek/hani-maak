@@ -7,7 +7,9 @@ from fastapi import WebSocket, WebSocketDisconnect
 from google.genai import types
 from starlette.websockets import WebSocketState
 
+from .audio_buffer import PatientAudioBuffer, delete_temp_audio
 from .config import settings
+from .emotion_client import analyze_patient_audio
 from .distress import detect_semantic_distress
 from .google_client import create_google_client
 from .language import detect_requested_locale, is_supported_transcript
@@ -173,6 +175,8 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         source="voice",
     )
 
+    audio_buffer = PatientAudioBuffer()
+
     await ws.accept()
     await ws.send_json(
         {
@@ -192,7 +196,9 @@ async def handle_voice_connection(ws: WebSocket) -> None:
             config=_live_config(system_prompt, session.locale),
         ) as live:
             await ws.send_json({"type": "status", "phase": "listening"})
-            sender = asyncio.create_task(_pump_client_to_live(ws, live, session))
+            sender = asyncio.create_task(
+                _pump_client_to_live(ws, live, session, audio_buffer)
+            )
             receiver = asyncio.create_task(_pump_live_to_client(ws, live, session))
 
             done, pending = await asyncio.wait(
@@ -223,9 +229,109 @@ async def handle_voice_connection(ws: WebSocket) -> None:
             except Exception:
                 pass
         print("voice session failed", type(exc).__name__, str(exc)[:300])
+    finally:
+        audio_buffer.close()
 
 
-async def _pump_client_to_live(ws: WebSocket, live, session) -> None:
+async def _run_emotion_analysis(session, wav_path) -> None:
+    try:
+        result = await analyze_patient_audio(
+            conversation_id=session.id,
+            wav_path=wav_path,
+        )
+        status = str(result.get("status") or "failed")
+        await call_hani_tool(
+            "complete_voice_emotion_analysis",
+            {
+                "sessionId": session.id,
+                "result": result,
+            },
+            patient_id=session.patient_id,
+            caregiver_id=session.caregiver_id,
+            locale=session.locale,
+            source=session.source,
+        )
+        print(
+            "voice emotion analysis",
+            {
+                "conversation_id": session.id,
+                "status": status,
+                "audio_duration_ms": result.get("audio_duration_ms"),
+                "analyzed_speech_ms": result.get("analyzed_speech_ms"),
+                "segments": len(result.get("segments") or []),
+                "processing_ms": result.get("processing_ms"),
+                "model": result.get("model"),
+            },
+        )
+    except Exception as exc:
+        try:
+            await call_hani_tool(
+                "complete_voice_emotion_analysis",
+                {
+                    "sessionId": session.id,
+                    "result": {
+                        "status": "failed",
+                        "failure_code": "MODEL_INFERENCE_FAILED",
+                        "failure_message": type(exc).__name__,
+                    },
+                },
+                patient_id=session.patient_id,
+                caregiver_id=session.caregiver_id,
+                locale=session.locale,
+                source=session.source,
+            )
+        except Exception:
+            pass
+        print("voice emotion analysis failed", type(exc).__name__)
+    finally:
+        delete_temp_audio(wav_path)
+
+
+async def _finalize_voice_call(
+    ws: WebSocket,
+    session,
+    audio_buffer: PatientAudioBuffer,
+) -> None:
+    analysis_enabled = bool(
+        settings.emotion_analysis_enabled
+        and settings.emotion_service_url
+        and settings.emotion_service_secret
+    )
+
+    await call_hani_tool(
+        "finalize_hani_voice_call",
+        {
+            "sessionId": session.id,
+            "audioDurationMs": round(audio_buffer.duration_seconds() * 1000),
+            "emotionEnabled": analysis_enabled,
+        },
+        patient_id=session.patient_id,
+        caregiver_id=session.caregiver_id,
+        locale=session.locale,
+        source=session.source,
+    )
+
+    analysis_status = "not_started"
+    if analysis_enabled and audio_buffer.byte_length > 0:
+        wav_path = audio_buffer.finalize_wav_file()
+        asyncio.create_task(_run_emotion_analysis(session, wav_path))
+        analysis_status = "processing"
+
+    await ws.send_json(
+        {
+            "type": "call_ended",
+            "sessionId": session.id,
+            "analysisStatus": analysis_status,
+        }
+    )
+
+
+async def _pump_client_to_live(
+    ws: WebSocket,
+    live,
+    session,
+    audio_buffer: PatientAudioBuffer,
+) -> None:
     while True:
         message = await ws.receive()
 
@@ -233,9 +339,11 @@ async def _pump_client_to_live(ws: WebSocket, live, session) -> None:
             return
 
         if message.get("bytes") is not None:
+            patient_chunk = message["bytes"]
+            audio_buffer.append(patient_chunk)
             await live.send_realtime_input(
                 audio=types.Blob(
-                    data=message["bytes"],
+                    data=patient_chunk,
                     mime_type="audio/pcm;rate=16000",
                 )
             )
@@ -252,6 +360,11 @@ async def _pump_client_to_live(ws: WebSocket, live, session) -> None:
             continue
 
         control_type = control.get("type")
+
+        if control_type == "call_end":
+            await live.send_realtime_input(audio_stream_end=True)
+            await _finalize_voice_call(ws, session, audio_buffer)
+            return
 
         if control_type == "audio_stream_end":
             await live.send_realtime_input(audio_stream_end=True)
