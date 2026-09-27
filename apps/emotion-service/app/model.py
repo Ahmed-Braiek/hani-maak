@@ -63,6 +63,11 @@ def load_model() -> ort.InferenceSession:
             options = ort.SessionOptions()
             options.intra_op_num_threads = settings.onnx_intra_threads
             options.inter_op_num_threads = 1
+            options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+            # Railway Hobby has a hard 1 GB memory ceiling. Avoid retaining
+            # large activation arenas between post-call segments.
+            options.enable_cpu_mem_arena = False
+            options.enable_mem_pattern = False
             options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             _SESSION = ort.InferenceSession(
                 model_path,
