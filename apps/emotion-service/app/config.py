@@ -9,7 +9,7 @@ class Settings:
     service_secret: str = os.getenv("EMOTION_SERVICE_SECRET", "")
     model_id: str = os.getenv(
         "EMOTION_MODEL_ID",
-        "onnx-community/wav2vec2-emotion-recognition-ONNX",
+        "onnx-community/wav2vec2-base-Speech_Emotion_Recognition-ONNX",
     )
     model_filename: str = os.getenv(
         "EMOTION_MODEL_FILENAME",
