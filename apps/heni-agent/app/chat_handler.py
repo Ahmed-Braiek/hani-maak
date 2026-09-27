@@ -317,6 +317,48 @@ async def run_chat_turn(
         )
 
     reply = (response.text or "").strip()
+
+    # Rarely Gemini can stop at the output-token boundary. Recover only in
+    # that case so normal chat remains a single fast model request.
+    finish_reason = None
+    if response.candidates:
+        finish_reason = getattr(response.candidates[0], "finish_reason", None)
+    if reply and finish_reason is not None and "MAX_TOKENS" in str(finish_reason):
+        try:
+            candidate_content = response.candidates[0].content
+            continuation_contents = [
+                *contents,
+                candidate_content,
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part(
+                            text=(
+                                "Finish only the incomplete final thought from your previous "
+                                "answer. Do not restart, repeat, or change topic. Keep it brief."
+                            )
+                        )
+                    ],
+                ),
+            ]
+            continuation = await _generate(
+                contents=continuation_contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        "Continue the same Hani answer in the same language and context. "
+                        "Return only the missing ending."
+                    ),
+                    max_output_tokens=220,
+                    temperature=0.1,
+                ),
+                timeout_seconds=min(5.0, settings.model_timeout_seconds),
+            )
+            ending = (continuation.text or "").strip()
+            if ending:
+                reply = f"{reply} {ending}".strip()
+        except Exception:
+            pass
+
     if not reply:
         reply = locale_message(
             session.locale,
