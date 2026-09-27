@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:record/record.dart';
@@ -94,8 +95,11 @@ final haniVoiceProvider =
   return controller;
 });
 
-class HaniVoiceController extends StateNotifier<HaniVoiceState> {
-  HaniVoiceController() : super(const HaniVoiceState());
+class HaniVoiceController extends StateNotifier<HaniVoiceState>
+    with WidgetsBindingObserver {
+  HaniVoiceController() : super(const HaniVoiceState()) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   static const int _bargeInPreRollBytes = 16000; // ~500 ms at 16 kHz PCM16.
   static const double _bargeInRmsThreshold = 0.055;
@@ -180,7 +184,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         _onSocketData,
         onError: (Object error) {
           if (!_disconnecting) {
-            _fail('Voice connection was interrupted.');
+            _fail(_voiceText(
+              tn: 'اتصال الصوت تقطع. عاود جرّب.',
+              ar: 'انقطع الاتصال الصوتي. حاول مجددًا.',
+              en: 'Voice connection was interrupted.',
+              fr: 'La connexion vocale a été interrompue.',
+            ));
           }
         },
         onDone: () {
@@ -204,7 +213,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         sessionId: issuedSessionId,
       );
     } catch (_) {
-      _fail('Hani voice could not connect. Tap to try again.');
+      _fail(_voiceText(
+        tn: 'ما نجّمش نربط صوت هاني. عاود جرّب.',
+        ar: 'تعذر الاتصال بصوت هاني. حاول مجددًا.',
+        en: 'Hani voice could not connect. Tap to try again.',
+        fr: 'Impossible de connecter la voix de Hani. Réessayez.',
+      ));
     }
   }
 
@@ -331,7 +345,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       if (mounted && state.connected) {
         state = state.copyWith(
           phase: VoicePhase.error,
-          error: 'Microphone recovery failed. Reconnect the voice call.',
+          error: _voiceText(
+            tn: 'الميكروفون ما رجعش يخدم. عاود اربط المكالمة.',
+            ar: 'تعذر استعادة الميكروفون. أعد الاتصال بالمكالمة.',
+            en: 'Microphone recovery failed. Reconnect the voice call.',
+            fr: 'Impossible de rétablir le microphone. Reconnectez l’appel.',
+          ),
           connected: false,
         );
       }
@@ -618,7 +637,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
             if (mounted && state.connected) {
               state = state.copyWith(
                 phase: VoicePhase.error,
-                error: 'Hani audio playback failed. Reconnect the voice call.',
+                error: _voiceText(
+                  tn: 'صوت هاني ما خدمش. عاود اربط المكالمة.',
+                  ar: 'تعذر تشغيل صوت هاني. أعد الاتصال بالمكالمة.',
+                  en: 'Hani audio playback failed. Reconnect the voice call.',
+                  fr: 'Impossible de lire la voix de Hani. Reconnectez l’appel.',
+                ),
               );
             }
           }),
@@ -647,7 +671,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         break;
 
       case 'error':
-        _fail('Hani voice is temporarily unavailable.');
+        _fail(_voiceText(
+          tn: 'صوت هاني موش متاح توّة.',
+          ar: 'صوت هاني غير متاح مؤقتًا.',
+          en: 'Hani voice is temporarily unavailable.',
+          fr: 'La voix de Hani est temporairement indisponible.',
+        ));
         break;
     }
   }
@@ -708,7 +737,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         if (mounted && state.connected) {
           state = state.copyWith(
             phase: VoicePhase.error,
-            error: 'Hani audio playback failed. Reconnect the voice call.',
+            error: _voiceText(
+              tn: 'صوت هاني ما خدمش. عاود اربط المكالمة.',
+              ar: 'تعذر تشغيل صوت هاني. أعد الاتصال بالمكالمة.',
+              en: 'Hani audio playback failed. Reconnect the voice call.',
+              fr: 'Impossible de lire la voix de Hani. Reconnectez l’appel.',
+            ),
           );
         }
       }),
@@ -737,6 +771,29 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     unawaited(_ensureMic());
   }
 
+  String _voiceText({
+    required String tn,
+    required String ar,
+    required String en,
+    required String fr,
+  }) {
+    return switch (state.locale) {
+      'tn' => tn,
+      'fr' => fr,
+      'en' => en,
+      _ => ar,
+    };
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.resumed &&
+        state.connected &&
+        !_disconnecting) {
+      unawaited(_recoverMic(force: true));
+    }
+  }
+
   void _fail(String message) {
     _watchdog?.cancel();
     _watchdog = null;
@@ -750,6 +807,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _watchdog?.cancel();
     _micSub?.cancel();
     _socketSub?.cancel();
