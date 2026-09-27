@@ -29,7 +29,7 @@ _client = create_google_client()
 
 def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
     contents: list[types.Content] = []
-    for item in history[-16:]:
+    for item in history[-12:]:
         role = "model" if item.get("role") in {"assistant", "model", "heni"} else "user"
         text = str(item.get("content") or item.get("text") or "").strip()
         if text:
@@ -228,14 +228,14 @@ async def run_chat_turn(
             "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
         ),
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
-        max_output_tokens=420,
+        max_output_tokens=640,
         temperature=0.3,
     )
 
     response = await _generate(contents=contents, config=config)
 
     tool_events: list[dict[str, Any]] = []
-    for _ in range(5):
+    for _ in range(3):
         calls = response.function_calls or []
         if not calls:
             break
@@ -258,6 +258,8 @@ async def run_chat_turn(
         for call in calls:
             args = dict(call.args or {})
             result = await execute_tool(call.name, args, session)
+            session.runtime_context_cache = None
+            session.runtime_context_cached_at = 0.0
             tool_events.append({"name": call.name, "args": args, "result": result})
             response_parts.append(
                 types.Part(
@@ -289,21 +291,23 @@ async def run_chat_turn(
         if isinstance(action, dict) and action.get("url"):
             ui_actions.append(action)
 
-    await _persist_chat_turn(
-        session,
-        user_text=message,
-        hani_text=reply,
-        purpose=(
-            "handoff"
-            if any(
-                event.get("name") in {
-                    "request_human_help",
-                    "create_professional_contact_request",
-                }
-                for event in tool_events
-            )
-            else "general"
-        ),
+    asyncio.create_task(
+        _persist_chat_turn(
+            session,
+            user_text=message,
+            hani_text=reply,
+            purpose=(
+                "handoff"
+                if any(
+                    event.get("name") in {
+                        "request_human_help",
+                        "create_professional_contact_request",
+                    }
+                    for event in tool_events
+                )
+                else "general"
+            ),
+        )
     )
 
     return {
