@@ -10,6 +10,7 @@ from starlette.websockets import WebSocketState
 from .audio_buffer import PatientAudioBuffer, delete_temp_audio
 from .config import settings
 from .emotion_client import analyze_patient_audio
+from .emotion_text_fallback import analyze_transcript_emotion
 from .distress import detect_semantic_distress
 from .google_client import create_google_client
 from .language import detect_requested_locale, is_supported_transcript
@@ -248,24 +249,85 @@ async def handle_voice_connection(ws: WebSocket) -> None:
 
 async def _run_emotion_analysis(session, wav_path) -> None:
     try:
-        result = None
-        for attempt in range(3):
-            result = await analyze_patient_audio(
+        audio_duration_ms = 0
+        try:
+            audio_duration_ms = int(
+                round(
+                    max(0.0, wav_path.stat().st_size - 44)
+                    / (16000 * 2)
+                    * 1000
+                )
+            )
+        except Exception:
+            pass
+
+        # Run acoustic and text analyses in parallel. The acoustic model is the
+        # preferred result, but the user should never stare at a spinner
+        # indefinitely when the Railway worker is cold or unavailable.
+        acoustic_task = asyncio.create_task(
+            analyze_patient_audio(
                 conversation_id=session.id,
                 wav_path=wav_path,
             )
-            status = str(result.get("status") or "failed")
-            retryable = (
-                status == "failed"
-                and str(result.get("failure_code") or "") in {
-                    "SERVICE_TIMEOUT",
-                    "MODEL_UNAVAILABLE",
-                    "MODEL_INFERENCE_FAILED",
-                }
+        )
+        text_task = asyncio.create_task(
+            analyze_transcript_emotion(
+                conversation_id=session.id,
+                transcripts=list(session.voice_user_transcripts),
+                audio_duration_ms=audio_duration_ms,
+                locale=session.locale,
             )
-            if not retryable or attempt == 2:
-                break
-            await asyncio.sleep(0.8 * (attempt + 1))
+        )
+
+        result = None
+        try:
+            acoustic_result = await asyncio.wait_for(
+                asyncio.shield(acoustic_task),
+                timeout=10.0,
+            )
+            if str(acoustic_result.get("status") or "") in {
+                "completed",
+                "insufficient_audio",
+            }:
+                result = {
+                    **acoustic_result,
+                    "analysis_source": "acoustic_model",
+                }
+        except (asyncio.TimeoutError, Exception):
+            acoustic_result = None
+
+        if result is None:
+            try:
+                text_result = await asyncio.wait_for(
+                    asyncio.shield(text_task),
+                    timeout=2.5,
+                )
+            except (asyncio.TimeoutError, Exception):
+                text_result = {
+                    "status": "failed",
+                    "failure_code": "TEXT_FALLBACK_FAILED",
+                    "failure_message": "gemini_text_fallback_unavailable",
+                    "analysis_source": "gemini_text_fallback",
+                }
+
+            if str(text_result.get("status") or "") == "completed":
+                result = text_result
+            elif acoustic_task.done():
+                try:
+                    late_acoustic = acoustic_task.result()
+                    result = {
+                        **late_acoustic,
+                        "analysis_source": "acoustic_model",
+                    }
+                except Exception:
+                    result = text_result
+            else:
+                result = text_result
+
+        if not acoustic_task.done():
+            acoustic_task.cancel()
+        if not text_task.done():
+            text_task.cancel()
 
         result = result or {
             "status": "failed",
@@ -528,6 +590,14 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                 if input_text and is_supported_transcript(input_text):
                     user_final = _merge_transcript(user_final, input_text)
                     session.last_user_text = user_final
+                    if user_final:
+                        if (
+                            not session.voice_user_transcripts
+                            or session.voice_user_transcripts[-1] != user_final
+                        ):
+                            session.voice_user_transcripts.append(user_final)
+                            if len(session.voice_user_transcripts) > 24:
+                                del session.voice_user_transcripts[:-24]
 
                     await ws.send_json(
                         {
