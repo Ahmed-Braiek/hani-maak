@@ -20,6 +20,7 @@ class Session:
     last_active_at: float = field(default_factory=time.time)
     last_user_text: str = ""
     pending_action: dict[str, Any] | None = None
+    voice_finalized: bool = False
 
 
 _sessions: dict[str, Session] = {}
