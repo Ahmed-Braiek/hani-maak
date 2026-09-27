@@ -163,6 +163,7 @@ Return JSON only with this exact shape:
     "surprised": 0.0,
     "unknown": 0.0
   }},
+  "emotional_summary": "One short neutral, non-diagnostic sentence describing the emotional tone of the patient's words.",
   "turns": [
     {{
       "index": 0,
@@ -190,10 +191,10 @@ PATIENT TRANSCRIPT:
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     temperature=0.1,
-                    max_output_tokens=700,
+                    max_output_tokens=520,
                 ),
             ),
-            timeout=min(8.5, max(4.0, settings.model_timeout_seconds)),
+            timeout=min(7.5, max(4.0, settings.model_timeout_seconds)),
         )
         payload = json.loads((response.text or "{}").strip())
         if not isinstance(payload, dict):
@@ -228,6 +229,13 @@ PATIENT TRANSCRIPT:
         audio_duration_ms=max(0, audio_duration_ms),
     )
 
+    emotional_summary = str(payload.get("emotional_summary") or "").strip()
+    if not emotional_summary:
+        emotional_summary = (
+            f"Predominantly {dominant} emotional signal in the patient transcript. "
+            "This is a probabilistic estimate, not a diagnosis."
+        )
+
     return {
         "conversation_id": conversation_id,
         "status": "completed",
@@ -241,4 +249,5 @@ PATIENT TRANSCRIPT:
         "model": f"gemini_text_emotion_fallback:{settings.text_model}",
         "analysis_version": "v2-text-fallback",
         "fallback_source": "patient_transcript",
+        "emotional_summary": emotional_summary[:500],
     }
