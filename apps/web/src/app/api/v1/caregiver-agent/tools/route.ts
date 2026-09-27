@@ -515,6 +515,210 @@ async function recordHaniTurn(
   };
 }
 
+
+async function ensureVoiceConversation(
+  caregiverId: string,
+  patientId: string,
+  sessionId: string,
+  locale = "ar",
+) {
+  let conversation = await first(
+    `hani_conversations?select=id,ended_at&id=eq.${encodeURIComponent(sessionId)}&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
+  );
+  if (!conversation) {
+    const rows = await sb("hani_conversations", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        id: sessionId,
+        caregiver_profile_id: caregiverId,
+        patient_id: patientId,
+        channel: "voice",
+        locale: storageLocale(locale),
+        purpose: "general",
+        private_to_caregiver: true,
+        metadata: { source: "voice", durableContext: true },
+      }),
+    });
+    conversation = rows?.[0] ?? null;
+  }
+  if (!conversation?.id) throw new Error("hani_conversation_persist_failed");
+  return conversation;
+}
+
+async function finalizeHaniVoiceCall(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const sessionId = clean(args.sessionId, 120);
+  if (!validUuid(sessionId)) throw new Error("valid_hani_session_required");
+
+  await ensureVoiceConversation(
+    caregiverId,
+    patientId,
+    sessionId,
+    clean(args.locale, 20) || "ar",
+  );
+
+  const endedAt = new Date().toISOString();
+  await sb(`hani_conversations?id=eq.${encodeURIComponent(sessionId)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ ended_at: endedAt }),
+  });
+
+  const emotionEnabled = args.emotionEnabled === true;
+  if (emotionEnabled) {
+    const audioDurationMs = Math.max(0, Math.round(Number(args.audioDurationMs) || 0));
+    await sb("voice_emotion_analyses?on_conflict=conversation_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        conversation_id: sessionId,
+        patient_id: patientId,
+        caregiver_profile_id: caregiverId,
+        status: "processing",
+        dominant_emotion: null,
+        confidence: null,
+        distribution: null,
+        audio_duration_ms: audioDurationMs,
+        analyzed_speech_ms: null,
+        segment_count: 0,
+        model_name: "emotion2vec_plus_base",
+        analysis_version: "v1",
+        failure_code: null,
+        failure_message: null,
+        completed_at: null,
+      }),
+    });
+  }
+
+  return {
+    conversationId: sessionId,
+    endedAt,
+    analysisStatus: emotionEnabled ? "processing" : "not_started",
+  };
+}
+
+async function completeVoiceEmotionAnalysis(
+  caregiverId: string,
+  patientId: string,
+  args: Json,
+) {
+  const sessionId = clean(args.sessionId, 120);
+  if (!validUuid(sessionId)) throw new Error("valid_hani_session_required");
+  const result = args.result && typeof args.result === "object" ? args.result as Json : {};
+  const status = ["completed", "insufficient_audio", "failed"].includes(clean(result.status, 40))
+    ? clean(result.status, 40)
+    : "failed";
+
+  let analysis = await first(
+    `voice_emotion_analyses?select=*&conversation_id=eq.${encodeURIComponent(sessionId)}&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&limit=1`,
+  );
+
+  if (!analysis) {
+    const rows = await sb("voice_emotion_analyses", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        conversation_id: sessionId,
+        patient_id: patientId,
+        caregiver_profile_id: caregiverId,
+        status: "processing",
+        model_name: clean(result.model, 120) || "emotion2vec_plus_base",
+        analysis_version: "v1",
+      }),
+    });
+    analysis = rows?.[0] ?? null;
+  }
+  if (!analysis?.id) throw new Error("emotion_analysis_persist_failed");
+
+  const canonical = new Set([
+    "angry",
+    "disgusted",
+    "fearful",
+    "happy",
+    "neutral",
+    "other",
+    "sad",
+    "surprised",
+    "unknown",
+  ]);
+  const dominant = canonical.has(clean(result.dominant_emotion, 40))
+    ? clean(result.dominant_emotion, 40)
+    : null;
+  const confidenceValue = Number(result.confidence);
+  const confidence = Number.isFinite(confidenceValue)
+    ? Math.max(0, Math.min(1, confidenceValue))
+    : null;
+  const completedAt = new Date().toISOString();
+
+  const rows = await sb(`voice_emotion_analyses?id=eq.${encodeURIComponent(analysis.id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      status,
+      dominant_emotion: status === "completed" ? dominant : null,
+      confidence: status === "completed" ? confidence : null,
+      distribution: status === "completed" && result.distribution && typeof result.distribution === "object"
+        ? result.distribution
+        : null,
+      audio_duration_ms: Math.max(0, Math.round(Number(result.audio_duration_ms) || Number(analysis.audio_duration_ms) || 0)),
+      analyzed_speech_ms: Math.max(0, Math.round(Number(result.analyzed_speech_ms) || 0)),
+      segment_count: Array.isArray(result.segments) ? result.segments.length : 0,
+      model_name: clean(result.model, 120) || analysis.model_name || "emotion2vec_plus_base",
+      model_version: clean(result.model_version, 160) || null,
+      failure_code: status === "failed" ? clean(result.failure_code, 80) || "MODEL_INFERENCE_FAILED" : null,
+      failure_message: status === "failed" ? clean(result.failure_message, 500) || "Emotion analysis failed" : null,
+      completed_at: completedAt,
+    }),
+  });
+
+  if (status === "completed" && Array.isArray(result.segments)) {
+    await sb(`voice_emotion_segments?analysis_id=eq.${encodeURIComponent(analysis.id)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+
+    const segments = result.segments
+      .map((segment: Json, index: number) => {
+        const emotion = canonical.has(clean(segment.dominant_emotion, 40))
+          ? clean(segment.dominant_emotion, 40)
+          : "unknown";
+        const score = Number(segment.confidence);
+        return {
+          analysis_id: analysis.id,
+          segment_index: Number.isFinite(Number(segment.segment_index))
+            ? Math.max(0, Math.round(Number(segment.segment_index)))
+            : index,
+          start_ms: Math.max(0, Math.round(Number(segment.start_ms) || 0)),
+          end_ms: Math.max(0, Math.round(Number(segment.end_ms) || 0)),
+          voiced_duration_ms: Math.max(0, Math.round(Number(segment.voiced_duration_ms) || 0)),
+          dominant_emotion: emotion,
+          confidence: Number.isFinite(score) ? Math.max(0, Math.min(1, score)) : 0,
+          distribution: segment.scores && typeof segment.scores === "object"
+            ? segment.scores
+            : {},
+        };
+      })
+      .filter((segment: Json) => segment.end_ms > segment.start_ms);
+
+    if (segments.length) {
+      await sb("voice_emotion_segments", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify(segments),
+      });
+    }
+  }
+
+  return {
+    conversationId: sessionId,
+    analysis: rows?.[0] ?? null,
+  };
+}
+
 async function getProfessionalRoutes(patientId: string) {
   const connections = await sb(
     `professional_connections?select=id,professional_id,connection_type,status&patient_id=eq.${encodeURIComponent(patientId)}&status=eq.active`,
@@ -824,6 +1028,23 @@ export async function POST(req: Request) {
           ...args,
           source: context.source || args.source,
         })),
+      });
+    }
+
+    if (tool === "finalize_hani_voice_call") {
+      return NextResponse.json({
+        success: true,
+        ...(await finalizeHaniVoiceCall(caregiverId, patientId, {
+          ...args,
+          locale: context.locale || args.locale,
+        })),
+      });
+    }
+
+    if (tool === "complete_voice_emotion_analysis") {
+      return NextResponse.json({
+        success: true,
+        ...(await completeVoiceEmotionAnalysis(caregiverId, patientId, args)),
       });
     }
 
