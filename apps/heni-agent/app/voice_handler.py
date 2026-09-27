@@ -248,10 +248,30 @@ async def handle_voice_connection(ws: WebSocket) -> None:
 
 async def _run_emotion_analysis(session, wav_path) -> None:
     try:
-        result = await analyze_patient_audio(
-            conversation_id=session.id,
-            wav_path=wav_path,
-        )
+        result = None
+        for attempt in range(3):
+            result = await analyze_patient_audio(
+                conversation_id=session.id,
+                wav_path=wav_path,
+            )
+            status = str(result.get("status") or "failed")
+            retryable = (
+                status == "failed"
+                and str(result.get("failure_code") or "") in {
+                    "SERVICE_TIMEOUT",
+                    "MODEL_UNAVAILABLE",
+                    "MODEL_INFERENCE_FAILED",
+                }
+            )
+            if not retryable or attempt == 2:
+                break
+            await asyncio.sleep(0.8 * (attempt + 1))
+
+        result = result or {
+            "status": "failed",
+            "failure_code": "MODEL_INFERENCE_FAILED",
+            "failure_message": "emotion_result_missing",
+        }
         status = str(result.get("status") or "failed")
         await call_hani_tool(
             "complete_voice_emotion_analysis",
