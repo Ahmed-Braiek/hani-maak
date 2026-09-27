@@ -58,6 +58,10 @@ async def health() -> dict[str, Any]:
         "mode": "caregiver-ready",
         "textModel": settings.text_model,
         "liveModel": settings.live_model,
+        "emotionAnalysisEnabled": settings.emotion_analysis_enabled,
+        "emotionServiceConfigured": bool(
+            settings.emotion_service_url and settings.emotion_service_secret
+        ),
     }
 
 
