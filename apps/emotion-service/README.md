@@ -4,7 +4,7 @@ Dedicated post-call vocal-emotion inference service for Hani Maak.
 
 Current Railway Hobby runtime:
 
-- Model: `onnx-community/wav2vec2-emotion-recognition-ONNX`
+- Model: `onnx-community/wav2vec2-base-Speech_Emotion_Recognition-ONNX`
 - Runtime: ONNX Runtime CPU
 - Quantized graph: `onnx/model_quantized.onnx`
 - Approximate model file size: 95 MB
@@ -14,8 +14,7 @@ Current Railway Hobby runtime:
 - Health: `GET /health`
 - Readiness: `GET /ready`
 
-The source model exposes seven classes: angry, disgust, fear, happy, neutral,
-sad, and surprise. Hani Maak maps those to its canonical non-diagnostic
+The source model exposes six classes: sad, angry, disgust, fear, happy, and neutral. Hani Maak maps those to its canonical non-diagnostic
 vocal-emotion labels.
 
 This lightweight ONNX deployment is used specifically to stay inside the
@@ -31,7 +30,7 @@ Gemini Live realtime path.
 
 ```env
 EMOTION_SERVICE_SECRET=
-EMOTION_MODEL_ID=onnx-community/wav2vec2-emotion-recognition-ONNX
+EMOTION_MODEL_ID=onnx-community/wav2vec2-base-Speech_Emotion_Recognition-ONNX
 EMOTION_MODEL_FILENAME=onnx/model_quantized.onnx
 EMOTION_MODEL_CACHE_DIR=/tmp/hf
 EMOTION_ONNX_THREADS=2
