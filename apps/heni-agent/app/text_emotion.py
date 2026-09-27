@@ -163,6 +163,7 @@ Return JSON only with this exact shape:
     "surprised": 0.0,
     "unknown": 0.0
   }},
+  "summary": "One short non-diagnostic sentence describing the emotional tone.",
   "turns": [
     {{
       "index": 0,
@@ -241,4 +242,5 @@ PATIENT TRANSCRIPT:
         "model": f"gemini_text_emotion_fallback:{settings.text_model}",
         "analysis_version": "v2-text-fallback",
         "fallback_source": "patient_transcript",
+        "summary": str(payload.get("summary") or "").strip()[:280] or None,
     }

@@ -664,6 +664,9 @@ async function completeVoiceEmotionAnalysis(
       distribution: status === "completed" && result.distribution && typeof result.distribution === "object"
         ? result.distribution
         : null,
+      summary: status === "completed"
+        ? clean(result.summary, 600) || null
+        : null,
       audio_duration_ms: Math.max(0, Math.round(Number(result.audio_duration_ms) || Number(analysis.audio_duration_ms) || 0)),
       analyzed_speech_ms: Math.max(0, Math.round(Number(result.analyzed_speech_ms) || 0)),
       segment_count: Array.isArray(result.segments) ? result.segments.length : 0,

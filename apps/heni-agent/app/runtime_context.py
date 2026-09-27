@@ -20,7 +20,7 @@ async def fetch_runtime_context(session) -> dict[str, Any]:
     now = time.time()
     cached = getattr(session, "runtime_context_cache", None)
     cached_at = float(getattr(session, "runtime_context_cached_at", 0.0) or 0.0)
-    if cached is not None and (now - cached_at) < 20.0:
+    if cached is not None and (now - cached_at) < 45.0:
         return cached
     if session.caregiver_id:
         caregiver = await call_hani_tool(

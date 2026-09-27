@@ -395,7 +395,9 @@ class _CompletedAnalysis extends StatelessWidget {
         ],
         const SizedBox(height: 12),
         Text(
-          _summary(dominant),
+          analysis.summary?.trim().isNotEmpty == true
+              ? analysis.summary!.trim()
+              : _summary(dominant),
           style: const TextStyle(
             color: HaniColors.muted,
             height: 1.45,

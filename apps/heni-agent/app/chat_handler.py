@@ -29,7 +29,7 @@ _client = create_google_client()
 
 def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
     contents: list[types.Content] = []
-    for item in history[-12:]:
+    for item in history[-8:]:
         role = "model" if item.get("role") in {"assistant", "model", "heni"} else "user"
         text = str(item.get("content") or item.get("text") or "").strip()
         if text:
@@ -53,8 +53,28 @@ async def _generate(
     )
 
 
+def _looks_like_care_activity_followup(message: str) -> bool:
+    text = " ".join(message.lower().split())
+    care_activity_terms = (
+        "doura", "dawra", "tour", "walk", "walking", "promenade",
+        "sortir", "sortie", "nokhrej", "nokhrj", "nkhrej", "nheb nokhrej",
+        "نخرج", "نتمشى", "نمشيو", "دورة", "نزهة", "خرجة",
+        "meal", "eat", "eating", "sleep", "slept", "pain", "wja3",
+        "noum", "makla", "كلت", "أكل", "نوم", "وجيعة",
+    )
+    return any(term in text for term in care_activity_terms)
+
+
 def _needs_action_tools(message: str) -> bool:
     text = " ".join(message.lower().split())
+    if _looks_like_care_activity_followup(message):
+        explicit_action = (
+            "appointment", "rendez-vous", "rendez vous", "rdv", "موعد",
+            "book", "booking", "reserve", "réserver", "احجز",
+            "doctor appointment", "موعد طبيب",
+        )
+        if not any(term in text for term in explicit_action):
+            return False
     action_terms = (
         "appointment", "rendez-vous", "rendez vous", "rdv", "موعد",
         "doctor", "docteur", "médecin", "طبيب",
@@ -248,6 +268,7 @@ async def run_chat_turn(
               "fr means French; en means English. Reply in this language unless the current user message clearly switches language."
             "\nCONTEXT CONTINUITY: Keep discussing the same patient/person, symptom, medication, routine, or family event across short follow-up turns unless the caregiver explicitly changes topic."
             "\nLATEST-MESSAGE PRIORITY: Answer the literal meaning of the newest user message first. Do not reinterpret an ordinary activity, walk, outing, meal, sleep, pain, or family comment as a booking, appointment, directions, or facility request unless the user explicitly asks for that action."
+            "\nACTION SAFETY: Only discuss booking/appointments/facility actions when the newest message explicitly asks to book, reserve, schedule, contact, call, or navigate. A phrase about taking Fatma for a walk/outing is a care activity, never an appointment request."
             "\nExample: 'nheb nokhrej naaml beha doura' means the caregiver wants to take the patient for a walk/outing; respond about doing that safely and naturally. It is NOT an appointment request."
             "\nIf the newest message is ambiguous, ask one short clarification instead of switching topics."
             "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
@@ -268,7 +289,7 @@ async def run_chat_turn(
         timeout_seconds=(
             settings.model_timeout_seconds
             if action_tools_enabled
-            else min(12.0, settings.model_timeout_seconds)
+            else min(9.0, settings.model_timeout_seconds)
         ),
     )
 
