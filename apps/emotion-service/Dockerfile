@@ -3,15 +3,16 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/models/huggingface \
-    MODELSCOPE_CACHE=/models/modelscope
+    TRANSFORMERS_NO_ADVISORY_WARNINGS=1
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libsndfile1 ffmpeg \
+    && apt-get install -y --no-install-recommends libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu         torch==2.6.0 torchaudio==2.6.0     && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 \
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
