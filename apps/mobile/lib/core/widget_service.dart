@@ -1,6 +1,5 @@
 import '../features/context/caregiver_context.dart';
-import 'widget_service_stub.dart'
-    if (dart.library.io) 'widget_service_mobile.dart';
+import 'widget_service_stub.dart';
 
 abstract class HaniHomeWidgetService {
   static HaniHomeWidgetService get instance => homeWidgetServiceInstance;
