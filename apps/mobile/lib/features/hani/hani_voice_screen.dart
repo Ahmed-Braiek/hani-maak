@@ -19,6 +19,8 @@ class HaniVoiceScreen extends ConsumerWidget {
     final active = state.connected &&
         state.phase != VoicePhase.idle &&
         state.phase != VoicePhase.error;
+    String t(String tn, String ar, String en, String fr) =>
+        haniText(settings.language, tn: tn, ar: ar, en: en, fr: fr);
 
     if (!active && state.locale != settings.language.code) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -36,7 +38,7 @@ class HaniVoiceScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   IconButton.filledTonal(
-                    tooltip: 'Back',
+                    tooltip: t('رجوع', 'رجوع', 'Back', 'Retour'),
                     onPressed: () async {
                       await controller.disconnect();
                       if (context.mounted) {
@@ -113,10 +115,10 @@ class HaniVoiceScreen extends ConsumerWidget {
                     Center(
                       child: HaniPill(
                         label: state.phase == VoicePhase.speaking
-                            ? 'HANI SPEAKING'
+                            ? t('هاني يحكي', 'هاني يتحدث', 'HANI SPEAKING', 'HANI PARLE')
                             : state.phase == VoicePhase.thinking
-                                ? 'THINKING'
-                                : 'LISTENING',
+                                ? t('نخمّم', 'جارٍ التفكير', 'THINKING', 'RÉFLEXION')
+                                : t('نسمعك', 'أستمع إليك', 'LISTENING', 'ÉCOUTE'),
                         icon: state.phase == VoicePhase.speaking
                             ? Icons.graphic_eq_rounded
                             : Icons.hearing_rounded,
@@ -139,9 +141,19 @@ class HaniVoiceScreen extends ConsumerWidget {
                   ],
                   if (state.lines.isNotEmpty) ...[
                     const SizedBox(height: 32),
-                    const HaniSectionHeader(
-                      title: 'Live conversation',
-                      subtitle: 'Transcript updates as you speak',
+                    HaniSectionHeader(
+                      title: t(
+                        'المحادثة المباشرة',
+                        'المحادثة المباشرة',
+                        'Live conversation',
+                        'Conversation en direct',
+                      ),
+                      subtitle: t(
+                        'النص يتحدّث وإنت تحكي',
+                        'يتم تحديث النص أثناء حديثك',
+                        'Transcript updates as you speak',
+                        'La transcription se met à jour pendant que vous parlez',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     ...state.lines.takeLast(8).map(
@@ -218,9 +230,9 @@ class HaniVoiceScreen extends ConsumerWidget {
                             child: const Icon(Icons.call_end_rounded),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'End',
-                            style: TextStyle(
+                          Text(
+                            t('سكر', 'إنهاء', 'End', 'Terminer'),
+                            style: const TextStyle(
                               color: HaniColors.muted,
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -236,12 +248,18 @@ class HaniVoiceScreen extends ConsumerWidget {
                       icon: const Icon(Icons.graphic_eq_rounded),
                       label: Text(
                         state.phase == VoicePhase.error
-                            ? 'Reconnect voice'
-                            : settings.language == HaniLanguage.french
-                                ? 'Démarrer la conversation'
-                                : (settings.language == HaniLanguage.tounsi || settings.language == HaniLanguage.arabic)
-                                    ? 'ابدأ المكالمة'
-                                    : 'Start live conversation',
+                            ? t(
+                                'عاود اربط الصوت',
+                                'أعد الاتصال الصوتي',
+                                'Reconnect voice',
+                                'Reconnecter la voix',
+                              )
+                            : t(
+                                'ابدأ المكالمة',
+                                'ابدأ المكالمة',
+                                'Start live conversation',
+                                'Démarrer la conversation',
+                              ),
                       ),
                     ),
             ),
