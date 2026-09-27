@@ -93,6 +93,7 @@ export async function GET(
         dominantEmotion: analysis.dominant_emotion,
         confidence: analysis.confidence,
         distribution: analysis.distribution,
+        summary: analysis.summary,
         timeline: (Array.isArray(segmentRows) ? segmentRows : []).map((segment: any) => ({
           segmentIndex: segment.segment_index,
           startMs: segment.start_ms,
