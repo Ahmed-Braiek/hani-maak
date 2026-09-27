@@ -599,6 +599,18 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                 if input_text and is_supported_transcript(input_text):
                     user_final = _merge_transcript(user_final, input_text)
                     session.last_user_text = user_final
+                    if (
+                        user_final
+                        and (
+                            not session.voice_user_transcripts
+                            or session.voice_user_transcripts[-1] != user_final
+                        )
+                    ):
+                        session.voice_user_transcripts.append(user_final)
+                        if len(session.voice_user_transcripts) > 24:
+                            session.voice_user_transcripts = (
+                                session.voice_user_transcripts[-24:]
+                            )
 
                     await ws.send_json(
                         {
