@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/settings/app_settings.dart';
+import '../../core/notification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
 import '../context/caregiver_context_api.dart';
@@ -51,9 +53,50 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen> {
         },
       );
       await refresh();
+      final language = ref.read(appSettingsProvider).language;
+      if (status == 'skipped' || status == 'delayed') {
+        unawaited(
+          HaniNotificationService.instance.showAction(
+            title: t(
+              language,
+              'تحديث دواء',
+              'تحديث الدواء',
+              'Medication updated',
+              'Médicament mis à jour',
+            ),
+            body: status == 'skipped'
+                ? t(
+                    language,
+                    'تسجّل إنّ الجرعة تفوّتت.',
+                    'تم تسجيل الجرعة كمتخطاة.',
+                    'The dose was recorded as skipped.',
+                    'La dose a été enregistrée comme non prise.',
+                  )
+                : t(
+                    language,
+                    'تسجّل إنّ الجرعة تأجّلت.',
+                    'تم تسجيل الجرعة كمؤجلة.',
+                    'The dose was recorded as delayed.',
+                    'La dose a été enregistrée comme retardée.',
+                  ),
+            route: '/medications',
+          ).catchError((_) {}),
+        );
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Medication marked $status.')),
+          SnackBar(
+            content: Text(
+              status == 'taken'
+                  ? t(language, 'تسجّلت كمتاخذة.', 'تم تسجيل الجرعة كمأخوذة.',
+                      'Medication marked as taken.', 'Médicament marqué comme pris.')
+                  : status == 'skipped'
+                      ? t(language, 'تسجّلت كمتفوّتة.', 'تم تسجيل الجرعة كمتخطاة.',
+                          'Medication marked as skipped.', 'Médicament marqué comme non pris.')
+                      : t(language, 'تسجّلت كمأجّلة.', 'تم تسجيل الجرعة كمؤجلة.',
+                          'Medication marked as delayed.', 'Médicament marqué comme retardé.'),
+            ),
+          ),
         );
       }
     } catch (error) {
@@ -457,10 +500,37 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen> {
       );
 
       await refresh();
+      unawaited(
+        HaniNotificationService.instance.showAction(
+          title: t(
+            language,
+            'الوصفة تحفظت',
+            'تم حفظ الوصفة',
+            'Prescription saved',
+            'Ordonnance enregistrée',
+          ),
+          body: t(
+            language,
+            'تنجم تلقاها في مركز الرعاية.',
+            'يمكنك العثور عليها في مركز الرعاية.',
+            'The reviewed prescription is available in the Care Hub.',
+            'L’ordonnance vérifiée est disponible dans le Centre de soins.',
+          ),
+          route: '/care-hub',
+        ).catchError((_) {}),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Reviewed prescription saved to the Care Hub.'),
+          SnackBar(
+            content: Text(
+              t(
+                language,
+                'الوصفة المراجعة تحفظت في مركز الرعاية.',
+                'تم حفظ الوصفة المراجعة في مركز الرعاية.',
+                'Reviewed prescription saved to the Care Hub.',
+                'Ordonnance vérifiée enregistrée dans le Centre de soins.',
+              ),
+            ),
           ),
         );
       }
