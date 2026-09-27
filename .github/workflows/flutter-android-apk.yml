@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - hani-e2e-care-release
     paths:
       - "apps/mobile/**"
       - ".github/workflows/flutter-android-apk.yml"
