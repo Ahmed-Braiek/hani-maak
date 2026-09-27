@@ -10,7 +10,7 @@ from starlette.websockets import WebSocketState
 from .config import settings
 from .distress import detect_semantic_distress
 from .google_client import create_google_client
-from .language import detect_requested_locale
+from .language import detect_requested_locale, is_supported_transcript
 from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
 from .security import origin_allowed, verify_voice_token
 from .session_store import get_or_create_session, touch_session
@@ -345,7 +345,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     if interim
                     else ""
                 )
-                if interim_text:
+                if interim_text and is_supported_transcript(interim_text):
                     await ws.send_json(
                         {
                             "type": "transcript_partial",
@@ -362,7 +362,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     if input_transcription
                     else ""
                 )
-                if input_text:
+                if input_text and is_supported_transcript(input_text):
                     user_final = _merge_transcript(user_final, input_text)
                     session.last_user_text = user_final
 
@@ -413,7 +413,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     if output_transcription
                     else ""
                 )
-                if output_text:
+                if output_text and is_supported_transcript(output_text):
                     model_final = _merge_transcript(model_final, output_text)
                     await ws.send_json(
                         {
