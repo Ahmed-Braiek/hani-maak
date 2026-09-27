@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
@@ -63,6 +64,46 @@ class WidgetsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: () async {
+              final supported = await HomeWidget.isRequestPinWidgetSupported();
+              if (!context.mounted) return;
+              if (supported != true) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Your launcher does not support automatic widget pinning. Long-press the home screen, open Widgets, then choose Hani Maak.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              await HomeWidget.requestPinWidget(
+                name: 'HaniMaakWidgetProvider',
+                androidName: 'HaniMaakWidgetProvider',
+                qualifiedAndroidName:
+                    'com.hanimaak.hani_maak_mobile.HaniMaakWidgetProvider',
+              );
+
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Choose Add on the Android confirmation to place the Hani Maak widget on your home screen.',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add_to_home_screen_rounded),
+            label: const Text('Add Hani Maak widget to phone'),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'If Android does not show a confirmation, long-press the phone home screen → Widgets → Hani Maak.',
+            style: TextStyle(color: HaniColors.muted, fontSize: 12.2),
           ),
           const SizedBox(height: 18),
           Card(
