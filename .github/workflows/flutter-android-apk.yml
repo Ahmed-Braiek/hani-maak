@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - hani-e2e-care-release
     paths:
       - "apps/mobile/**"
       - ".github/workflows/flutter-android-apk.yml"
@@ -346,6 +347,22 @@ jobs:
               text = text.replace("targetCompatibility = 1.8", "targetCompatibility = 11")
               path.write_text(text)
               print("patched", path)
+
+          # flutter_pcm_sound 3.3.x declares compileSdk 33, while its current
+          # AndroidX dependencies require API 34+. Patch the generated plugin
+          # build only inside CI; this does not modify package source in git.
+          for pattern in (
+              "flutter_pcm_sound-*/android/build.gradle",
+              "flutter_pcm_sound-*/android/build.gradle.kts",
+          ):
+              for path in cache.glob(pattern):
+                  text = path.read_text()
+                  text = text.replace("compileSdkVersion 33", "compileSdkVersion 36")
+                  text = text.replace("compileSdkVersion = 33", "compileSdkVersion = 36")
+                  text = text.replace("compileSdk 33", "compileSdk 36")
+                  text = text.replace("compileSdk = 33", "compileSdk = 36")
+                  path.write_text(text)
+                  print("patched compileSdk", path)
           PY
 
       - name: Analyze mobile app

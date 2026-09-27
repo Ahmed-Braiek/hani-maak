@@ -10,7 +10,7 @@ from starlette.websockets import WebSocketState
 from .config import settings
 from .distress import detect_semantic_distress
 from .google_client import create_google_client
-from .language import detect_requested_locale
+from .language import detect_requested_locale, is_supported_transcript
 from .runtime_context import build_runtime_system_prompt, fetch_runtime_context
 from .security import origin_allowed, verify_voice_token
 from .session_store import get_or_create_session, touch_session
@@ -45,6 +45,9 @@ LIVE CALL RULES
 - Tunisian Derja may mix naturally with French, Arabic and English. Do not switch the whole conversation language merely because one borrowed word or phrase appears.
 - The only supported transcript languages are Tunisian Arabic/Derja, Arabic, French, and English. Never reinterpret clear speech as another unrelated language.
 - If a transcript is incomplete or unclear, ask one short clarification instead of guessing.
+- Keep the current patient/person and symptom/activity topic in working context across turns. Pronouns and short follow-ups refer to the most recently discussed person or event unless the caregiver explicitly changes topic.
+- Never jump to a generic capabilities message (appointments, directions, facility help, etc.) when the caregiver is discussing a patient symptom, medication, routine, family member, or recent event. Continue the current care conversation.
+- Match the caregiver's natural language mix. Tunisian Latin-script Derja such as "mrayedha chwya", "kamet mn noum mawjouaa", "famma", "tawa", "nheb", and "najjem" is valid Tunisian speech, not an unknown language.
 """,
         "tools": [{"function_declarations": blocking_tools}],
         "input_audio_transcription": {
@@ -61,6 +64,17 @@ LIVE CALL RULES
                 "Alzheimer",
                 "Alzheimer's",
                 "Tunisia",
+                "mrayedha",
+                "chwya",
+                "kamet",
+                "noum",
+                "mawjouaa",
+                "famma",
+                "tawa",
+                "nheb",
+                "najjem",
+                "wja3",
+                "mraydha",
             ],
         },
         "output_audio_transcription": {},
@@ -267,6 +281,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                 # may contain multiple parts; relying only on chunk.data can
                 # drop audio and make speech sound abruptly truncated.
                 model_turn = getattr(content, "model_turn", None)
+                forwarded_audio = False
                 if model_turn and getattr(model_turn, "parts", None):
                     for part in model_turn.parts:
                         inline_data = getattr(part, "inline_data", None)
@@ -276,7 +291,18 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                             else None
                         )
                         if audio_data:
+                            forwarded_audio = True
                             await ws.send_bytes(audio_data)
+
+                # Gemini Live SDK versions do not always expose generated audio
+                # through model_turn.parts. Some surface the same PCM payload on
+                # chunk.data. Use it only as a fallback so we never duplicate
+                # audio, but also never leave the Flutter client with transcript
+                # only and no audible Hani response.
+                if not forwarded_audio:
+                    fallback_audio = getattr(chunk, "data", None)
+                    if fallback_audio:
+                        await ws.send_bytes(fallback_audio)
                 if getattr(content, "interrupted", False):
                     model_final = ""
                     interruption_count += 1
@@ -319,7 +345,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     if interim
                     else ""
                 )
-                if interim_text:
+                if interim_text and is_supported_transcript(interim_text):
                     await ws.send_json(
                         {
                             "type": "transcript_partial",
@@ -336,7 +362,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     if input_transcription
                     else ""
                 )
-                if input_text:
+                if input_text and is_supported_transcript(input_text):
                     user_final = _merge_transcript(user_final, input_text)
                     session.last_user_text = user_final
 
@@ -387,7 +413,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                     if output_transcription
                     else ""
                 )
-                if output_text:
+                if output_text and is_supported_transcript(output_text):
                     model_final = _merge_transcript(model_final, output_text)
                     await ws.send_json(
                         {

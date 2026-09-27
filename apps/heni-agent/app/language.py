@@ -34,7 +34,9 @@ def detect_likely_locale(text: str) -> str | None:
     value = _norm(text)
     if any(term in value for term in (
         "nheb", "naamel", "na3mel", "najjem", "najem", "chnowa", "chnoua", "chneya",
-        "sbeh", "l3chiya", "3andi", "aandy", "ghodwa", "tawa", "mouch",
+        "sbeh", "l3chiya", "3andi", "aandy", "ghodwa", "tawa", "mouch", "famma",
+        "mrayedha", "mraydha", "chwya", "kamet", "noum", "mawjouaa", "wja3",
+        "شنوة", "شنوّة", "شكون", "توا", "برشا", "فما", "موش", "نحب", "نجّم", "نجم",
     )):
         return "tn"
     if re.search(r"[\u0600-\u06ff]", value):
@@ -88,3 +90,20 @@ def locale_message(
     if locale == "en":
         return en
     return fr
+
+
+def is_supported_transcript(text: str) -> bool:
+    """Reject obvious unrelated-script transcription hypotheses.
+
+    Hani supports Tunisian Derja (Arabic or Latin script), Arabic, French,
+    and English. Latin letters, Arabic letters, digits and normal punctuation
+    are therefore valid. If a hypothesis contains characters from unrelated
+    scripts (for example Cyrillic, CJK, Hangul, Greek, Thai, Devanagari),
+    do not surface it as a transcript; wait for the next hypothesis instead.
+    """
+    value = text or ""
+    unsupported = re.compile(
+        r"[\u0370-\u03ff\u0400-\u052f\u0900-\u097f\u0e00-\u0e7f"
+        r"\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]"
+    )
+    return unsupported.search(value) is None

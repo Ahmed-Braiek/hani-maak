@@ -67,9 +67,14 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
         setState(() => status = 'WhatsApp summary sent successfully.');
         await ref.read(caregiverContextProvider.notifier).refreshContext();
       } else if (configurationRequired) {
+        final required = (result?['requiredEnvironmentVariables'] as List? ?? const [])
+            .map((value) => value.toString())
+            .where((value) => value.isNotEmpty)
+            .toList();
         setState(
-          () => status =
-              'WhatsApp Business API is not configured yet. You can still open WhatsApp with the exact generated summary for the team test.',
+          () => status = required.isEmpty
+              ? 'WhatsApp Business API is not configured yet. You can still open WhatsApp with the exact generated summary for the team test.'
+              : "WhatsApp Business API needs: ${required.join(', ')}. Nothing was marked as sent. You can still open WhatsApp with the reviewed summary for the team test.",
         );
       } else {
         setState(

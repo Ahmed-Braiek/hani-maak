@@ -48,7 +48,7 @@ class HaniVoiceScreen extends ConsumerWidget {
                     child: Center(
                       child: HaniBrandLogo(
                         height: 45,
-                        showArabic: false,
+                        variant: HaniBrandVariant.horizontal,
                       ),
                     ),
                   ),
