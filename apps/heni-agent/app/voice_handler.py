@@ -45,6 +45,9 @@ LIVE CALL RULES
 - Tunisian Derja may mix naturally with French, Arabic and English. Do not switch the whole conversation language merely because one borrowed word or phrase appears.
 - The only supported transcript languages are Tunisian Arabic/Derja, Arabic, French, and English. Never reinterpret clear speech as another unrelated language.
 - If a transcript is incomplete or unclear, ask one short clarification instead of guessing.
+- Keep the current patient/person and symptom/activity topic in working context across turns. Pronouns and short follow-ups refer to the most recently discussed person or event unless the caregiver explicitly changes topic.
+- Never jump to a generic capabilities message (appointments, directions, facility help, etc.) when the caregiver is discussing a patient symptom, medication, routine, family member, or recent event. Continue the current care conversation.
+- Match the caregiver's natural language mix. Tunisian Latin-script Derja such as "mrayedha chwya", "kamet mn noum mawjouaa", "famma", "tawa", "nheb", and "najjem" is valid Tunisian speech, not an unknown language.
 """,
         "tools": [{"function_declarations": blocking_tools}],
         "input_audio_transcription": {
@@ -61,6 +64,17 @@ LIVE CALL RULES
                 "Alzheimer",
                 "Alzheimer's",
                 "Tunisia",
+                "mrayedha",
+                "chwya",
+                "kamet",
+                "noum",
+                "mawjouaa",
+                "famma",
+                "tawa",
+                "nheb",
+                "najjem",
+                "wja3",
+                "mraydha",
             ],
         },
         "output_audio_transcription": {},
@@ -267,6 +281,7 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                 # may contain multiple parts; relying only on chunk.data can
                 # drop audio and make speech sound abruptly truncated.
                 model_turn = getattr(content, "model_turn", None)
+                forwarded_audio = False
                 if model_turn and getattr(model_turn, "parts", None):
                     for part in model_turn.parts:
                         inline_data = getattr(part, "inline_data", None)
@@ -276,7 +291,18 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                             else None
                         )
                         if audio_data:
+                            forwarded_audio = True
                             await ws.send_bytes(audio_data)
+
+                # Gemini Live SDK versions do not always expose generated audio
+                # through model_turn.parts. Some surface the same PCM payload on
+                # chunk.data. Use it only as a fallback so we never duplicate
+                # audio, but also never leave the Flutter client with transcript
+                # only and no audible Hani response.
+                if not forwarded_audio:
+                    fallback_audio = getattr(chunk, "data", None)
+                    if fallback_audio:
+                        await ws.send_bytes(fallback_audio)
                 if getattr(content, "interrupted", False):
                     model_final = ""
                     interruption_count += 1
