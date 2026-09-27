@@ -9,7 +9,9 @@ import 'package:record/record.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/notification_service.dart';
 import '../../core/session/caregiver_identity.dart';
+import '../../core/settings/app_settings.dart';
 import 'hani_pcm_player.dart';
 
 enum VoicePhase { idle, connecting, listening, thinking, speaking, ending, error }
@@ -113,12 +115,23 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   int _bargePreRollBytes = 0;
   int _bargeSpeechChunks = 0;
   Completer<void>? _callEndedCompleter;
+  Timer? _watchdog;
+  DateTime _lastServerActivity = DateTime.now();
+  DateTime? _lastMicSpeechAt;
+  DateTime? _lastMicRestartAt;
+  DateTime _phaseStartedAt = DateTime.now();
+  bool _recoveringMic = false;
+  bool _postCallNotificationSent = false;
 
   Future<void> connect() async {
     if (state.phase != VoicePhase.idle && state.phase != VoicePhase.error) {
       return;
     }
 
+    _postCallNotificationSent = false;
+    _phaseStartedAt = DateTime.now();
+    _lastServerActivity = DateTime.now();
+    _lastMicSpeechAt = null;
     state = state.copyWith(
       phase: VoicePhase.connecting,
       clearError: true,
@@ -180,6 +193,8 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
       await _pcmPlayer.init();
       await _startMic();
+      _startWatchdog();
+      _phaseStartedAt = DateTime.now();
 
       state = state.copyWith(
         phase: VoicePhase.listening,
@@ -211,13 +226,120 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
     _micSub = stream.listen(
       _onMicChunk,
-      onError: (_) => _fail('Microphone stream was interrupted.'),
+      onError: (_) {
+        if (state.connected && !_disconnecting) {
+          unawaited(_recoverMic());
+        }
+      },
+      onDone: () {
+        _micSub = null;
+        if (state.connected && !_disconnecting) {
+          unawaited(_recoverMic());
+        }
+      },
     );
   }
 
+  void _startWatchdog() {
+    _watchdog?.cancel();
+    _watchdog = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _watchdogTick(),
+    );
+  }
+
+  void _watchdogTick() {
+    if (!mounted || !state.connected || _disconnecting) return;
+    final now = DateTime.now();
+
+    if (state.phase == VoicePhase.listening) {
+      final recentSpeech = _lastMicSpeechAt != null &&
+          now.difference(_lastMicSpeechAt!) < const Duration(seconds: 5);
+      final serverSilent =
+          now.difference(_lastServerActivity) > const Duration(seconds: 7);
+      if (recentSpeech && serverSilent) {
+        _channel?.sink.add(jsonEncode({'type': 'audio_stream_end'}));
+        _phaseStartedAt = now;
+        state = state.copyWith(phase: VoicePhase.thinking);
+        unawaited(_recoverMic());
+      } else if (now.difference(_phaseStartedAt) >
+          const Duration(seconds: 45)) {
+        unawaited(_ensureMic());
+        _phaseStartedAt = now;
+      }
+      return;
+    }
+
+    if (state.phase == VoicePhase.thinking &&
+        now.difference(_phaseStartedAt) > const Duration(seconds: 18)) {
+      unawaited(_recoverMic());
+      _phaseStartedAt = now;
+      state = state.copyWith(
+        phase: VoicePhase.listening,
+        clearError: true,
+      );
+      return;
+    }
+
+    if (state.phase == VoicePhase.speaking &&
+        !_pcmPlayer.isPlaying &&
+        now.difference(_phaseStartedAt) > const Duration(seconds: 4)) {
+      unawaited(_ensureMic());
+      _phaseStartedAt = now;
+      state = state.copyWith(phase: VoicePhase.listening);
+    }
+  }
+
+  Future<void> _ensureMic() async {
+    if (!state.connected || _disconnecting) return;
+    if (_micSub == null) {
+      await _startMic();
+    }
+  }
+
+  Future<void> _recoverMic() async {
+    if (_recoveringMic || _disconnecting || !state.connected) return;
+    final now = DateTime.now();
+    if (_lastMicRestartAt != null &&
+        now.difference(_lastMicRestartAt!) < const Duration(seconds: 4)) {
+      return;
+    }
+
+    _recoveringMic = true;
+    _lastMicRestartAt = now;
+    try {
+      await _micSub?.cancel();
+      _micSub = null;
+      try {
+        await _recorder.stop();
+      } catch (_) {}
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      if (state.connected && !_disconnecting) {
+        await _startMic();
+      }
+    } catch (_) {
+      if (mounted && state.connected) {
+        state = state.copyWith(
+          phase: VoicePhase.error,
+          error: 'Microphone recovery failed. Reconnect the voice call.',
+          connected: false,
+        );
+      }
+    } finally {
+      _recoveringMic = false;
+    }
+  }
 
   void _onMicChunk(Uint8List chunk) {
     if (_channel == null || !state.connected || chunk.isEmpty) return;
+
+    final level = _pcmLevel(chunk);
+    final likelyHumanSpeech =
+        level.$1 >= _bargeInRmsThreshold &&
+        level.$2 >= _bargeInPeakThreshold;
+    if (likelyHumanSpeech) {
+      _lastMicSpeechAt = DateTime.now();
+    }
 
     final assistantSpeaking =
         state.phase == VoicePhase.speaking || _pcmPlayer.isPlaying;
@@ -237,11 +359,6 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     // speaker echo straight back to Gemini. This is what prevents false
     // self-interruptions while preserving the first syllable of a real barge-in.
     _pushBargePreRoll(chunk);
-
-    final level = _pcmLevel(chunk);
-    final likelyHumanSpeech =
-        level.$1 >= _bargeInRmsThreshold &&
-        level.$2 >= _bargeInPeakThreshold;
 
     if (likelyHumanSpeech) {
       _bargeSpeechChunks += 1;
@@ -318,6 +435,8 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     final sessionId = state.sessionId;
 
     try {
+      _watchdog?.cancel();
+      _watchdog = null;
       await _micSub?.cancel();
       _micSub = null;
       await _recorder.stop();
@@ -335,8 +454,10 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
             const Duration(seconds: 5),
           );
         } on TimeoutException {
-          // The call is still closed locally. The server has a disconnect
-          // fallback, so a missing acknowledgement must not trap the user.
+          // The server also finalizes on disconnect. Never trap the user here.
+          if (sessionId != null && sessionId.isNotEmpty) {
+            unawaited(_notifyPostCall(sessionId, analysisReady: false));
+          }
         }
       }
 
@@ -368,7 +489,31 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     await endCall();
   }
 
+  Future<void> _notifyPostCall(
+    String conversationId, {
+    required bool analysisReady,
+  }) async {
+    if (_postCallNotificationSent) return;
+    _postCallNotificationSent = true;
+    final language = switch (state.locale) {
+      'tn' => HaniLanguage.tounsi,
+      'fr' => HaniLanguage.french,
+      'en' => HaniLanguage.english,
+      _ => HaniLanguage.arabic,
+    };
+    try {
+      await HaniNotificationService.instance.showPostCall(
+        conversationId: conversationId,
+        language: language,
+        analysisReady: analysisReady,
+      );
+    } catch (_) {
+      // Notifications are supplementary and must never break a voice call.
+    }
+  }
+
   void _onSocketData(dynamic data) {
+    _lastServerActivity = DateTime.now();
     if (data is Uint8List) {
       _onAudioBytes(data);
       return;
@@ -406,10 +551,13 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         final phase = event['phase']?.toString();
         if (phase == 'listening') {
           if (!_pcmPlayer.isPlaying) {
+            _phaseStartedAt = DateTime.now();
             state = state.copyWith(phase: VoicePhase.listening);
+            unawaited(_ensureMic());
           }
         } else if (phase == 'thinking') {
           _dropOldModelAudio = false;
+          _phaseStartedAt = DateTime.now();
           state = state.copyWith(phase: VoicePhase.thinking);
         }
         break;
@@ -428,6 +576,10 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
           text: text,
           isFinal: type == 'transcript_final',
         );
+        if (role == 'user' && type == 'transcript_final' && state.connected) {
+          _phaseStartedAt = DateTime.now();
+          state = state.copyWith(phase: VoicePhase.thinking);
+        }
         break;
 
       case 'locale':
@@ -447,7 +599,9 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         unawaited(
           _pcmPlayer.flush().whenComplete(() {
             if (mounted && state.connected) {
+              _phaseStartedAt = DateTime.now();
               state = state.copyWith(phase: VoicePhase.listening);
+              unawaited(_ensureMic());
             }
           }).catchError((_) {
             if (mounted && state.connected) {
@@ -470,6 +624,14 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         final completer = _callEndedCompleter;
         if (completer != null && !completer.isCompleted) {
           completer.complete();
+        }
+        if (serverSessionId != null && serverSessionId.isNotEmpty) {
+          unawaited(
+            _notifyPostCall(
+              serverSessionId,
+              analysisReady: state.analysisStatus == 'completed',
+            ),
+          );
         }
         break;
 
@@ -526,6 +688,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     _resetBargeGate();
 
     if (mounted && state.phase != VoicePhase.speaking) {
+      _phaseStartedAt = DateTime.now();
       state = state.copyWith(phase: VoicePhase.speaking);
     }
 
@@ -545,11 +708,15 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     await _pcmPlayer.interrupt();
 
     if (mounted && state.connected) {
+      _phaseStartedAt = DateTime.now();
       state = state.copyWith(phase: VoicePhase.listening);
+      unawaited(_ensureMic());
     }
   }
 
   void _fail(String message) {
+    _watchdog?.cancel();
+    _watchdog = null;
     if (!mounted) return;
     state = state.copyWith(
       phase: VoicePhase.error,
@@ -560,6 +727,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
   @override
   void dispose() {
+    _watchdog?.cancel();
     _micSub?.cancel();
     _socketSub?.cancel();
     _channel?.sink.close();
