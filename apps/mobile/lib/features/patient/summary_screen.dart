@@ -74,7 +74,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
         setState(
           () => status = required.isEmpty
               ? 'WhatsApp Business API is not configured yet. You can still open WhatsApp with the exact generated summary for the team test.'
-              : 'WhatsApp Business API needs: \${required.join(', ')}. Nothing was marked as sent. You can still open WhatsApp with the reviewed summary for the team test.',
+              : "WhatsApp Business API needs: ${required.join(', ')}. Nothing was marked as sent. You can still open WhatsApp with the reviewed summary for the team test.",
         );
       } else {
         setState(
