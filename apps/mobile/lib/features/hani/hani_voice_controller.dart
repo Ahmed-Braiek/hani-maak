@@ -462,7 +462,16 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       state = state.copyWith(phase: VoicePhase.speaking);
     }
 
-    unawaited(_pcmPlayer.add(bytes));
+    unawaited(
+      _pcmPlayer.add(bytes).catchError((_) {
+        if (mounted && state.connected) {
+          state = state.copyWith(
+            phase: VoicePhase.error,
+            error: 'Hani audio playback failed. Reconnect the voice call.',
+          );
+        }
+      }),
+    );
   }
 
   Future<void> _interruptPlayback() async {
