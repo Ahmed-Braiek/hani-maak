@@ -36,8 +36,10 @@ class Settings:
     emotion_analysis_enabled: bool = _bool("EMOTION_ANALYSIS_ENABLED", False)
     emotion_service_url: str = os.getenv("EMOTION_SERVICE_URL", "").rstrip("/")
     emotion_service_secret: str = os.getenv("EMOTION_SERVICE_SECRET", "")
+    # Post-call analysis runs outside the realtime Gemini loop. Give the
+    # lightweight Railway CPU worker enough time without affecting live calls.
     emotion_request_timeout_seconds: float = float(
-        os.getenv("EMOTION_REQUEST_TIMEOUT_SECONDS", "60")
+        os.getenv("EMOTION_REQUEST_TIMEOUT_SECONDS", "90")
     )
 
     @property
