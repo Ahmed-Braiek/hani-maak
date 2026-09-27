@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
 from typing import Any
 
@@ -25,6 +26,44 @@ from .tools.execute import execute_tool
 from .tools.hani_backend import call_hani_tool
 
 _client = create_google_client()
+
+
+def _merge_history(
+    session_history: list[Any],
+    request_history: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    combined: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+
+    for item in [*session_history, *request_history]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role") or "").strip().lower()
+        text = str(item.get("content") or item.get("text") or "").strip()
+        if not text:
+            continue
+        normalized_role = "assistant" if role in {"assistant", "model", "heni"} else "user"
+        key = (normalized_role, text)
+        if key in seen:
+            continue
+        seen.add(key)
+        combined.append({"role": normalized_role, "content": text})
+
+    return combined[-20:]
+
+
+async def _runtime_context_cached(session) -> dict[str, Any]:
+    now = time.time()
+    if (
+        session.runtime_context_cache is not None
+        and now - session.runtime_context_cached_at <= 20
+    ):
+        return session.runtime_context_cache
+
+    context = await fetch_runtime_context(session)
+    session.runtime_context_cache = context
+    session.runtime_context_cached_at = now
+    return context
 
 
 def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
@@ -192,10 +231,11 @@ async def run_chat_turn(
             session,
         )
 
-    contents = _content_from_history(history)
+    merged_history = _merge_history(session.chat_history, history)
+    contents = _content_from_history(merged_history)
     contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
 
-    runtime_context = await fetch_runtime_context(session)
+    runtime_context = await _runtime_context_cached(session)
 
     semantic_signal = detect_semantic_distress(message) if session.caregiver_id else None
     if semantic_signal and session.caregiver_id:
@@ -228,7 +268,7 @@ async def run_chat_turn(
             "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
         ),
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
-        max_output_tokens=420,
+        max_output_tokens=700,
         temperature=0.3,
     )
 
@@ -273,6 +313,45 @@ async def run_chat_turn(
         response = await _generate(contents=contents, config=config)
 
     reply = (response.text or "").strip()
+
+    # Gemini may occasionally stop at the output-token boundary. Make one
+    # bounded continuation request so the Flutter UI never receives a visibly
+    # cut-off sentence.
+    finish_reason = None
+    if response.candidates:
+        finish_reason = getattr(response.candidates[0], "finish_reason", None)
+    if reply and "MAX_TOKENS" in str(finish_reason):
+        continuation_contents = [
+            *contents,
+            types.Content(role="model", parts=[types.Part(text=reply)]),
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part(
+                        text=(
+                            "Finish the previous answer in one short sentence. "
+                            "Continue from where it stopped, do not restart or repeat it."
+                        )
+                    )
+                ],
+            ),
+        ]
+        continuation_config = types.GenerateContentConfig(
+            system_instruction=config.system_instruction,
+            max_output_tokens=180,
+            temperature=0.2,
+        )
+        try:
+            continuation = await _generate(
+                contents=continuation_contents,
+                config=continuation_config,
+            )
+            extra = (continuation.text or "").strip()
+            if extra:
+                reply = f"{reply} {extra}".strip()
+        except Exception:
+            pass
+
     if not reply:
         reply = locale_message(
             session.locale,
@@ -289,21 +368,32 @@ async def run_chat_turn(
         if isinstance(action, dict) and action.get("url"):
             ui_actions.append(action)
 
-    await _persist_chat_turn(
-        session,
-        user_text=message,
-        hani_text=reply,
-        purpose=(
-            "handoff"
-            if any(
-                event.get("name") in {
-                    "request_human_help",
-                    "create_professional_contact_request",
-                }
-                for event in tool_events
-            )
-            else "general"
-        ),
+    session.chat_history.extend(
+        [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": reply},
+        ]
+    )
+    if len(session.chat_history) > 24:
+        del session.chat_history[:-24]
+
+    asyncio.create_task(
+        _persist_chat_turn(
+            session,
+            user_text=message,
+            hani_text=reply,
+            purpose=(
+                "handoff"
+                if any(
+                    event.get("name") in {
+                        "request_human_help",
+                        "create_professional_contact_request",
+                    }
+                    for event in tool_events
+                )
+                else "general"
+            ),
+        )
     )
 
     return {
