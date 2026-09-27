@@ -1,16 +1,16 @@
-name: Build Hani Maak Android Safe Demo APK
+name: Build Hani Maak Android Voice Recovery APK
 
 on:
   push:
     branches:
-      - android-safe-demo-build
+      - android-voice-recovery
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: hani-maak-android-safe-apk
+  group: hani-maak-android-voice-recovery-apk
   cancel-in-progress: true
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout compatibility branch
+      - name: Checkout recovery branch
         uses: actions/checkout@v4
 
       - name: Setup Java 17
@@ -39,7 +39,7 @@ jobs:
           flutter create --platforms=android --project-name hani_maak_mobile --org com.hanimaak .
           rm -f test/widget_test.dart
 
-      - name: Configure safe Android host
+      - name: Configure minimal Android host
         working-directory: apps/mobile
         run: |
           python3 - <<'PY'
@@ -54,7 +54,7 @@ jobs:
           if "android.permission.RECORD_AUDIO" not in text:
               marker = ">\n    <application"
               text = text.replace(marker, ">\n    " + permissions + "<application", 1)
-          text = text.replace('android:label="hani_maak_mobile"', 'android:label="Hani Maak Safe Demo"')
+          text = text.replace('android:label="hani_maak_mobile"', 'android:label="Hani Maak Recovery"')
           manifest.write_text(text)
 
           gradle = Path("android/app/build.gradle.kts")
@@ -69,27 +69,27 @@ jobs:
         working-directory: apps/mobile
         run: flutter pub get
 
-      - name: Analyze compatibility build
+      - name: Analyze
         working-directory: apps/mobile
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build safe release APK
+      - name: Build recovery release APK
         working-directory: apps/mobile
         run: |
           flutter build apk --release             --dart-define=HANI_API_BASE=https://hani-maak.vercel.app             --dart-define=SUPABASE_URL=https://lhrngmuxmjpigycgonnh.supabase.co             --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_8jxBjLqsE0-8fSxaCZqP7w_7LdAm4SI
 
-      - name: Prepare safe demo APK
+      - name: Prepare recovery APK
         run: |
           mkdir -p dist
-          cp apps/mobile/build/app/outputs/flutter-apk/app-release.apk dist/Hani-Maak-Safe-Demo.apk
-          sha256sum dist/Hani-Maak-Safe-Demo.apk > dist/Hani-Maak-Safe-Demo.apk.sha256
+          cp apps/mobile/build/app/outputs/flutter-apk/app-release.apk dist/Hani-Maak-Voice-Recovery.apk
+          sha256sum dist/Hani-Maak-Voice-Recovery.apk > dist/Hani-Maak-Voice-Recovery.apk.sha256
 
-      - name: Upload safe APK
+      - name: Upload recovery APK
         uses: actions/upload-artifact@v4
         with:
-          name: hani-maak-safe-demo-apk
+          name: hani-maak-voice-recovery-apk
           path: |
-            dist/Hani-Maak-Safe-Demo.apk
-            dist/Hani-Maak-Safe-Demo.apk.sha256
+            dist/Hani-Maak-Voice-Recovery.apk
+            dist/Hani-Maak-Voice-Recovery.apk.sha256
           retention-days: 30
           if-no-files-found: error
