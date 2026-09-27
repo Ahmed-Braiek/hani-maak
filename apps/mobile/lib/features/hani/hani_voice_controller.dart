@@ -12,7 +12,7 @@ import '../../core/config/app_config.dart';
 import '../../core/session/caregiver_identity.dart';
 import 'hani_pcm_player.dart';
 
-enum VoicePhase { idle, connecting, listening, thinking, speaking, error }
+enum VoicePhase { idle, connecting, listening, thinking, speaking, ending, error }
 
 class VoiceTranscriptLine {
   const VoiceTranscriptLine({
@@ -47,6 +47,8 @@ class HaniVoiceState {
     this.locale = 'ar',
     this.error,
     this.connected = false,
+    this.sessionId,
+    this.analysisStatus,
   });
 
   final VoicePhase phase;
@@ -54,6 +56,8 @@ class HaniVoiceState {
   final String locale;
   final String? error;
   final bool connected;
+  final String? sessionId;
+  final String? analysisStatus;
 
   HaniVoiceState copyWith({
     VoicePhase? phase,
@@ -61,7 +65,11 @@ class HaniVoiceState {
     String? locale,
     String? error,
     bool? connected,
+    String? sessionId,
+    String? analysisStatus,
     bool clearError = false,
+    bool clearSession = false,
+    bool clearAnalysisStatus = false,
   }) {
     return HaniVoiceState(
       phase: phase ?? this.phase,
@@ -69,6 +77,10 @@ class HaniVoiceState {
       locale: locale ?? this.locale,
       error: clearError ? null : error ?? this.error,
       connected: connected ?? this.connected,
+      sessionId: clearSession ? null : sessionId ?? this.sessionId,
+      analysisStatus: clearAnalysisStatus
+          ? null
+          : analysisStatus ?? this.analysisStatus,
     );
   }
 }
@@ -100,6 +112,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   bool _dropOldModelAudio = false;
   int _bargePreRollBytes = 0;
   int _bargeSpeechChunks = 0;
+  Completer<void>? _callEndedCompleter;
 
   Future<void> connect() async {
     if (state.phase != VoicePhase.idle && state.phase != VoicePhase.error) {
@@ -111,6 +124,8 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       clearError: true,
       lines: const [],
       connected: false,
+      clearSession: true,
+      clearAnalysisStatus: true,
     );
 
     try {
@@ -137,6 +152,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final token = body['token']?.toString();
       final wsUrl = body['wsUrl']?.toString();
+      final issuedSessionId = body['sessionId']?.toString();
 
       if (token == null || wsUrl == null) {
         throw Exception('voice_token_invalid');
@@ -168,6 +184,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       state = state.copyWith(
         phase: VoicePhase.listening,
         connected: true,
+        sessionId: issuedSessionId,
       );
     } catch (_) {
       _fail('Hani voice could not connect. Tap to try again.');
@@ -295,19 +312,37 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     state = state.copyWith(locale: locale);
   }
 
-  Future<void> disconnect() async {
-    if (_disconnecting) return;
+  Future<String?> endCall() async {
+    if (_disconnecting) return state.sessionId;
     _disconnecting = true;
+    final sessionId = state.sessionId;
 
     try {
       await _micSub?.cancel();
       _micSub = null;
       await _recorder.stop();
+      await _pcmPlayer.interrupt();
+
+      if (mounted && _channel != null && state.connected) {
+        state = state.copyWith(
+          phase: VoicePhase.ending,
+          clearError: true,
+        );
+        _callEndedCompleter = Completer<void>();
+        _channel!.sink.add(jsonEncode({'type': 'call_end'}));
+        try {
+          await _callEndedCompleter!.future.timeout(
+            const Duration(seconds: 5),
+          );
+        } on TimeoutException {
+          // The call is still closed locally. The server has a disconnect
+          // fallback, so a missing acknowledgement must not trap the user.
+        }
+      }
 
       await _socketSub?.cancel();
       _socketSub = null;
 
-      await _pcmPlayer.interrupt();
       _bargeInActive = false;
       _dropOldModelAudio = false;
       _resetBargeGate();
@@ -315,6 +350,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       await _channel?.sink.close();
       _channel = null;
     } finally {
+      _callEndedCompleter = null;
       _disconnecting = false;
       if (mounted) {
         state = state.copyWith(
@@ -324,6 +360,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         );
       }
     }
+
+    return sessionId;
+  }
+
+  Future<void> disconnect() async {
+    await endCall();
   }
 
   void _onSocketData(dynamic data) {
@@ -356,6 +398,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         state = state.copyWith(
           connected: true,
           phase: VoicePhase.listening,
+          sessionId: event['sessionId']?.toString(),
         );
         break;
 
@@ -403,6 +446,19 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         _dropOldModelAudio = false;
         if (mounted && state.connected && !_pcmPlayer.isPlaying) {
           state = state.copyWith(phase: VoicePhase.listening);
+        }
+        break;
+
+      case 'call_ended':
+        final serverSessionId = event['sessionId']?.toString();
+        state = state.copyWith(
+          sessionId: serverSessionId,
+          analysisStatus:
+              event['analysisStatus']?.toString() ?? 'not_started',
+        );
+        final completer = _callEndedCompleter;
+        if (completer != null && !completer.isCompleted) {
+          completer.complete();
         }
         break;
 
