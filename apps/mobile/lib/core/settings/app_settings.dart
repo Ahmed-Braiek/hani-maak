@@ -2,6 +2,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum HaniLanguage { tounsi, arabic, english, french }
 
+String haniText(
+  HaniLanguage language, {
+  required String tn,
+  required String ar,
+  required String en,
+  required String fr,
+}) =>
+    switch (language) {
+      HaniLanguage.tounsi => tn,
+      HaniLanguage.arabic => ar,
+      HaniLanguage.english => en,
+      HaniLanguage.french => fr,
+    };
+
 extension HaniLanguageX on HaniLanguage {
   String get code => switch (this) {
         HaniLanguage.tounsi => 'tn',
