@@ -368,8 +368,46 @@ class _CompletedAnalysis extends StatelessWidget {
           body: '${_label(dominant)} · ${_percent(confidence)}',
         ),
         const SizedBox(height: 12),
+        if (analysis.analysisSource == 'gemini_text_fallback') ...[
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color: HaniColors.primary.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 18,
+                  color: HaniColors.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t(
+                      'التحليل الصوتي خذا أكثر من 10 ثواني، لذلك هاني استعمل تحليل نصّي احتياطي.',
+                      'استغرق التحليل الصوتي أكثر من 10 ثوانٍ، لذلك استُخدم تحليل نصي احتياطي.',
+                      'The acoustic model took over 10 seconds, so Hani used the Gemini text fallback.',
+                      'Le modèle acoustique a dépassé 10 secondes ; Hani a utilisé l’analyse textuelle Gemini de secours.',
+                    ),
+                    style: const TextStyle(
+                      color: HaniColors.primary,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         Text(
-          _summary(dominant),
+          analysis.summary?.isNotEmpty == true
+              ? analysis.summary!
+              : _summary(dominant),
           style: const TextStyle(
             color: HaniColors.muted,
             height: 1.45,
