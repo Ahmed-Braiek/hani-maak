@@ -356,6 +356,7 @@ jobs:
                                   .putString("care_status", call.argument<String>("careStatus") ?: "Care plan up to date")
                                   .putString("language", call.argument<String>("language") ?: "en")
                                   .putString("tasks_label", call.argument<String>("tasksLabel") ?: "tasks")
+                                  .putString("call_label", call.argument<String>("callLabel") ?: "Call Hani")
                                   .apply()
                               HaniMaakWidgetProvider.refreshAll(this)
                               result.success(null)
@@ -514,7 +515,9 @@ jobs:
                       val tasks = prefs.getInt("open_tasks", 0)
                       val tasksLabel = prefs.getString("tasks_label", "tasks") ?: "tasks"
                       val status = prefs.getString("care_status", "Care plan up to date")
+                      val callLabel = prefs.getString("call_label", "Call Hani") ?: "Call Hani"
                       views.setTextViewText(R.id.widget_status, "$tasks $tasksLabel · $status")
+                      views.setTextViewText(R.id.widget_call_hani, callLabel)
 
                       val launch = Intent(context, MainActivity::class.java).apply {
                           flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
