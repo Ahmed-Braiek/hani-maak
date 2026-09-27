@@ -26,6 +26,7 @@ import 'features/settings/settings_screen.dart';
 import 'features/settings/widgets_screen.dart';
 import 'features/hani/hani_chat_screen.dart';
 import 'features/hani/hani_voice_screen.dart';
+import 'features/hani/hani_call_result_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
@@ -61,6 +62,13 @@ final router = GoRouter(
       builder: (_, __) => const DilemmaLibraryScreen(),
     ),
     GoRoute(parentNavigatorKey: _rootKey, path: '/voice', builder: (_, __) => const HaniVoiceScreen()),
+    GoRoute(
+      parentNavigatorKey: _rootKey,
+      path: '/voice-result/:id',
+      builder: (_, state) => HaniCallResultScreen(
+        conversationId: state.pathParameters['id'] ?? '',
+      ),
+    ),
     GoRoute(parentNavigatorKey: _rootKey, path: '/handoff', builder: (_, __) => const HandoffScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/questionnaire', builder: (_, __) => const QuestionnaireScreen()),
     GoRoute(parentNavigatorKey: _rootKey, path: '/notifications', builder: (_, __) => const NotificationsScreen()),
