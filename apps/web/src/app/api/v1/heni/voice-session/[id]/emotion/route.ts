@@ -107,6 +107,8 @@ export async function GET(
         model: analysis.model_name,
         modelVersion: analysis.model_version,
         analysisVersion: analysis.analysis_version,
+        analysisSource: analysis.analysis_source,
+        summary: analysis.summary_text,
         failureCode: analysis.failure_code,
         failureMessage: analysis.failure_message,
         createdAt: analysis.created_at,
