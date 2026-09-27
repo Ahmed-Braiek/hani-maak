@@ -260,6 +260,8 @@ async def _run_emotion_analysis(
     classifier starts immediately in parallel and becomes the real result if
     the vocal service is slow/unavailable, so Flutter never waits forever.
     """
+    loop = asyncio.get_running_loop()
+    started_at = loop.time()
     audio_task = asyncio.create_task(
         analyze_patient_audio(
             conversation_id=session.id,
@@ -299,9 +301,10 @@ async def _run_emotion_analysis(
                 text_task.cancel()
         else:
             try:
+                remaining = max(0.15, 10.0 - (loop.time() - started_at))
                 text_result = await asyncio.wait_for(
                     asyncio.shield(text_task),
-                    timeout=2.0 if not text_task.done() else 0.1,
+                    timeout=remaining,
                 )
             except Exception:
                 text_result = None
