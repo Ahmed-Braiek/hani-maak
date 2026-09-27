@@ -22,6 +22,13 @@ class _StubNotificationService implements HaniNotificationService {
   Future<void> showTest() async {}
 
   @override
+  Future<void> showAction({
+    required String title,
+    required String body,
+    required String route,
+  }) async {}
+
+  @override
   Future<void> showPostCall({
     required String conversationId,
     required HaniLanguage language,
