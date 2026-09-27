@@ -10,6 +10,7 @@ from starlette.websockets import WebSocketState
 from .audio_buffer import PatientAudioBuffer, delete_temp_audio
 from .config import settings
 from .emotion_client import analyze_patient_audio
+from .text_emotion import analyze_transcript_emotion
 from .distress import detect_semantic_distress
 from .google_client import create_google_client
 from .language import detect_requested_locale, is_supported_transcript
@@ -246,33 +247,86 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         audio_buffer.close()
 
 
-async def _run_emotion_analysis(session, wav_path) -> None:
+async def _run_emotion_analysis(
+    session,
+    wav_path,
+    *,
+    audio_duration_ms: int,
+    transcript_turns: list[str],
+) -> None:
+    """Run vocal and Gemini text emotion analysis in parallel.
+
+    The vocal model gets a hard 10-second budget. The Gemini transcript
+    classifier starts immediately in parallel and becomes the real result if
+    the vocal service is slow/unavailable, so Flutter never waits forever.
+    """
+    audio_task = asyncio.create_task(
+        analyze_patient_audio(
+            conversation_id=session.id,
+            wav_path=wav_path,
+        )
+    )
+    text_task = asyncio.create_task(
+        analyze_transcript_emotion(
+            conversation_id=session.id,
+            turns=transcript_turns,
+            locale=session.locale,
+            audio_duration_ms=audio_duration_ms,
+        )
+    )
+
+    audio_result: dict | None = None
+    text_result: dict | None = None
+    result: dict | None = None
+
     try:
-        result = None
-        for attempt in range(3):
-            result = await analyze_patient_audio(
-                conversation_id=session.id,
-                wav_path=wav_path,
+        try:
+            audio_result = await asyncio.wait_for(
+                asyncio.shield(audio_task),
+                timeout=10.0,
             )
-            status = str(result.get("status") or "failed")
-            retryable = (
-                status == "failed"
-                and str(result.get("failure_code") or "") in {
-                    "SERVICE_TIMEOUT",
-                    "MODEL_UNAVAILABLE",
-                    "MODEL_INFERENCE_FAILED",
-                }
-            )
-            if not retryable or attempt == 2:
-                break
-            await asyncio.sleep(0.8 * (attempt + 1))
+        except asyncio.TimeoutError:
+            audio_task.cancel()
+        except Exception:
+            audio_result = None
+
+        if (
+            isinstance(audio_result, dict)
+            and str(audio_result.get("status") or "") == "completed"
+        ):
+            result = audio_result
+            if not text_task.done():
+                text_task.cancel()
+        else:
+            try:
+                text_result = await asyncio.wait_for(
+                    asyncio.shield(text_task),
+                    timeout=2.0 if not text_task.done() else 0.1,
+                )
+            except Exception:
+                text_result = None
+
+            if (
+                isinstance(text_result, dict)
+                and str(text_result.get("status") or "") == "completed"
+            ):
+                result = text_result
+            elif isinstance(audio_result, dict):
+                result = audio_result
+            elif isinstance(text_result, dict):
+                result = text_result
 
         result = result or {
             "status": "failed",
-            "failure_code": "MODEL_INFERENCE_FAILED",
-            "failure_message": "emotion_result_missing",
+            "failure_code": "EMOTION_ANALYSIS_UNAVAILABLE",
+            "failure_message": "audio_and_text_emotion_analysis_failed",
+            "model": f"gemini_text_emotion_fallback:{settings.text_model}",
+            "analysis_version": "v2-parallel-fallback",
+            "audio_duration_ms": audio_duration_ms,
+            "analyzed_speech_ms": 0,
+            "segments": [],
         }
-        status = str(result.get("status") or "failed")
+
         await call_hani_tool(
             "complete_voice_emotion_analysis",
             {
@@ -288,12 +342,15 @@ async def _run_emotion_analysis(session, wav_path) -> None:
             "voice emotion analysis",
             {
                 "conversation_id": session.id,
-                "status": status,
+                "status": result.get("status"),
                 "audio_duration_ms": result.get("audio_duration_ms"),
                 "analyzed_speech_ms": result.get("analyzed_speech_ms"),
                 "segments": len(result.get("segments") or []),
                 "processing_ms": result.get("processing_ms"),
                 "model": result.get("model"),
+                "fallback": str(result.get("model") or "").startswith(
+                    "gemini_text_emotion_fallback:"
+                ),
             },
         )
     except Exception as exc:
@@ -304,8 +361,10 @@ async def _run_emotion_analysis(session, wav_path) -> None:
                     "sessionId": session.id,
                     "result": {
                         "status": "failed",
-                        "failure_code": "MODEL_INFERENCE_FAILED",
+                        "failure_code": "EMOTION_ANALYSIS_UNAVAILABLE",
                         "failure_message": type(exc).__name__,
+                        "model": f"gemini_text_emotion_fallback:{settings.text_model}",
+                        "analysis_version": "v2-parallel-fallback",
                     },
                 },
                 patient_id=session.patient_id,
@@ -317,6 +376,10 @@ async def _run_emotion_analysis(session, wav_path) -> None:
             pass
         print("voice emotion analysis failed", type(exc).__name__)
     finally:
+        for task in (audio_task, text_task):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(audio_task, text_task, return_exceptions=True)
         delete_temp_audio(wav_path)
 
 
@@ -338,11 +401,7 @@ async def _finalize_voice_call(
             )
         return
     session.voice_finalized = True
-    analysis_enabled = bool(
-        settings.emotion_analysis_enabled
-        and settings.emotion_service_url
-        and settings.emotion_service_secret
-    )
+    analysis_enabled = settings.emotion_analysis_enabled
 
     await call_hani_tool(
         "finalize_hani_voice_call",
@@ -360,7 +419,16 @@ async def _finalize_voice_call(
     analysis_status = "not_started"
     if analysis_enabled and audio_buffer.byte_length > 0:
         wav_path = audio_buffer.finalize_wav_file()
-        asyncio.create_task(_run_emotion_analysis(session, wav_path))
+        audio_duration_ms = round(audio_buffer.duration_seconds() * 1000)
+        transcript_turns = list(session.voice_user_transcripts)
+        asyncio.create_task(
+            _run_emotion_analysis(
+                session,
+                wav_path,
+                audio_duration_ms=audio_duration_ms,
+                transcript_turns=transcript_turns,
+            )
+        )
         analysis_status = "processing"
 
     if send_ack and ws.client_state == WebSocketState.CONNECTED:
@@ -653,10 +721,23 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                             },
                         )
 
-                    await _persist_voice_turn(
-                        session,
-                        user_text=user_final,
-                        hani_text=model_final,
+                    if user_final:
+                        if (
+                            not session.voice_user_transcripts
+                            or session.voice_user_transcripts[-1] != user_final
+                        ):
+                            session.voice_user_transcripts.append(user_final)
+                            if len(session.voice_user_transcripts) > 24:
+                                session.voice_user_transcripts = (
+                                    session.voice_user_transcripts[-24:]
+                                )
+
+                    asyncio.create_task(
+                        _persist_voice_turn(
+                            session,
+                            user_text=user_final,
+                            hani_text=model_final,
+                        )
                     )
 
                     user_turn_id += 1
