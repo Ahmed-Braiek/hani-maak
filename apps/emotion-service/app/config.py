@@ -9,7 +9,7 @@ class Settings:
     service_secret: str = os.getenv("EMOTION_SERVICE_SECRET", "")
     model_id: str = os.getenv(
         "EMOTION_MODEL_ID",
-        "Aniemore/wav2vec2-bert-tiny2-s-emotion-v1-crosslingual",
+        "Aniemore/wavlm-emotion-v1-crosslingual",
     )
     model_subfolder: str = os.getenv("EMOTION_MODEL_SUBFOLDER", "int4")
     device: str = os.getenv("EMOTION_DEVICE", "cpu")
