@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../features/context/caregiver_context.dart';
+import 'settings/app_settings.dart';
 import 'widget_service.dart';
 
 final HaniHomeWidgetService homeWidgetServiceInstance =
@@ -11,7 +12,7 @@ class _MobileHomeWidgetService implements HaniHomeWidgetService {
       MethodChannel('com.hanimaak/native');
 
   @override
-  Future<void> sync(CaregiverContext context) async {
+  Future<void> sync(CaregiverContext context, HaniLanguage language) async {
     final nextMedication = _nextMedication(context);
     final nextAppointment = context.appointments
         .where((a) => a['scheduled_for'] != null)
@@ -20,17 +21,43 @@ class _MobileHomeWidgetService implements HaniHomeWidgetService {
           .compareTo(b['scheduled_for']?.toString() ?? ''));
 
     final medicationText = nextMedication.isEmpty
-        ? 'No medication due'
+        ? haniText(
+            language,
+            tn: 'ما فماش دواء قريب',
+            ar: 'لا يوجد دواء قريب',
+            en: 'No medication due',
+            fr: 'Aucun médicament prévu',
+          )
         : [
-            nextMedication['medication_name']?.toString() ?? 'Medication',
+            nextMedication['medication_name']?.toString() ??
+                haniText(
+                  language,
+                  tn: 'دواء',
+                  ar: 'دواء',
+                  en: 'Medication',
+                  fr: 'Médicament',
+                ),
             nextMedication['dose_text']?.toString(),
             nextMedication['_next_time']?.toString(),
           ].whereType<String>().where((e) => e.isNotEmpty).join(' · ');
 
     final appointmentText = nextAppointment.isEmpty
-        ? 'No upcoming appointment'
+        ? haniText(
+            language,
+            tn: 'ما فماش موعد قريب',
+            ar: 'لا يوجد موعد قريب',
+            en: 'No upcoming appointment',
+            fr: 'Aucun rendez-vous à venir',
+          )
         : [
-            nextAppointment.first['reason']?.toString() ?? 'Appointment',
+            nextAppointment.first['reason']?.toString() ??
+                haniText(
+                  language,
+                  tn: 'موعد',
+                  ar: 'موعد',
+                  en: 'Appointment',
+                  fr: 'Rendez-vous',
+                ),
             nextAppointment.first['scheduled_for']?.toString(),
           ].whereType<String>().join(' · ');
 
@@ -40,8 +67,29 @@ class _MobileHomeWidgetService implements HaniHomeWidgetService {
       'nextAppointment': appointmentText,
       'openTasks': context.openTasks.length,
       'careStatus': context.followUp == null
-          ? 'Care plan up to date'
-          : context.followUp!['title']?.toString() ?? 'Follow-up available',
+          ? haniText(
+              language,
+              tn: 'الرعاية محدثة',
+              ar: 'خطة الرعاية محدثة',
+              en: 'Care plan up to date',
+              fr: 'Plan de soins à jour',
+            )
+          : context.followUp!['title']?.toString() ??
+              haniText(
+                language,
+                tn: 'فما متابعة',
+                ar: 'توجد متابعة',
+                en: 'Follow-up available',
+                fr: 'Suivi disponible',
+              ),
+      'language': language.code,
+      'tasksLabel': haniText(
+        language,
+        tn: 'مهام',
+        ar: 'مهام',
+        en: 'tasks',
+        fr: 'tâches',
+      ),
     });
   }
 
