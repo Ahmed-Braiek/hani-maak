@@ -21,6 +21,9 @@ class Session:
     last_user_text: str = ""
     pending_action: dict[str, Any] | None = None
     voice_finalized: bool = False
+    voice_user_transcripts: list[str] = field(default_factory=list)
+    runtime_context_cache: dict[str, Any] | None = None
+    runtime_context_cached_at: float = 0.0
 
 
 _sessions: dict[str, Session] = {}

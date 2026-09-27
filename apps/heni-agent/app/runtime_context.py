@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any
 
 from .heni_prompt import HENI_SYSTEM_PROMPT
@@ -15,7 +16,12 @@ def _usable(result: dict[str, Any]) -> dict[str, Any] | None:
 
 
 async def fetch_runtime_context(session) -> dict[str, Any]:
-    """Load fresh authorized context while keeping caregiver sessions fast."""
+    """Load authorized context with a short per-session cache for chat speed."""
+    now = time.time()
+    cached = getattr(session, "runtime_context_cache", None)
+    cached_at = float(getattr(session, "runtime_context_cached_at", 0.0) or 0.0)
+    if cached is not None and (now - cached_at) < 20.0:
+        return cached
     if session.caregiver_id:
         caregiver = await call_hani_tool(
             "get_caregiver_context",
@@ -25,7 +31,10 @@ async def fetch_runtime_context(session) -> dict[str, Any]:
             locale=session.locale,
             source=session.source,
         )
-        return {"caregiver": _usable(caregiver)}
+        result = {"caregiver": _usable(caregiver)}
+        session.runtime_context_cache = result
+        session.runtime_context_cached_at = now
+        return result
 
     patient, hospital = await asyncio.gather(
         call_hani_tool(
@@ -43,7 +52,10 @@ async def fetch_runtime_context(session) -> dict[str, Any]:
             source=session.source,
         ),
     )
-    return {"patient": _usable(patient), "hospital": _usable(hospital)}
+    result = {"patient": _usable(patient), "hospital": _usable(hospital)}
+    session.runtime_context_cache = result
+    session.runtime_context_cached_at = now
+    return result
 
 
 def build_runtime_system_prompt(context: dict[str, Any]) -> str:

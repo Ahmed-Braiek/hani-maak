@@ -351,6 +351,8 @@ class _CompletedAnalysis extends StatelessWidget {
   Widget build(BuildContext context) {
     final dominant = analysis.dominantEmotion ?? 'unknown';
     final confidence = analysis.confidence ?? 0;
+    final isTextFallback =
+        analysis.model?.startsWith('gemini_text_emotion_fallback:') == true;
     final sorted = analysis.distribution.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -358,15 +360,39 @@ class _CompletedAnalysis extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StatusCard(
-          icon: Icons.multiline_chart_rounded,
-          title: t(
-            'المشاعر في نبرة الصوت',
-            'المشاعر المكتشفة في الصوت',
-            'Detected vocal emotion',
-            'Émotion vocale détectée',
-          ),
+          icon: isTextFallback
+              ? Icons.auto_awesome_rounded
+              : Icons.multiline_chart_rounded,
+          title: isTextFallback
+              ? t(
+                  'تحليل احتياطي سريع من كلام المستخدم',
+                  'تحليل احتياطي سريع من نص المستخدم',
+                  'Fast emotion fallback from transcript',
+                  'Analyse émotionnelle de secours à partir du texte',
+                )
+              : t(
+                  'المشاعر في نبرة الصوت',
+                  'المشاعر المكتشفة في الصوت',
+                  'Detected vocal emotion',
+                  'Émotion vocale détectée',
+                ),
           body: '${_label(dominant)} · ${_percent(confidence)}',
         ),
+        if (isTextFallback) ...[
+          const SizedBox(height: 10),
+          Text(
+            t(
+              'مودال الصوت طول أكثر من 10 ثواني، لذلك هاني استعمل تحليل Gemini على كلام المستخدم باش يعطي نتيجة سريعة.',
+              'استغرق نموذج الصوت أكثر من 10 ثوانٍ، لذلك استخدم هاني تحليل Gemini للنص لتقديم نتيجة سريعة.',
+              'The vocal model exceeded 10 seconds, so Hani used Gemini on the patient transcript as a fast fallback.',
+              'Le modèle vocal a dépassé 10 secondes. Hani a donc utilisé Gemini sur la transcription du patient comme solution de secours rapide.',
+            ),
+            style: const TextStyle(
+              color: HaniColors.muted,
+              height: 1.4,
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         Text(
           _summary(dominant),
@@ -450,8 +476,12 @@ class _CompletedAnalysis extends StatelessWidget {
     return t(
       'النبرة الغالبة في المكالمة: $label. النتيجة تقريبية.',
       'النبرة الغالبة في المكالمة: $label. النتيجة تقديرية.',
-      'Predominantly $label vocal tone during this call. This is an estimate, not a diagnosis.',
-      'Tonalité vocale principalement $label pendant cet appel. Il s’agit d’une estimation, pas d’un diagnostic.',
+      analysis.model?.startsWith('gemini_text_emotion_fallback:') == true
+          ? 'Predominantly $label emotional signal in the patient transcript. This fallback is an estimate, not a diagnosis.'
+          : 'Predominantly $label vocal tone during this call. This is an estimate, not a diagnosis.',
+      analysis.model?.startsWith('gemini_text_emotion_fallback:') == true
+          ? 'Signal émotionnel principalement $label dans la transcription du patient. Cette solution de secours est une estimation, pas un diagnostic.'
+          : 'Tonalité vocale principalement $label pendant cet appel. Il s’agit d’une estimation, pas d’un diagnostic.',
     );
   }
 
