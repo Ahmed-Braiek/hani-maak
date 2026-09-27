@@ -109,6 +109,8 @@ export async function GET(
         analysisVersion: analysis.analysis_version,
         failureCode: analysis.failure_code,
         failureMessage: analysis.failure_message,
+        emotionalSummary: analysis.emotional_summary,
+        resultSource: analysis.result_source,
         createdAt: analysis.created_at,
         completedAt: analysis.completed_at,
       },
