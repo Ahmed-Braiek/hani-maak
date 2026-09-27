@@ -214,6 +214,20 @@ class _MobileNotificationService implements HaniNotificationService {
   }
 
   @override
+  Future<void> showAction({
+    required String title,
+    required String body,
+    required String route,
+  }) async {
+    await initialize();
+    await _channel.invokeMethod<void>('showTestNotification', {
+      'title': title,
+      'body': body,
+      'route': route,
+    });
+  }
+
+  @override
   Future<void> showPostCall({
     required String conversationId,
     required HaniLanguage language,

@@ -248,10 +248,30 @@ async def handle_voice_connection(ws: WebSocket) -> None:
 
 async def _run_emotion_analysis(session, wav_path) -> None:
     try:
-        result = await analyze_patient_audio(
-            conversation_id=session.id,
-            wav_path=wav_path,
-        )
+        result = None
+        for attempt in range(3):
+            result = await analyze_patient_audio(
+                conversation_id=session.id,
+                wav_path=wav_path,
+            )
+            status = str(result.get("status") or "failed")
+            retryable = (
+                status == "failed"
+                and str(result.get("failure_code") or "") in {
+                    "SERVICE_TIMEOUT",
+                    "MODEL_UNAVAILABLE",
+                    "MODEL_INFERENCE_FAILED",
+                }
+            )
+            if not retryable or attempt == 2:
+                break
+            await asyncio.sleep(0.8 * (attempt + 1))
+
+        result = result or {
+            "status": "failed",
+            "failure_code": "MODEL_INFERENCE_FAILED",
+            "failure_message": "emotion_result_missing",
+        }
         status = str(result.get("status") or "failed")
         await call_hani_tool(
             "complete_voice_emotion_analysis",
@@ -393,8 +413,11 @@ async def _pump_client_to_live(
             await _finalize_voice_call(ws, session, audio_buffer)
             return
 
+        # audio_stream_end is reserved for the real call_end path above.
+        # Ending the realtime input stream between normal user turns can make
+        # Gemini stop accepting microphone audio after the first response.
         if control_type == "audio_stream_end":
-            await live.send_realtime_input(audio_stream_end=True)
+            continue
 
         elif control_type == "debug_text" and settings.debug_enabled:
             text = str(control.get("text") or "").strip()

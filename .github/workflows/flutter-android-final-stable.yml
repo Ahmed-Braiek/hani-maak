@@ -147,6 +147,18 @@ jobs:
           (adaptive / "ic_launcher.xml").write_text(adaptive_xml)
           (adaptive / "ic_launcher_round.xml").write_text(adaptive_xml)
 
+          adaptive33 = Path("android/app/src/main/res/mipmap-anydpi-v33")
+          adaptive33.mkdir(parents=True, exist_ok=True)
+          adaptive33_xml = """<?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/hani_launcher_background" />
+              <foreground android:drawable="@drawable/hani_launcher_foreground" />
+              <monochrome android:drawable="@drawable/hani_launcher_foreground" />
+          </adaptive-icon>
+          """
+          (adaptive33 / "ic_launcher.xml").write_text(adaptive33_xml)
+          (adaptive33 / "ic_launcher_round.xml").write_text(adaptive33_xml)
+
           receivers = """
               <receiver
                   android:name=".HaniNotificationReceiver"
@@ -192,20 +204,40 @@ jobs:
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:orientation="vertical"
-              android:padding="16dp"
-              android:background="#EAF6FF">
-              <TextView
-                  android:layout_width="wrap_content"
+              android:padding="14dp"
+              android:background="#F5FAFF">
+              <LinearLayout
+                  android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:text="Hani Maak"
-                  android:textColor="#0E61C6"
-                  android:textStyle="bold"
-                  android:textSize="16sp" />
+                  android:gravity="center_vertical"
+                  android:orientation="horizontal">
+                  <TextView
+                      android:layout_width="0dp"
+                      android:layout_height="wrap_content"
+                      android:layout_weight="1"
+                      android:text="Hani Maak"
+                      android:textColor="#0849B4"
+                      android:textStyle="bold"
+                      android:textSize="17sp" />
+                  <TextView
+                      android:id="@+id/widget_call_hani"
+                      android:layout_width="wrap_content"
+                      android:layout_height="36dp"
+                      android:gravity="center"
+                      android:minWidth="92dp"
+                      android:paddingStart="12dp"
+                      android:paddingEnd="12dp"
+                      android:background="#157BE6"
+                      android:text="Call Hani"
+                      android:textColor="#FFFFFF"
+                      android:textStyle="bold"
+                      android:textSize="12sp" />
+              </LinearLayout>
               <TextView
                   android:id="@+id/widget_patient"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:layout_marginTop="6dp"
+                  android:layout_marginTop="7dp"
                   android:textColor="#12324A"
                   android:textStyle="bold"
                   android:textSize="14sp" />
@@ -213,24 +245,28 @@ jobs:
                   android:id="@+id/widget_medication"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:layout_marginTop="8dp"
+                  android:layout_marginTop="7dp"
+                  android:maxLines="1"
+                  android:ellipsize="end"
                   android:textColor="#42647E"
                   android:textSize="12sp" />
               <TextView
                   android:id="@+id/widget_appointment"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:layout_marginTop="4dp"
+                  android:layout_marginTop="3dp"
+                  android:maxLines="1"
+                  android:ellipsize="end"
                   android:textColor="#42647E"
                   android:textSize="12sp" />
               <TextView
                   android:id="@+id/widget_status"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:layout_marginTop="4dp"
-                  android:textColor="#199AED"
+                  android:layout_marginTop="5dp"
+                  android:textColor="#1899EC"
                   android:textStyle="bold"
-                  android:textSize="12sp" />
+                  android:textSize="11sp" />
           </LinearLayout>
           """)
 
@@ -239,7 +275,7 @@ jobs:
           info.write_text("""<?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
               android:minWidth="250dp"
-              android:minHeight="110dp"
+              android:minHeight="125dp"
               android:updatePeriodMillis="1800000"
               android:initialLayout="@layout/hani_maak_widget"
               android:resizeMode="horizontal|vertical"
@@ -331,6 +367,7 @@ jobs:
                                   .putString("care_status", call.argument<String>("careStatus") ?: "Care plan up to date")
                                   .putString("language", call.argument<String>("language") ?: "en")
                                   .putString("tasks_label", call.argument<String>("tasksLabel") ?: "tasks")
+                                  .putString("call_label", call.argument<String>("callLabel") ?: "Call Hani")
                                   .apply()
                               HaniMaakWidgetProvider.refreshAll(this)
                               result.success(null)
@@ -489,18 +526,33 @@ jobs:
                       val tasks = prefs.getInt("open_tasks", 0)
                       val tasksLabel = prefs.getString("tasks_label", "tasks") ?: "tasks"
                       val status = prefs.getString("care_status", "Care plan up to date")
+                      val callLabel = prefs.getString("call_label", "Call Hani") ?: "Call Hani"
                       views.setTextViewText(R.id.widget_status, "$tasks $tasksLabel · $status")
+                      views.setTextViewText(R.id.widget_call_hani, callLabel)
 
-                      val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-                      if (launch != null) {
-                          val pending = PendingIntent.getActivity(
-                              context,
-                              0,
-                              launch,
-                              PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                          )
-                          views.setOnClickPendingIntent(R.id.widget_root, pending)
+                      val launch = Intent(context, MainActivity::class.java).apply {
+                          flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                          putExtra("route", "/today")
                       }
+                      val openPending = PendingIntent.getActivity(
+                          context,
+                          widgetId,
+                          launch,
+                          PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                      )
+                      views.setOnClickPendingIntent(R.id.widget_root, openPending)
+
+                      val voiceLaunch = Intent(context, MainActivity::class.java).apply {
+                          flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                          putExtra("route", "/voice")
+                      }
+                      val voicePending = PendingIntent.getActivity(
+                          context,
+                          100000 + widgetId,
+                          voiceLaunch,
+                          PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                      )
+                      views.setOnClickPendingIntent(R.id.widget_call_hani, voicePending)
                       manager.updateAppWidget(widgetId, views)
                   }
 

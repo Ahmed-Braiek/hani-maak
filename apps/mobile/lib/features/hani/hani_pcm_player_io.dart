@@ -4,33 +4,39 @@ import 'dart:typed_data';
 
 import 'package:just_audio/just_audio.dart';
 
-/// Stable Android/iOS playback for Gemini Live PCM16LE audio.
+/// Stable low-latency Android/iOS playback for Gemini Live PCM16LE audio.
 ///
-/// Gemini Live returns mono signed PCM16 at 24 kHz. We buffer each assistant
-/// turn, wrap it as WAV, write it to temporary storage, then play it through
-/// just_audio. This avoids the native flutter_pcm_sound plugin that caused
-/// startup crashes on the target Android device.
+/// Gemini Live returns mono signed PCM16 at 24 kHz. Audio is played in small
+/// temporary WAV slices instead of waiting for an entire assistant turn. This
+/// keeps the safer just_audio path while reducing the transcript-before-voice
+/// delay that users experienced with whole-turn buffering.
 class HaniPcmPlayer {
   static const int sampleRate = 24000;
+  static const int _targetBytes = 19200; // ~400 ms, mono PCM16 @ 24 kHz.
 
   final AudioPlayer _player = AudioPlayer();
   final BytesBuilder _buffer = BytesBuilder(copy: false);
   Future<void> _serial = Future<void>.value();
   bool _disposed = false;
   bool _playing = false;
+  int _queuedSlices = 0;
   File? _activeFile;
 
-  bool get isPlaying => _playing;
+  bool get isPlaying => _playing || _queuedSlices > 0;
 
   Future<void> init() async {}
 
-  Future<void> add(Uint8List pcm) async {
-    if (_disposed || pcm.isEmpty) return;
+  Future<void> add(Uint8List pcm) {
+    if (_disposed || pcm.isEmpty) return Future<void>.value();
     _buffer.add(pcm);
+    if (_buffer.length < _targetBytes) return Future<void>.value();
+
+    final bytes = _buffer.takeBytes();
+    return _enqueue(() => _playPcm(bytes));
   }
 
   Future<void> flush() {
-    if (_disposed || _buffer.length == 0) return Future<void>.value();
+    if (_disposed || _buffer.length == 0) return _serial;
     final bytes = _buffer.takeBytes();
     return _enqueue(() => _playPcm(bytes));
   }
@@ -68,6 +74,8 @@ class HaniPcmPlayer {
 
   Future<void> interrupt() async {
     _buffer.clear();
+    _serial = Future<void>.value();
+    _queuedSlices = 0;
     await _player.stop();
     final file = _activeFile;
     _activeFile = null;
@@ -82,6 +90,7 @@ class HaniPcmPlayer {
   Future<void> dispose() async {
     _disposed = true;
     _buffer.clear();
+    _queuedSlices = 0;
     await _player.dispose();
     final file = _activeFile;
     _activeFile = null;
@@ -94,7 +103,10 @@ class HaniPcmPlayer {
   }
 
   Future<void> _enqueue(Future<void> Function() operation) {
-    final next = _serial.then((_) => operation());
+    _queuedSlices += 1;
+    final next = _serial.then((_) => operation()).whenComplete(() {
+      if (_queuedSlices > 0) _queuedSlices -= 1;
+    });
     _serial = next.catchError((_) {});
     return next;
   }

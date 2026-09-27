@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:record/record.dart';
@@ -94,8 +95,11 @@ final haniVoiceProvider =
   return controller;
 });
 
-class HaniVoiceController extends StateNotifier<HaniVoiceState> {
-  HaniVoiceController() : super(const HaniVoiceState());
+class HaniVoiceController extends StateNotifier<HaniVoiceState>
+    with WidgetsBindingObserver {
+  HaniVoiceController() : super(const HaniVoiceState()) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   static const int _bargeInPreRollBytes = 16000; // ~500 ms at 16 kHz PCM16.
   static const double _bargeInRmsThreshold = 0.055;
@@ -118,6 +122,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
   Timer? _watchdog;
   DateTime _lastServerActivity = DateTime.now();
   DateTime? _lastMicSpeechAt;
+  DateTime? _lastMicChunkAt;
   DateTime? _lastMicRestartAt;
   DateTime _phaseStartedAt = DateTime.now();
   bool _recoveringMic = false;
@@ -132,6 +137,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     _phaseStartedAt = DateTime.now();
     _lastServerActivity = DateTime.now();
     _lastMicSpeechAt = null;
+    _lastMicChunkAt = null;
     state = state.copyWith(
       phase: VoicePhase.connecting,
       clearError: true,
@@ -178,7 +184,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         _onSocketData,
         onError: (Object error) {
           if (!_disconnecting) {
-            _fail('Voice connection was interrupted.');
+            _fail(_voiceText(
+              tn: 'اتصال الصوت تقطع. عاود جرّب.',
+              ar: 'انقطع الاتصال الصوتي. حاول مجددًا.',
+              en: 'Voice connection was interrupted.',
+              fr: 'La connexion vocale a été interrompue.',
+            ));
           }
         },
         onDone: () {
@@ -202,7 +213,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         sessionId: issuedSessionId,
       );
     } catch (_) {
-      _fail('Hani voice could not connect. Tap to try again.');
+      _fail(_voiceText(
+        tn: 'ما نجّمش نربط صوت هاني. عاود جرّب.',
+        ar: 'تعذر الاتصال بصوت هاني. حاول مجددًا.',
+        en: 'Hani voice could not connect. Tap to try again.',
+        fr: 'Impossible de connecter la voix de Hani. Réessayez.',
+      ));
     }
   }
 
@@ -252,18 +268,21 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     if (!mounted || !state.connected || _disconnecting) return;
     final now = DateTime.now();
 
+    // Never send audio_stream_end in the middle of a Gemini Live session.
+    // That signal can close the realtime input stream after the first turn on
+    // some SDK/runtime combinations, which is the root cause of the
+    // "first answer works, then Listening forever" failure.
     if (state.phase == VoicePhase.listening) {
-      final recentSpeech = _lastMicSpeechAt != null &&
-          now.difference(_lastMicSpeechAt!) < const Duration(seconds: 5);
-      final serverSilent =
-          now.difference(_lastServerActivity) > const Duration(seconds: 7);
-      if (recentSpeech && serverSilent) {
-        _channel?.sink.add(jsonEncode({'type': 'audio_stream_end'}));
-        _phaseStartedAt = now;
-        state = state.copyWith(phase: VoicePhase.thinking);
-        unawaited(_recoverMic());
-      } else if (now.difference(_phaseStartedAt) >
-          const Duration(seconds: 45)) {
+      final micSilent = _lastMicChunkAt == null ||
+          now.difference(_lastMicChunkAt!) > const Duration(seconds: 4);
+      if (micSilent) {
+        unawaited(_recoverMic(force: true));
+        return;
+      }
+
+      // Listening is a valid steady state. Only verify that the recorder is
+      // alive; do not force a server turn boundary.
+      if (now.difference(_phaseStartedAt) > const Duration(seconds: 45)) {
         unawaited(_ensureMic());
         _phaseStartedAt = now;
       }
@@ -271,8 +290,14 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     }
 
     if (state.phase == VoicePhase.thinking &&
-        now.difference(_phaseStartedAt) > const Duration(seconds: 18)) {
-      unawaited(_recoverMic());
+        now.difference(_phaseStartedAt) > const Duration(seconds: 16)) {
+      // If Gemini does not answer, restore the microphone/listening state so
+      // the user is never trapped. Keep the websocket session alive.
+      _bargeInActive = false;
+      _dropOldModelAudio = false;
+      _resetBargeGate();
+      _lastMicSpeechAt = null;
+      unawaited(_ensureMic());
       _phaseStartedAt = now;
       state = state.copyWith(
         phase: VoicePhase.listening,
@@ -283,10 +308,8 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
     if (state.phase == VoicePhase.speaking &&
         !_pcmPlayer.isPlaying &&
-        now.difference(_phaseStartedAt) > const Duration(seconds: 4)) {
-      unawaited(_ensureMic());
-      _phaseStartedAt = now;
-      state = state.copyWith(phase: VoicePhase.listening);
+        now.difference(_phaseStartedAt) > const Duration(seconds: 2)) {
+      _resumeListeningAfterAssistant();
     }
   }
 
@@ -297,10 +320,11 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     }
   }
 
-  Future<void> _recoverMic() async {
+  Future<void> _recoverMic({bool force = false}) async {
     if (_recoveringMic || _disconnecting || !state.connected) return;
     final now = DateTime.now();
-    if (_lastMicRestartAt != null &&
+    if (!force &&
+        _lastMicRestartAt != null &&
         now.difference(_lastMicRestartAt!) < const Duration(seconds: 4)) {
       return;
     }
@@ -321,7 +345,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
       if (mounted && state.connected) {
         state = state.copyWith(
           phase: VoicePhase.error,
-          error: 'Microphone recovery failed. Reconnect the voice call.',
+          error: _voiceText(
+            tn: 'الميكروفون ما رجعش يخدم. عاود اربط المكالمة.',
+            ar: 'تعذر استعادة الميكروفون. أعد الاتصال بالمكالمة.',
+            en: 'Microphone recovery failed. Reconnect the voice call.',
+            fr: 'Impossible de rétablir le microphone. Reconnectez l’appel.',
+          ),
           connected: false,
         );
       }
@@ -332,6 +361,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
   void _onMicChunk(Uint8List chunk) {
     if (_channel == null || !state.connected || chunk.isEmpty) return;
+    _lastMicChunkAt = DateTime.now();
 
     final level = _pcmLevel(chunk);
     final likelyHumanSpeech =
@@ -551,9 +581,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         final phase = event['phase']?.toString();
         if (phase == 'listening') {
           if (!_pcmPlayer.isPlaying) {
-            _phaseStartedAt = DateTime.now();
-            state = state.copyWith(phase: VoicePhase.listening);
-            unawaited(_ensureMic());
+            _resumeListeningAfterAssistant();
           }
         } else if (phase == 'thinking') {
           _dropOldModelAudio = false;
@@ -591,23 +619,30 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
       case 'interrupted':
         _dropOldModelAudio = false;
+        _bargeInActive = false;
+        _resetBargeGate();
         _interruptPlayback();
         break;
 
       case 'turn_complete':
         _dropOldModelAudio = false;
+        _bargeInActive = false;
+        _resetBargeGate();
         unawaited(
           _pcmPlayer.flush().whenComplete(() {
             if (mounted && state.connected) {
-              _phaseStartedAt = DateTime.now();
-              state = state.copyWith(phase: VoicePhase.listening);
-              unawaited(_ensureMic());
+              _resumeListeningAfterAssistant();
             }
           }).catchError((_) {
             if (mounted && state.connected) {
               state = state.copyWith(
                 phase: VoicePhase.error,
-                error: 'Hani audio playback failed. Reconnect the voice call.',
+                error: _voiceText(
+                  tn: 'صوت هاني ما خدمش. عاود اربط المكالمة.',
+                  ar: 'تعذر تشغيل صوت هاني. أعد الاتصال بالمكالمة.',
+                  en: 'Hani audio playback failed. Reconnect the voice call.',
+                  fr: 'Impossible de lire la voix de Hani. Reconnectez l’appel.',
+                ),
               );
             }
           }),
@@ -636,7 +671,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         break;
 
       case 'error':
-        _fail('Hani voice is temporarily unavailable.');
+        _fail(_voiceText(
+          tn: 'صوت هاني موش متاح توّة.',
+          ar: 'صوت هاني غير متاح مؤقتًا.',
+          en: 'Hani voice is temporarily unavailable.',
+          fr: 'La voix de Hani est temporairement indisponible.',
+        ));
         break;
     }
   }
@@ -697,7 +737,12 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
         if (mounted && state.connected) {
           state = state.copyWith(
             phase: VoicePhase.error,
-            error: 'Hani audio playback failed. Reconnect the voice call.',
+            error: _voiceText(
+              tn: 'صوت هاني ما خدمش. عاود اربط المكالمة.',
+              ar: 'تعذر تشغيل صوت هاني. أعد الاتصال بالمكالمة.',
+              en: 'Hani audio playback failed. Reconnect the voice call.',
+              fr: 'Impossible de lire la voix de Hani. Reconnectez l’appel.',
+            ),
           );
         }
       }),
@@ -708,9 +753,44 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
     await _pcmPlayer.interrupt();
 
     if (mounted && state.connected) {
-      _phaseStartedAt = DateTime.now();
-      state = state.copyWith(phase: VoicePhase.listening);
-      unawaited(_ensureMic());
+      _resumeListeningAfterAssistant();
+    }
+  }
+
+  void _resumeListeningAfterAssistant() {
+    if (!mounted || !state.connected || _disconnecting) return;
+    _bargeInActive = false;
+    _dropOldModelAudio = false;
+    _resetBargeGate();
+    _lastMicSpeechAt = null;
+    _phaseStartedAt = DateTime.now();
+    state = state.copyWith(
+      phase: VoicePhase.listening,
+      clearError: true,
+    );
+    unawaited(_ensureMic());
+  }
+
+  String _voiceText({
+    required String tn,
+    required String ar,
+    required String en,
+    required String fr,
+  }) {
+    return switch (state.locale) {
+      'tn' => tn,
+      'fr' => fr,
+      'en' => en,
+      _ => ar,
+    };
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.resumed &&
+        state.connected &&
+        !_disconnecting) {
+      unawaited(_recoverMic(force: true));
     }
   }
 
@@ -727,6 +807,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _watchdog?.cancel();
     _micSub?.cancel();
     _socketSub?.cancel();
