@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/app_settings.dart';
+import '../../core/widget_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
 import '../context/caregiver_context_api.dart';
@@ -63,6 +64,30 @@ class WidgetsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: () async {
+              final supported =
+                  await HaniHomeWidgetService.instance.requestPin();
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    supported
+                        ? 'Android opened the Hani Maak widget request.'
+                        : 'Long-press your phone home screen, choose Widgets, then Hani Maak.',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add_to_home_screen_rounded),
+            label: const Text('Add Hani Maak widget to phone'),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'If Android does not show a confirmation, long-press the phone home screen → Widgets → Hani Maak.',
+            style: TextStyle(color: HaniColors.muted, fontSize: 12.2),
           ),
           const SizedBox(height: 18),
           Card(
