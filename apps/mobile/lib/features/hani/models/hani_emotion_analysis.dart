@@ -47,6 +47,8 @@ class HaniEmotionAnalysis {
     this.analysisVersion,
     this.failureCode,
     this.failureMessage,
+    this.emotionalSummary,
+    this.resultSource,
   });
 
   final String status;
@@ -60,6 +62,8 @@ class HaniEmotionAnalysis {
   final String? analysisVersion;
   final String? failureCode;
   final String? failureMessage;
+  final String? emotionalSummary;
+  final String? resultSource;
 
   factory HaniEmotionAnalysis.fromEnvelope(Map<String, dynamic> json) {
     final status = json['status']?.toString() ?? 'not_started';
@@ -90,6 +94,8 @@ class HaniEmotionAnalysis {
       analysisVersion: analysis['analysisVersion']?.toString(),
       failureCode: analysis['failureCode']?.toString(),
       failureMessage: analysis['failureMessage']?.toString(),
+      emotionalSummary: analysis['emotionalSummary']?.toString(),
+      resultSource: analysis['resultSource']?.toString(),
     );
   }
 }
