@@ -59,15 +59,74 @@ async def _generate(
     contents: list[types.Content],
     config: types.GenerateContentConfig,
     timeout_seconds: float | None = None,
+    model: str | None = None,
 ):
     return await asyncio.wait_for(
         _client.aio.models.generate_content(
-            model=settings.text_model,
+            model=model or settings.text_model,
             contents=contents,
             config=config,
         ),
         timeout=timeout_seconds or settings.model_timeout_seconds,
     )
+
+
+def _is_retryable_model_error(error: Exception) -> bool:
+    status_code = getattr(error, "code", None) or getattr(error, "status_code", None)
+    text = str(error).upper()
+    return (
+        status_code in {408, 429, 500, 502, 503, 504}
+        or "RESOURCE_EXHAUSTED" in text
+        or "TOO MANY REQUESTS" in text
+        or "UNAVAILABLE" in text
+        or "DEADLINE_EXCEEDED" in text
+        or "TIMEOUT" in text
+    )
+
+
+async def _generate_resilient(
+    *,
+    contents: list[types.Content],
+    config: types.GenerateContentConfig,
+    timeout_seconds: float | None = None,
+    preferred_model: str | None = None,
+):
+    models: list[str] = []
+    for candidate in (
+        preferred_model,
+        settings.text_model,
+        settings.text_fallback_model,
+        "gemini-3.1-flash-lite",
+    ):
+        if candidate and candidate not in models:
+            models.append(candidate)
+
+    last_error: Exception | None = None
+    for index, model_name in enumerate(models):
+        try:
+            response = await _generate(
+                contents=contents,
+                config=config,
+                timeout_seconds=timeout_seconds,
+                model=model_name,
+            )
+            return response, model_name
+        except Exception as error:
+            last_error = error
+            if not _is_retryable_model_error(error) or index == len(models) - 1:
+                raise
+            print(
+                "Hani text model fallback",
+                {
+                    "from": model_name,
+                    "to": models[index + 1],
+                    "error": type(error).__name__,
+                },
+            )
+
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("hani_text_generation_failed")
 
 
 def _normalized(message: str) -> str:
@@ -200,7 +259,7 @@ def _base_result(message: str, session, *, tool: str | None = None, tools: list[
         "confirmationToken": None,
         "tools": tools or [],
         "tool": tool,
-        "model": settings.text_model,
+        "model": active_model,
     }
 
 
@@ -410,7 +469,7 @@ async def run_chat_turn(
         temperature=0.2,
     )
 
-    response = await _generate(
+    response, active_model = await _generate_resilient(
         contents=contents,
         config=config,
         timeout_seconds=(
@@ -458,10 +517,11 @@ async def run_chat_turn(
             )
 
         contents.append(types.Content(role="user", parts=response_parts))
-        response = await _generate(
+        response, active_model = await _generate_resilient(
             contents=contents,
             config=config,
             timeout_seconds=settings.model_timeout_seconds,
+            preferred_model=active_model,
         )
 
     reply = (response.text or "").strip()
@@ -487,10 +547,11 @@ async def run_chat_turn(
             temperature=0.1,
         )
         try:
-            repaired = await _generate(
+            repaired, repaired_model = await _generate_resilient(
                 contents=contents,
                 config=repair_config,
                 timeout_seconds=min(5.0, settings.model_timeout_seconds),
+                preferred_model=active_model,
             )
             repaired_text = (repaired.text or "").strip()
             if repaired_text:
@@ -521,7 +582,7 @@ async def run_chat_turn(
                     ],
                 ),
             ]
-            continuation = await _generate(
+            continuation, continuation_model = await _generate_resilient(
                 contents=continuation_contents,
                 config=types.GenerateContentConfig(
                     system_instruction=(
@@ -532,6 +593,7 @@ async def run_chat_turn(
                     temperature=0.1,
                 ),
                 timeout_seconds=min(5.0, settings.model_timeout_seconds),
+                preferred_model=active_model,
             )
             ending = (continuation.text or "").strip()
             if ending:
