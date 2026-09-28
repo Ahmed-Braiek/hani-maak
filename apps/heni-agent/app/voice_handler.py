@@ -10,6 +10,7 @@ from starlette.websockets import WebSocketState
 from .audio_buffer import PatientAudioBuffer, delete_temp_audio
 from .config import settings
 from .emotion_client import analyze_patient_audio
+from .text_emotion import analyze_text_emotion
 from .distress import detect_semantic_distress
 from .google_client import create_google_client
 from .language import detect_requested_locale, is_supported_transcript
@@ -246,77 +247,113 @@ async def handle_voice_connection(ws: WebSocket) -> None:
         audio_buffer.close()
 
 
-async def _run_emotion_analysis(session, wav_path) -> None:
-    try:
-        result = None
-        for attempt in range(3):
-            result = await analyze_patient_audio(
-                conversation_id=session.id,
-                wav_path=wav_path,
-            )
-            status = str(result.get("status") or "failed")
-            retryable = (
-                status == "failed"
-                and str(result.get("failure_code") or "") in {
-                    "SERVICE_TIMEOUT",
-                    "MODEL_UNAVAILABLE",
-                    "MODEL_INFERENCE_FAILED",
-                }
-            )
-            if not retryable or attempt == 2:
-                break
-            await asyncio.sleep(0.8 * (attempt + 1))
+async def _persist_emotion_result(session, result: dict) -> None:
+    await call_hani_tool(
+        "complete_voice_emotion_analysis",
+        {
+            "sessionId": session.id,
+            "result": result,
+        },
+        patient_id=session.patient_id,
+        caregiver_id=session.caregiver_id,
+        locale=session.locale,
+        source=session.source,
+    )
 
-        result = result or {
-            "status": "failed",
-            "failure_code": "MODEL_INFERENCE_FAILED",
-            "failure_message": "emotion_result_missing",
-        }
-        status = str(result.get("status") or "failed")
-        await call_hani_tool(
-            "complete_voice_emotion_analysis",
-            {
-                "sessionId": session.id,
-                "result": result,
-            },
-            patient_id=session.patient_id,
-            caregiver_id=session.caregiver_id,
-            locale=session.locale,
-            source=session.source,
+
+async def _run_emotion_analysis(session, wav_path) -> None:
+    audio_task = asyncio.create_task(
+        analyze_patient_audio(
+            conversation_id=session.id,
+            wav_path=wav_path,
         )
+    )
+    text_task = asyncio.create_task(
+        analyze_text_emotion(
+            conversation_id=session.id,
+            transcripts=list(session.voice_user_transcripts),
+            locale=session.locale,
+        )
+    )
+
+    chosen: dict | None = None
+    try:
+        try:
+            audio_result = await asyncio.wait_for(
+                asyncio.shield(audio_task),
+                timeout=10.0,
+            )
+        except asyncio.TimeoutError:
+            audio_result = None
+
+        if (
+            isinstance(audio_result, dict)
+            and str(audio_result.get("status") or "") in {
+                "completed",
+                "insufficient_audio",
+            }
+        ):
+            chosen = audio_result
+            if not text_task.done():
+                text_task.cancel()
+        else:
+            try:
+                text_result = await asyncio.wait_for(
+                    asyncio.shield(text_task),
+                    timeout=2.5,
+                )
+            except asyncio.TimeoutError:
+                text_result = None
+
+            if (
+                isinstance(text_result, dict)
+                and str(text_result.get("status") or "") == "completed"
+            ):
+                chosen = text_result
+            elif isinstance(audio_result, dict):
+                chosen = audio_result
+            else:
+                chosen = {
+                    "status": "failed",
+                    "failure_code": "EMOTION_ANALYSIS_UNAVAILABLE",
+                    "failure_message": "audio_and_text_emotion_unavailable",
+                    "model": f"{settings.text_model}:text-emotion-fallback",
+                    "segments": [],
+                }
+
+            if not audio_task.done():
+                audio_task.cancel()
+
+        await _persist_emotion_result(session, chosen)
         print(
             "voice emotion analysis",
             {
                 "conversation_id": session.id,
-                "status": status,
-                "audio_duration_ms": result.get("audio_duration_ms"),
-                "analyzed_speech_ms": result.get("analyzed_speech_ms"),
-                "segments": len(result.get("segments") or []),
-                "processing_ms": result.get("processing_ms"),
-                "model": result.get("model"),
+                "status": chosen.get("status"),
+                "model": chosen.get("model"),
+                "source": chosen.get("analysis_source", "acoustic"),
+                "segments": len(chosen.get("segments") or []),
             },
         )
     except Exception as exc:
         try:
-            await call_hani_tool(
-                "complete_voice_emotion_analysis",
+            await _persist_emotion_result(
+                session,
                 {
-                    "sessionId": session.id,
-                    "result": {
-                        "status": "failed",
-                        "failure_code": "MODEL_INFERENCE_FAILED",
-                        "failure_message": type(exc).__name__,
-                    },
+                    "status": "failed",
+                    "failure_code": "MODEL_INFERENCE_FAILED",
+                    "failure_message": type(exc).__name__,
+                    "model": f"{settings.text_model}:text-emotion-fallback",
+                    "segments": [],
                 },
-                patient_id=session.patient_id,
-                caregiver_id=session.caregiver_id,
-                locale=session.locale,
-                source=session.source,
             )
         except Exception:
             pass
         print("voice emotion analysis failed", type(exc).__name__)
     finally:
+        for task in (audio_task, text_task):
+            if not task.done():
+                task.cancel()
         delete_temp_audio(wav_path)
 
 
@@ -658,6 +695,18 @@ async def _pump_live_to_client(ws: WebSocket, live, session) -> None:
                         user_text=user_final,
                         hani_text=model_final,
                     )
+                    if user_final:
+                        normalized_user = user_final.strip()
+                        if (
+                            normalized_user
+                            and (
+                                not session.voice_user_transcripts
+                                or session.voice_user_transcripts[-1] != normalized_user
+                            )
+                        ):
+                            session.voice_user_transcripts.append(normalized_user)
+                            if len(session.voice_user_transcripts) > 20:
+                                del session.voice_user_transcripts[:-20]
 
                     user_turn_id += 1
                     model_turn_id += 1
