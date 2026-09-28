@@ -160,11 +160,22 @@ export async function POST(req: Request) {
       }
     }
 
-    if (
-      role === "patient" &&
-      process.env.HENI_AGENT_BASE_URL &&
-      process.env.HENI_AGENT_SHARED_SECRET
-    ) {
+    if (role === "patient") {
+      if (
+        !process.env.HENI_AGENT_BASE_URL ||
+        !process.env.HENI_AGENT_SHARED_SECRET
+      ) {
+        console.error("Heni agent configuration missing for patient chat");
+        return json(
+          req,
+          {
+            error: "heni_agent_not_configured",
+            retryable: true,
+          },
+          { status: 503 },
+        );
+      }
+
       try {
         const result = await externalPatientTurn({
           ...body,
@@ -187,6 +198,15 @@ export async function POST(req: Request) {
           { status: 503 },
         );
       }
+
+      return json(
+        req,
+        {
+          error: "heni_agent_empty_response",
+          retryable: true,
+        },
+        { status: 503 },
+      );
     }
 
     const result = await chatWithHeni({
