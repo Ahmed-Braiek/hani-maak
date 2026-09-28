@@ -29,7 +29,7 @@ _client = create_google_client()
 
 def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
     contents: list[types.Content] = []
-    for item in history[-16:]:
+    for item in history[-10:]:
         role = "model" if item.get("role") in {"assistant", "model", "heni"} else "user"
         text = str(item.get("content") or item.get("text") or "").strip()
         if text:
@@ -226,16 +226,19 @@ async def run_chat_turn(
             "\nCONTEXT CONTINUITY: Keep discussing the same patient/person, symptom, medication, routine, or family event across short follow-up turns unless the caregiver explicitly changes topic."
             "\nDo not replace a patient-care answer with a generic capabilities message about appointments, directions, or facility help. If the caregiver says something like 'kamet mn noum mawjouaa' after discussing Fatma, interpret it as a follow-up about Fatma and respond to that context."
             "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
+            "\nLATEST-MESSAGE PRIORITY: Answer the newest user message, not an older message from history. Short follow-ups normally continue the immediately preceding patient-care topic."
+            "\nACTION SAFETY: Do not call appointment, navigation, facility, or handoff tools unless the newest message explicitly asks for that real-world action. Phrases such as 'nheb nokhrej naaml beha doura' mean taking the patient for a walk unless the user explicitly asks to book something."
+            "\nRESPONSE STYLE: Give a direct, complete answer in 1-3 short sentences. Finish the thought before stopping. Do not pad the answer with generic capabilities."
         ),
         tools=[types.Tool(function_declarations=TOOL_DECLARATIONS)],
-        max_output_tokens=420,
+        max_output_tokens=600,
         temperature=0.3,
     )
 
     response = await _generate(contents=contents, config=config)
 
     tool_events: list[dict[str, Any]] = []
-    for _ in range(5):
+    for _ in range(3):
         calls = response.function_calls or []
         if not calls:
             break
