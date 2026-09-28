@@ -33,6 +33,7 @@ def detect_likely_locale(text: str) -> str | None:
         return requested
     value = _norm(text)
     if any(term in value for term in (
+        "aaslema", "asslema", "aslema", "slm", "salam", "y heni", "ya heni",
         "nheb", "naamel", "na3mel", "najjem", "najem", "chnowa", "chnoua", "chneya",
         "sbeh", "l3chiya", "3andi", "aandy", "ghodwa", "tawa", "mouch", "famma",
         "mrayedha", "mraydha", "chwya", "kamet", "noum", "mawjouaa", "wja3",
