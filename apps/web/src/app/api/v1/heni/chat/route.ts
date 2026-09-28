@@ -49,7 +49,7 @@ async function externalPatientTurn(body: any) {
   if (!base || !secret) return null;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), 18_000);
 
   try {
     const response = await fetch(`${base}/v1/chat`, {
@@ -82,7 +82,7 @@ async function externalPatientTurn(body: any) {
             ? body.confirmationToken
             : undefined,
         history: Array.isArray(body.history)
-          ? body.history.slice(-16)
+          ? body.history.slice(-10)
           : [],
       }),
       cache: "no-store",
@@ -175,8 +175,16 @@ export async function POST(req: Request) {
         if (result) return json(req, result);
       } catch (error) {
         console.error(
-          "External Heni agent unavailable; using deterministic fallback",
+          "External Heni agent unavailable",
           error instanceof Error ? error.message : "unknown",
+        );
+        return json(
+          req,
+          {
+            error: "heni_agent_temporarily_unavailable",
+            retryable: true,
+          },
+          { status: 503 },
         );
       }
     }
