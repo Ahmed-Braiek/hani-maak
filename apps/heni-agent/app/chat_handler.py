@@ -53,6 +53,57 @@ async def _generate(
     )
 
 
+def _normalized(message: str) -> str:
+    return " ".join((message or "").strip().lower().split())
+
+
+def _is_simple_greeting(message: str) -> bool:
+    text = _normalized(message)
+    greetings = {
+        "aaslema",
+        "asslema",
+        "aslema",
+        "aaslema y heni",
+        "aaslema ya heni",
+        "asslema y heni",
+        "asslema ya heni",
+        "salam",
+        "salem",
+        "hello",
+        "hi",
+        "bonjour",
+        "bonsoir",
+        "مرحبا",
+        "السلام عليكم",
+        "عسلامة",
+    }
+    return text in greetings
+
+
+def _looks_like_unrequested_appointment_reply(reply: str, message: str) -> bool:
+    if _needs_action_tools(message):
+        return False
+    text = _normalized(reply)
+    appointment_terms = (
+        "appointment",
+        "rendez-vous",
+        "rendez vous",
+        "prendre, annuler",
+        "annuler ou déplacer",
+        "déplacer un rendez",
+        "book",
+        "booking",
+        "reserve",
+        "réserver",
+        "facility",
+        "établissement",
+        "الموعد",
+        "موعد",
+        "الحجز",
+    )
+    return any(term in text for term in appointment_terms)
+
+
 def _looks_like_care_activity_followup(message: str) -> bool:
     text = " ".join(message.lower().split())
     care_activity_terms = (
@@ -160,8 +211,26 @@ async def run_chat_turn(
     likely_locale = detect_likely_locale(message)
     if requested_locale:
         session.locale = requested_locale
-    elif not history and likely_locale:
+    elif likely_locale:
+        # Let the newest message drive conversational language. This is
+        # especially important for Latin-script Tunisian greetings such as
+        # "aaslema y heni", which should not inherit a stale French session.
         session.locale = likely_locale
+
+    if _is_simple_greeting(message):
+        answer = locale_message(
+            session.locale,
+            tn="عسلامة! هاني معاك. شنوة نجم نعاونك فيه توا؟",
+            ar="مرحبًا! هاني معك. كيف يمكنني مساعدتك الآن؟",
+            fr="Bonjour ! Hani est avec vous. Comment puis-je vous aider maintenant ?",
+            en="Hi! Hani is here with you. How can I help right now?",
+        )
+        await _persist_chat_turn(
+            session,
+            user_text=message,
+            hani_text=answer,
+        )
+        return _base_result(answer, session)
 
     if requested_locale and is_language_switch_only(message):
         answer = locale_message(
@@ -338,6 +407,35 @@ async def run_chat_turn(
         )
 
     reply = (response.text or "").strip()
+
+    # Guard against stale/off-topic generic facility answers. If the newest
+    # user message did not ask for an appointment/action but Gemini produced
+    # an appointment/navigation boilerplate response, regenerate once with
+    # an even stricter latest-message instruction.
+    if reply and _looks_like_unrequested_appointment_reply(reply, message):
+        repair_config = types.GenerateContentConfig(
+            system_instruction=(
+                build_runtime_system_prompt(runtime_context)
+                + "\n\nREPAIR RULE: The previous draft was off-topic. "
+                  "Answer ONLY the newest user message. Do not discuss appointments, "
+                  "booking, directions, facilities, or institutional services unless "
+                  "the newest message explicitly asks for one of those things. "
+                  "Use the user's current language and keep the answer brief."
+            ),
+            max_output_tokens=260,
+            temperature=0.1,
+        )
+        try:
+            repaired = await _generate(
+                contents=contents,
+                config=repair_config,
+                timeout_seconds=min(5.0, settings.model_timeout_seconds),
+            )
+            repaired_text = (repaired.text or "").strip()
+            if repaired_text:
+                reply = repaired_text
+        except Exception:
+            pass
 
     # Rarely Gemini can stop at the output-token boundary. Recover only in
     # that case so normal chat remains a single fast model request.
