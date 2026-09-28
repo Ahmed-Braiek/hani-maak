@@ -27,9 +27,26 @@ from .tools.hani_backend import call_hani_tool
 _client = create_google_client()
 
 
-def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
+def _content_from_history(
+    history: list[dict[str, Any]],
+    *,
+    newest_message: str,
+) -> list[types.Content]:
+    """Build compact history while preventing a stale duplicate user turn."""
     contents: list[types.Content] = []
-    for item in history[-8:]:
+    normalized_newest = _normalized(newest_message)
+    compact = history[-8:]
+
+    while compact:
+        last = compact[-1]
+        last_role = str(last.get("role") or "").lower()
+        last_text = str(last.get("content") or last.get("text") or "").strip()
+        if last_role in {"user", "caregiver"} and _normalized(last_text) == normalized_newest:
+            compact = compact[:-1]
+            continue
+        break
+
+    for item in compact:
         role = "model" if item.get("role") in {"assistant", "model", "heni"} else "user"
         text = str(item.get("content") or item.get("text") or "").strip()
         if text:
@@ -78,6 +95,41 @@ def _is_simple_greeting(message: str) -> bool:
         "عسلامة",
     }
     return text in greetings
+
+
+def _similar_text(a: str, b: str) -> float:
+    a_tokens = set(_normalized(a).split())
+    b_tokens = set(_normalized(b).split())
+    if not a_tokens or not b_tokens:
+        return 0.0
+    intersection = len(a_tokens & b_tokens)
+    union = len(a_tokens | b_tokens)
+    return intersection / union if union else 0.0
+
+
+def _looks_like_repeated_old_reply(
+    reply: str,
+    history: list[dict[str, Any]],
+    newest_message: str,
+) -> bool:
+    if not reply:
+        return False
+    recent_model = [
+        str(item.get("content") or item.get("text") or "").strip()
+        for item in history[-8:]
+        if str(item.get("role") or "").lower() in {"assistant", "model", "heni"}
+    ]
+    recent_user = [
+        str(item.get("content") or item.get("text") or "").strip()
+        for item in history[-8:]
+        if str(item.get("role") or "").lower() in {"user", "caregiver"}
+    ]
+    if recent_user and _similar_text(newest_message, recent_user[-1]) > 0.9:
+        return False
+    return any(
+        previous and _similar_text(reply, previous) >= 0.72
+        for previous in recent_model[-3:]
+    )
 
 
 def _looks_like_unrequested_appointment_reply(reply: str, message: str) -> bool:
@@ -302,10 +354,16 @@ async def run_chat_turn(
             session,
         )
 
-    contents = _content_from_history(history)
+    contents = _content_from_history(history, newest_message=message)
     contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
 
     runtime_context = await fetch_runtime_context(session)
+
+    caregiver_context = runtime_context.get("caregiver")
+    if isinstance(caregiver_context, dict):
+        caregiver_context = dict(caregiver_context)
+        caregiver_context.pop("recentHaniMessages", None)
+        runtime_context = {**runtime_context, "caregiver": caregiver_context}
 
     semantic_signal = detect_semantic_distress(message) if session.caregiver_id else None
     if semantic_signal and session.caregiver_id:
@@ -412,7 +470,10 @@ async def run_chat_turn(
     # user message did not ask for an appointment/action but Gemini produced
     # an appointment/navigation boilerplate response, regenerate once with
     # an even stricter latest-message instruction.
-    if reply and _looks_like_unrequested_appointment_reply(reply, message):
+    if reply and (
+        _looks_like_unrequested_appointment_reply(reply, message)
+        or _looks_like_repeated_old_reply(reply, history, message)
+    ):
         repair_config = types.GenerateContentConfig(
             system_instruction=(
                 build_runtime_system_prompt(runtime_context)
