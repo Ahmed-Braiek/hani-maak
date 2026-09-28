@@ -259,7 +259,7 @@ def _base_result(message: str, session, *, tool: str | None = None, tools: list[
         "confirmationToken": None,
         "tools": tools or [],
         "tool": tool,
-        "model": active_model,
+        "model": settings.text_model,
     }
 
 
