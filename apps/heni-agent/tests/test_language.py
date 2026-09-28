@@ -19,6 +19,7 @@ class LanguageTests(unittest.TestCase):
     def test_tunisian_romanized_language_detection(self):
         self.assertEqual(detect_likely_locale("nheb naamel rendez vous"), "tn")
         self.assertEqual(detect_likely_locale("3andi rendez-vous ghodwa"), "tn")
+        self.assertEqual(detect_likely_locale("aaslema y heni"), "tn")
 
     def test_human_help_variants(self):
         self.assertTrue(is_human_help_request("aide humain"))
