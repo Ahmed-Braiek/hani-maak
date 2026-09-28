@@ -27,14 +27,66 @@ from .tools.hani_backend import call_hani_tool
 _client = create_google_client()
 
 
-def _content_from_history(history: list[dict[str, Any]]) -> list[types.Content]:
+def _normalized(message: str) -> str:
+    return " ".join((message or "").strip().lower().split())
+
+
+def _content_from_history(
+    history: list[dict[str, Any]],
+    *,
+    newest_message: str,
+) -> list[types.Content]:
     contents: list[types.Content] = []
-    for item in history[-10:]:
+    compact = history[-8:]
+    normalized_newest = _normalized(newest_message)
+
+    while compact:
+        last = compact[-1]
+        last_role = str(last.get("role") or "").lower()
+        last_text = str(last.get("content") or last.get("text") or "").strip()
+        if last_role in {"user", "caregiver"} and _normalized(last_text) == normalized_newest:
+            compact = compact[:-1]
+            continue
+        break
+
+    for item in compact:
         role = "model" if item.get("role") in {"assistant", "model", "heni"} else "user"
         text = str(item.get("content") or item.get("text") or "").strip()
         if text:
             contents.append(types.Content(role=role, parts=[types.Part(text=text)]))
     return contents
+
+
+def _similar_text(a: str, b: str) -> float:
+    a_tokens = set(_normalized(a).split())
+    b_tokens = set(_normalized(b).split())
+    if not a_tokens or not b_tokens:
+        return 0.0
+    return len(a_tokens & b_tokens) / len(a_tokens | b_tokens)
+
+
+def _looks_like_repeated_old_reply(
+    reply: str,
+    history: list[dict[str, Any]],
+    newest_message: str,
+) -> bool:
+    previous_user = [
+        str(item.get("content") or item.get("text") or "").strip()
+        for item in history[-8:]
+        if str(item.get("role") or "").lower() in {"user", "caregiver"}
+    ]
+    if previous_user and _similar_text(newest_message, previous_user[-1]) >= 0.9:
+        return False
+
+    previous_hani = [
+        str(item.get("content") or item.get("text") or "").strip()
+        for item in history[-8:]
+        if str(item.get("role") or "").lower() in {"assistant", "model", "heni"}
+    ]
+    return any(
+        previous and _similar_text(reply, previous) >= 0.7
+        for previous in previous_hani[-3:]
+    )
 
 
 async def _generate(*, contents: list[types.Content], config: types.GenerateContentConfig):
@@ -192,10 +244,15 @@ async def run_chat_turn(
             session,
         )
 
-    contents = _content_from_history(history)
+    contents = _content_from_history(history, newest_message=message)
     contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
 
     runtime_context = await fetch_runtime_context(session)
+    caregiver_context = runtime_context.get("caregiver")
+    if isinstance(caregiver_context, dict):
+        caregiver_context = dict(caregiver_context)
+        caregiver_context.pop("recentHaniMessages", None)
+        runtime_context = {**runtime_context, "caregiver": caregiver_context}
 
     semantic_signal = detect_semantic_distress(message) if session.caregiver_id else None
     if semantic_signal and session.caregiver_id:
@@ -226,7 +283,7 @@ async def run_chat_turn(
             "\nCONTEXT CONTINUITY: Keep discussing the same patient/person, symptom, medication, routine, or family event across short follow-up turns unless the caregiver explicitly changes topic."
             "\nDo not replace a patient-care answer with a generic capabilities message about appointments, directions, or facility help. If the caregiver says something like 'kamet mn noum mawjouaa' after discussing Fatma, interpret it as a follow-up about Fatma and respond to that context."
             "\nTunisian Latin-script Derja and code-switching with French/Arabic/English are valid. Never treat them as an unsupported language."
-            "\nLATEST-MESSAGE PRIORITY: Answer the newest user message, not an older message from history. Short follow-ups normally continue the immediately preceding patient-care topic."
+            "\nLATEST-MESSAGE PRIORITY: The final user message in the contents is authoritative. Answer that exact newest message, not an older message from history. Never repeat a previous Hani answer unless the user explicitly asks you to repeat it. Short follow-ups normally continue the immediately preceding patient-care topic."
             "\nACTION SAFETY: Do not call appointment, navigation, facility, or handoff tools unless the newest message explicitly asks for that real-world action. Phrases such as 'nheb nokhrej naaml beha doura' mean taking the patient for a walk unless the user explicitly asks to book something."
             "\nRESPONSE STYLE: Give a direct, complete answer in 1-3 short sentences. Finish the thought before stopping. Do not pad the answer with generic capabilities."
         ),
@@ -276,6 +333,35 @@ async def run_chat_turn(
         response = await _generate(contents=contents, config=config)
 
     reply = (response.text or "").strip()
+
+    if reply and _looks_like_repeated_old_reply(reply, history, message):
+        try:
+            repair_contents = [
+                types.Content(
+                    role="user",
+                    parts=[types.Part(text=message)],
+                )
+            ]
+            repaired = await _generate(
+                contents=repair_contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        build_runtime_system_prompt(runtime_context)
+                        + "\n\nThe previous draft repeated an older answer. "
+                          "Answer ONLY this newest user message now. "
+                          "Do not repeat prior assistant wording. "
+                          "Keep the answer direct and complete in the user's current language."
+                    ),
+                    max_output_tokens=320,
+                    temperature=0.15,
+                ),
+            )
+            repaired_text = (repaired.text or "").strip()
+            if repaired_text:
+                reply = repaired_text
+        except Exception:
+            pass
+
     if not reply:
         reply = locale_message(
             session.locale,
