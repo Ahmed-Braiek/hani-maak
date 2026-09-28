@@ -21,6 +21,7 @@ class Session:
     last_user_text: str = ""
     pending_action: dict[str, Any] | None = None
     voice_finalized: bool = False
+    voice_user_transcripts: list[str] = field(default_factory=list)
 
 
 _sessions: dict[str, Session] = {}
