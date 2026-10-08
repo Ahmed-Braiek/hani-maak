@@ -270,10 +270,10 @@ class _Orb extends StatelessWidget {
             width: 8,
           ),
         ),
-        child: const Icon(
-          Icons.graphic_eq_rounded,
-          color: Colors.white,
-          size: 34,
+        child: const HaniBrandLogo(
+          variant: HaniBrandVariant.markOnly,
+          light: true,
+          height: 50,
         ),
       );
 }
