@@ -29,7 +29,7 @@ class HaniVoiceScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F7F6),
+      backgroundColor: HaniColors.brandIce,
       body: SafeArea(
         child: Column(
           children: [
