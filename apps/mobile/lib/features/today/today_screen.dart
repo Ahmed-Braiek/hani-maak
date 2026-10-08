@@ -5,6 +5,7 @@ import '../../core/settings/app_settings.dart';
 import '../../core/care/care_load.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_ui.dart';
+import '../../core/widgets/hani_brand_logo.dart';
 import '../context/caregiver_context.dart';
 import '../context/caregiver_context_provider.dart';
 
@@ -352,7 +353,11 @@ class _HeroOrb extends StatelessWidget {
             width: 5,
           ),
         ),
-        child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+        child: const HaniBrandLogo(
+          variant: HaniBrandVariant.markOnly,
+          light: true,
+          height: 34,
+        ),
       );
 }
 
