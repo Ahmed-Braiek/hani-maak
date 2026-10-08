@@ -2,21 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class HaniColors {
-  // Official Hani Maak identity sampled from the supplied logo pack.
-  // Sampled from the official Heni Maak blue logo pack supplied by the team.
-  static const brandBlueDeep = Color(0xFF0849B4);
-  static const brandBlue = Color(0xFF106BE0);
-  static const brandSky = Color(0xFF1997EC);
-  static const brandCyan = Color(0xFF1AB2F3);
+  // Official Heni Maak identity sampled directly from the supplied
+  // 2026 logo pack (blue / white, stacked / horizontal / icon variants).
+  //
+  // Dominant sampled stops:
+  // #0040B0 -> #1080E0 -> #20A0F0 -> #20B0F0
+  static const brandBlueDeep = Color(0xFF0040B0);
+  static const brandBlueMid = Color(0xFF1060C0);
+  static const brandBlue = Color(0xFF1080E0);
+  static const brandSky = Color(0xFF20A0F0);
+  static const brandCyan = Color(0xFF20B0F0);
+  static const brandWhite = Color(0xFFFFFFFF);
+  static const brandIce = Color(0xFFF3FAFF);
 
-  static const ink = Color(0xFF073A78);
+  static const ink = Color(0xFF063A78);
   static const inkSoft = Color(0xFF456B91);
   static const primary = brandBlue;
   static const primaryDeep = brandBlueDeep;
   static const primarySoft = Color(0xFFEAF5FF);
-  static const mint = Color(0xFFCDEFFF);
-  static const aqua = Color(0xFFF1FAFF);
-  static const surface = Color(0xFFF8FBFE);
+  static const mint = Color(0xFFD9F3FF);
+  static const aqua = Color(0xFFF2FAFF);
+  static const surface = Color(0xFFF7FBFF);
   static const card = Color(0xFFFFFFFF);
   static const muted = Color(0xFF6A8198);
   static const line = Color(0xFFDCEBF7);
@@ -33,9 +39,21 @@ abstract final class HaniGradients {
     end: Alignment.bottomRight,
     colors: [
       HaniColors.brandCyan,
-      HaniColors.brandSky,
+      HaniColors.brandBlue,
       HaniColors.brandBlueDeep,
     ],
+    stops: [0, .48, 1],
+  );
+
+  static const brandPanel = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF20B0F0),
+      Color(0xFF1080E0),
+      Color(0xFF0040B0),
+    ],
+    stops: [0, .48, 1],
   );
 
   static const soft = LinearGradient(
