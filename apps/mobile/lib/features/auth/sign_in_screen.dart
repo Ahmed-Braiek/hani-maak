@@ -12,8 +12,6 @@ import '../../core/widgets/hani_brand_logo.dart';
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
-  static const demoEmail = 'caregiver@hani-maak.demo';
-  static const demoPassword = 'HaniMaak2026!';
 
   @override
   ConsumerState<SignInScreen> createState() => _SignInScreenState();
@@ -57,14 +55,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           fr: 'Saisissez un e-mail valide et un mot de passe d’au moins 6 caractères.',
         );
       });
-      return;
-    }
-
-    if (!signUp &&
-        mail == SignInScreen.demoEmail &&
-        pass == SignInScreen.demoPassword) {
-      CaregiverIdentity.enterDemo();
-      if (mounted) context.go('/today');
       return;
     }
 
@@ -133,10 +123,27 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
-  void _useDemo() {
-    // A public demonstration needs no reusable username/password.
-    CaregiverIdentity.enterDemo();
-    if (mounted) context.go('/today');
+  Future<void> _useDemo() async {
+    if (!AppConfig.hasSupabaseAuth) {
+      setState(() => error = 'Demo is not configured for this build.');
+      return;
+    }
+    setState(() { loading = true; error = null; });
+    try {
+      final client = Supabase.instance.client;
+      if (client.auth.currentSession?.user.isAnonymous != true) {
+        await client.auth.signOut();
+        await client.auth.signInAnonymously();
+      }
+      CaregiverIdentity.enterDemo();
+      await CaregiverIdentity.resolve();
+      if (mounted) context.go('/today');
+    } catch (_) {
+      CaregiverIdentity.leaveDemo();
+      if (mounted) setState(() => error = 'Demo unavailable. Please try again later.');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override
@@ -274,7 +281,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 if (!signUp) ...[
                   const SizedBox(height: 14),
                   TextButton.icon(
-                    onPressed: _useDemo,
+                    onPressed: loading ? null : _useDemo,
                     icon: const Icon(Icons.science_outlined),
                     label: Text(t(
                       'استعمل حساب الديمو',
