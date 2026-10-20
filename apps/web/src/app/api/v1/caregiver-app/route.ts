@@ -1,4 +1,3 @@
-import { allowLocalDemoAccess } from "@/lib/demo-access-policy";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -7,8 +6,6 @@ type Json = Record<string, any>;
 
 const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.replace(/\/$/, "");
 const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const DEMO_CAREGIVER = "10000000-0000-0000-0000-000000000001";
-const DEMO_PATIENT = "30000000-0000-0000-0000-000000000001";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -66,11 +63,6 @@ async function first(path: string) {
 }
 
 async function verifyIdentity(req: Request, caregiverId: string, patientId: string) {
-  if (caregiverId === DEMO_CAREGIVER && patientId === DEMO_PATIENT) {
-    if (!allowLocalDemoAccess()) throw new Error("authentication_required");
-    return;
-  }
-
   const auth = req.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) throw new Error("authentication_required");
   if (!supabaseUrl || !supabaseKey) throw new Error("supabase_not_configured");
