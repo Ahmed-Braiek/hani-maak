@@ -1,51 +1,42 @@
-# Public Demo Access — PR #61
+# Shared Demo Account — PR #61
 
-## Intended result
+## Goal
 
-**Explore Demo** launches a real, anonymous Supabase Auth session. The backend verifies its bearer token, provisions a **separate synthetic caregiver profile and care recipient for that anonymous user**, and attaches an active caregiver relationship. The app then uses the **same authenticated APIs** as regular caregiver accounts for context, Hani chat, voice-token creation, care tasks, medication events, wellbeing, notifications, memory activities, and other implemented workflows.
+One email and password, shared by the Hani Maak team with invited reviewers. This account is **a real Supabase Auth user**, not a client-side password shortcut. It accesses an **entirely synthetic caregiver/patient dataset** through the app's normal authenticated APIs (care tasks, medication tracking, Hani text/voice, activity, wellbeing, summaries, and configured OCR).
 
-This is **functional demo data**, not a production patient, not an actual clinical care arrangement, and not an invitation to upload real medical information. The application does not become a clinically validated healthcare product.
+No usernames, passwords, Supabase secret keys or bearer tokens belong in GitHub, Flutter, or documentation. The account email and password are set **privately in Supabase Auth** and distributed securely by the project team.
 
-## Required deployment settings — not changed by this PR
+## Setup required before preview testing (not performed in PR)
 
-1. **Supabase Auth → Providers → Anonymous Sign-Ins:** enable *Allow anonymous sign-ins*. Confirm the user project's policy and bot protection/rate limits.
-2. **Next.js/Vercel server environment:** set `PUBLIC_SYNTHETIC_DEMO=true` only on the intended demo/preview service. Do not expose Supabase service-role or secret keys to Flutter.
-3. **Flutter build:** supply `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `HANI_API_BASE` for the matching demo API deployment. **Important:** the currently compiled Flutter web bundle points to the production API until rebuilt with a preview base URL. Merely deploying the Next.js preview does not rebuild the Flutter bundle.
-4. **Isolation:** this first version creates a distinct profile/patient *inside the existing database*. For stronger isolation, deploy an independent demo Supabase project and matching Next.js/agent instances before broader public distribution.
-5. **Cleanup:** schedule retirement/deletion of old anonymous identities and demo records; it is not automated in PR #61. Define quotas, CAPTCHA/Turnstile, token refresh and resource budgets for anonymous users.
+1. In Supabase Auth, create or invite a **dedicated email/password demo user** with email confirmed. Do not use a team member's personal account.
+2. Copy **only its UUID user ID** into the server-side Vercel environment variable `DEMO_ACCOUNT_USER_ID`. This is an account identifier, not a password. Set `PUBLIC_SYNTHETIC_DEMO=true` on the intended preview environment, and verify existing server-only Supabase credentials.
+3. Build Flutter with the matching demo API base, Supabase URL and **publishable** key. The existing committed Flutter bundle is not automatically rebuilt by the Node CI.
+4. Log in normally with the configured email/password. The backend validates the Auth bearer token and approved user UUID, and creates a synthetic caregiver/patient dataset if absent. Subsequent use preserves edits.
+5. Keep existing legacy demo-state and unauthenticated patient/staff routes disabled. The fixed historical UUIDs never authorize any request.
+6. Verify dashboard, medication actions, tasks, memory activities, Hani chat/voice, OCR and profile data using preview only. External WhatsApp delivery is intentionally simulated for the synthetic account.
+7. Plan periodic demo reset and credential rotation before distributing to new external reviewers.
 
-No passwords are required and fixed demo IDs are not credentials.
+## Important boundaries
 
-## Normal authenticated behavior
+- All people, clinician labels, medication instructions and events in the seeded account are fictional and not clinically verified.
+- **Everyone using the same credentials shares the same workspace and can see changes made by other invited testers.** It is not private per reviewer.
+- The demo is isolated by dedicated authenticated caregiver/patient IDs and server access checks **within the existing Supabase database**. It is not physically separated in a different database; that requires an independent Supabase project.
+- Password authentication and seeded data do not prove full production security, healthcare compliance, validated clinical advice or working hospital exchange.
+- Voice/AI features may incur usage fees; do not share the credentials publicly without usage limits.
+- Do not enter genuine medical data or use real WhatsApp numbers in the demo.
+- The provisioning endpoint is opt-in and refuses any user other than the configured demo Auth UID.
+- A GitHub PR only proposes the changes. Ahmed will merge later; no production rollout is implied.
 
-- Users with real Supabase sessions still resolve their own profile and relationship.
-- Anonymous demo sessions resolve unique demo records with a normal Supabase bearer token.
-- Server checks each user ID against the requested caregiver profile and active patient relationship before privileged reads/writes.
-- The old shared demo JSON-state APIs and historical patient/staff APIs remain denied in hosted builds.
-- To prevent unexpected real contact, a demo caller cannot automatically send a WhatsApp summary; this action returns a preview/simulation.
-- Clinical claims, AI behavior and integrations retain existing limits. Voice and OCR are no longer replaced by offline scripted demo-only stubs, but may fail if external services/configuration are unavailable.
+## Acceptance checks
 
-## Known limitations
+- [ ] GitHub CI and Flutter PR build pass.
+- [ ] The approved demo account can authenticate via email/password and bootstrap.
+- [ ] Unapproved accounts receive 403 from the demo bootstrap endpoint.
+- [ ] The shared account has its own demo-flagged profile and patient.
+- [ ] It can exercise the app's intended features on a preview deployment.
+- [ ] A second regular account cannot access its patient data.
+- [ ] No demo password/credential is committed anywhere.
+- [ ] Legacy unauthenticated endpoints remain denied.
+- [ ] Reviewer acknowledges shared-account behavior and data reset policy.
 
-- Full deployment **not yet verified**; anonymous Auth must be enabled and Flutter rebuilt against the matching API.
-- "Isolated" means unique synthetic caregiver and patient records enforced by application identity/relationship checks, **not** a separate database or verified tenant-wide security audit.
-- Multiple visitors can still share globally available reference/catalogue data (e.g. dilemma scenarios). All visitor-owned writes must be scoped to the verified user.
-- Some demo tasks cannot create a second Care Circle member without another authorized synthetic profile.
-- Public free access can incur Gemini, database and voice processing costs. Quotas/abuse prevention are required before open public rollout.
-- Existing photo/OCR controls allow a user to submit user-provided content; display a warning **not to upload real patient data** to the demo.
-- Supabase anonymous session persistence/refresh and browser lifecycle need device-level tests.
-- Source code does not prove clinical approval, privacy compliance, or end-to-end production readiness.
-
-## Review gate for Ahmed
-
-- [ ] GitHub typecheck/backend tests/build pass on this PR.
-- [ ] Flutter analyze and web build pass on this branch with the correct preview API URL.
-- [ ] Anonymous sign-in works against an approved test Supabase project.
-- [ ] Two different demo visitors get different caregiver/patient IDs and cannot access each other's records.
-- [ ] Demo can open dashboard, update tasks, medications, activities, wellbeing, Hani chat, voice and document/OCR flows, where services are configured.
-- [ ] Disallowed legacy endpoints return 404 and fixed shared demo IDs without a bearer session return 401.
-- [ ] Synthetic outbound WhatsApp actions cannot send to real contacts.
-- [ ] Explicit privacy notice, rate limits, expiry and cleanup plan confirmed.
-- [ ] Production and `main` remain unchanged until Ahmed's review and merge.
-
-This is an implementation patch pending integration validation, not a security certification.
+Until the account is provisioned and these checks pass, **PR #61 is implementation-ready but not an operationally verified demo**.
