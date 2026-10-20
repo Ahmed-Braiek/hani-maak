@@ -102,7 +102,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           email: mail,
           password: pass,
         );
-        CaregiverIdentity.leaveDemo();
+        // A specially allowlisted demo user receives synthetic records.
+        // A regular account remains on its normal authenticated path.
+        CaregiverIdentity.enterDemo();
+        try {
+          await CaregiverIdentity.resolve();
+        } catch (_) {
+          CaregiverIdentity.leaveDemo();
+        }
         if (mounted) context.go('/today');
       }
     } on AuthException catch (e) {
@@ -123,27 +130,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
-  Future<void> _useDemo() async {
-    if (!AppConfig.hasSupabaseAuth) {
-      setState(() => error = 'Demo is not configured for this build.');
-      return;
-    }
-    setState(() { loading = true; error = null; });
-    try {
-      final client = Supabase.instance.client;
-      if (client.auth.currentSession?.user.isAnonymous != true) {
-        await client.auth.signOut();
-        await client.auth.signInAnonymously();
-      }
-      CaregiverIdentity.enterDemo();
-      await CaregiverIdentity.resolve();
-      if (mounted) context.go('/today');
-    } catch (_) {
-      CaregiverIdentity.leaveDemo();
-      if (mounted) setState(() => error = 'Demo unavailable. Please try again later.');
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
+  void _useDemo() {
+    // The demo uses the normal email/password login form, never public credentials.
+    setState(() {
+      signUp = false;
+      error = null;
+      message = 'Enter the shared demo email and password provided by the team.';
+    });
   }
 
   @override
