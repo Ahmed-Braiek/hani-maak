@@ -30,3 +30,28 @@ Coordinate clinical-data/openEHR, FHIR implementation, product engineering, hosp
 **Later:** consider a read-oriented interoperability proof of concept after technical and clinical review.
 
 See linked architecture, schema, clinical-validation and use-case documents for details.
+
+## Proposed architectural directions
+
+Current Hani Maak systems remain separate from hospital information systems. openEHR modeling and FHIR exchange are options for technical review, not implemented functionality.
+
+```mermaid
+flowchart LR
+  App[Hani Maak app] --> API[Hani Maak API]
+  API --> Model[Caregiver data model]
+  Model -. evaluate .-> OE[openEHR]
+  API -. propose .-> FHIR[FHIR boundary]
+  FHIR -. unknown .-> Hospital[Hospital EHR]
+```
+
+**Possible Carefluence-based evaluation path (illustrative only):**
+
+```mermaid
+flowchart LR
+  App[Hani Maak] --> API[Domain API]
+  API -. candidate .-> FHIR[FHIR mapping]
+  FHIR -. evaluate .-> CF[Carefluence]
+  CF -. unconfirmed .-> Hospital[Hospital system]
+```
+
+These diagrams do not establish a technical agreement or hospital pilot.
