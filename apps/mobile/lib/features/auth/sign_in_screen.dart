@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/session/caregiver_identity.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_brand_logo.dart';
@@ -62,6 +63,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     if (!signUp &&
         mail == SignInScreen.demoEmail &&
         pass == SignInScreen.demoPassword) {
+      CaregiverIdentity.enterDemo();
       if (mounted) context.go('/today');
       return;
     }
@@ -92,6 +94,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         );
         if (!mounted) return;
         if (result.session != null) {
+          CaregiverIdentity.leaveDemo();
           context.go('/today');
         } else {
           setState(() {
@@ -109,6 +112,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           email: mail,
           password: pass,
         );
+        CaregiverIdentity.leaveDemo();
         if (mounted) context.go('/today');
       }
     } on AuthException catch (e) {
@@ -130,13 +134,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 
   void _useDemo() {
-    email.text = SignInScreen.demoEmail;
-    password.text = SignInScreen.demoPassword;
-    setState(() {
-      signUp = false;
-      error = null;
-      message = null;
-    });
+    // A public demonstration needs no reusable username/password.
+    CaregiverIdentity.enterDemo();
+    if (mounted) context.go('/today');
   }
 
   @override
