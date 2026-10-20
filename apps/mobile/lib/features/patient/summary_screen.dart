@@ -20,7 +20,8 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   String type = 'daily';
   String? preview;
   String? status;
-  static const testRecipient = '21627983305';
+  // Recipients must be entered and authorized separately; never embed real test numbers.
+  static const testRecipient = '';
 
   Future<void> generate() async {
     setState(() {
