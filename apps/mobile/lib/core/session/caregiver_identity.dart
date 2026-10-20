@@ -25,8 +25,8 @@ class CaregiverIdentity {
     final client = Supabase.instance.client;
     final session = client.auth.currentSession;
     if (session == null) throw StateError('authentication_required');
-    if (session.user.isAnonymous) {
-      if (!demoSelected) throw StateError('demo_session_not_selected');
+    if (demoSelected) {
+      if (session.user.isAnonymous) throw StateError('demo_password_login_required');
       final response = await http.post(
         Uri.parse('${AppConfig.apiBase}/api/v1/public-demo/bootstrap'),
         headers: {'authorization': 'Bearer ${session.accessToken}'},
