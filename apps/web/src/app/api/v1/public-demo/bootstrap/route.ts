@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { demoFixtures, demoUuid } from "@/lib/public-demo-seed";
+import { approvedDemoUser } from "@/lib/public-demo-access";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,8 +23,9 @@ function fail(code: string, status: number) {
 
 export async function POST(req: Request) {
   // This endpoint never accepts client-supplied identity IDs or database keys.
+  // The shared demo account is verified by signed-in Auth UID, not by email text.
   if (process.env.PUBLIC_SYNTHETIC_DEMO !== "true") return fail("demo_not_enabled", 503);
-  if (!url || !key) return fail("demo_not_configured", 503);
+  if (!url || !key || !process.env.DEMO_ACCOUNT_USER_ID) return fail("demo_not_configured", 503);
   const bearer = req.headers.get("authorization") || "";
   if (!bearer.startsWith("Bearer ") || bearer.length < 30) return fail("authentication_required", 401);
   const auth = await fetch(url + "/auth/v1/user", {
@@ -31,7 +33,11 @@ export async function POST(req: Request) {
   });
   if (!auth.ok) return fail("invalid_session", 401);
   const user = await auth.json();
-  if (!user?.id || user?.is_anonymous !== true) return fail("anonymous_demo_only", 403);
+  // Never grant demo provisioning to a random newly registered/anonymous user.
+  // Only an admin-created, password-authenticated UID may bootstrap fixtures.
+  if (!approvedDemoUser(user, process.env.DEMO_ACCOUNT_USER_ID)) {
+    return fail("demo_account_only", 403);
+  }
 
   const caregiverId = demoUuid(user.id, "profile");
   const { patientId, fixtures } = demoFixtures(user.id, caregiverId);
