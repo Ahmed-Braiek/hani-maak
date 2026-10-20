@@ -46,16 +46,6 @@ class HaniApiClient {
     List<Map<String, String>> history = const [],
   }) async {
     final identity = await CaregiverIdentity.resolve();
-    if (identity.isDemo) {
-      final response = locale == 'fr'
-          ? 'Démo synthétique hors ligne : Hani peut vous aider à organiser des tâches. Aucune information n’est envoyée.'
-          : locale == 'ar'
-              ? 'عرض تجريبي دون اتصال: هذه إجابة توضيحية وليست نصيحة طبية.'
-              : locale == 'tn'
-                  ? 'هاني ديمو أوفلاين: هذا مثال توضيحي موش نصيحة طبية.'
-                  : 'Offline synthetic demo: this is a scripted example, not medical guidance. No data was sent.';
-      return HaniApiResponse(message: response, sessionId: 'offline-demo', locale: locale);
-    }
     final uri = Uri.parse('${AppConfig.apiBase}/api/v1/heni/chat');
     final response = await _client
         .post(
