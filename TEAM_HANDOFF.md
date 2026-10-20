@@ -53,7 +53,7 @@ For server-initiated remote push while the app is fully closed, connect Firebase
 
 ## Demo recipient
 
-WhatsApp team test recipient: +216 27 983 305
+WhatsApp team test recipient: configure a consented test number outside the repository; never commit personal contact details.
 
 ## Safety boundaries
 
