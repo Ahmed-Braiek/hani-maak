@@ -20,7 +20,7 @@ Hani Maak (**هاني معاك**) is a multilingual companion for family and inf
 - **Clinical safeguards:** AI-generated suggestions are not verified treatment instructions; human review, provenance, consent and appropriate escalation ownership are still design requirements.
 - **Demo access:** a dedicated synthetic Mariem/Fatma account is being prepared on PR #61; account provisioning and integrated demonstration remain pending.
 
-See the [current architecture](../architecture/CURRENT_ARCHITECTURE.md), [schema audit](CURRENT_SCHEMA_AUDIT.md), and [public repository README under PR #62](https://github.com/Ahmed-Braiek/hani-maak/blob/chore/public-repository-cleanup/README.md) for the detailed baseline.
+See the [current architecture](../architecture/CURRENT_ARCHITECTURE.md), [48-table clinical-data/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), [schema audit](CURRENT_SCHEMA_AUDIT.md), and [public repository README under PR #62](https://github.com/Ahmed-Braiek/hani-maak/blob/chore/public-repository-cleanup/README.md) for the detailed baseline.
 
 ## 2. Why we are considering clinical-data standards
 
@@ -76,6 +76,7 @@ This is an initial feedback request. **We do not need the proof of concept compl
 
 - [Integrated work plan](ACTION_PLAN_v0.1.md)
 - [Current system](../architecture/CURRENT_ARCHITECTURE.md)
+- [Clinical-data and provenance matrix — all 48 tables](CLINICAL_DATA_PROVENANCE_MATRIX.md)
 - [Running schema findings](CURRENT_SCHEMA_AUDIT.md)
 - [Clinical validation gaps](openehr/CLINICAL_VALIDATION_AUDIT.md)
 - [Candidate FHIR use cases](fhir/USE_CASES.md)
