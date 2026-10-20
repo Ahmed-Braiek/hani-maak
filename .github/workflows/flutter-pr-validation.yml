@@ -1,0 +1,40 @@
+name: Flutter caregiver pull request validation
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/flutter-pr-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Flutter web platform
+        working-directory: apps/mobile
+        run: |
+          flutter create --platforms=web --project-name hani_maak_mobile .
+          rm -f test/widget_test.dart
+      - name: Install Flutter dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+      - name: Analyze Dart
+        working-directory: apps/mobile
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Build Flutter web (synthetic preview, no live credentials)
+        working-directory: apps/mobile
+        run: |
+          flutter build web --release --base-href /flutter/ \
+            --dart-define=HANI_API_BASE=https://example.invalid \
+            --dart-define=SUPABASE_URL=https://example.supabase.co \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_test_placeholder
