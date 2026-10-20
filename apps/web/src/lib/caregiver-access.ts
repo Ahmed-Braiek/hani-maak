@@ -1,3 +1,5 @@
+import { allowLocalDemoAccess } from "./demo-access-policy";
+
 const supabaseUrl = (
   process.env.SUPABASE_URL ||
   process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -55,6 +57,11 @@ export async function verifyCaregiverAccess(
     caregiverId === DEMO_CAREGIVER_ID &&
     patientId === DEMO_PATIENT_ID
   ) {
+    // Never treat public, client-supplied demo IDs as authentication.
+    // Local demos run against isolated fixture data only.
+    if (!allowLocalDemoAccess()) {
+      throw new Error("authentication_required");
+    }
     return { demo: true as const, userId: null };
   }
 
