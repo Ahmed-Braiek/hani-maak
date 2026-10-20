@@ -149,6 +149,7 @@ class HaniVoiceController extends StateNotifier<HaniVoiceState>
 
     try {
       final identity = await CaregiverIdentity.resolve();
+      if (identity.isDemo) throw StateError('demo_live_voice_disabled');
       final response = await http
           .post(
             Uri.parse('${AppConfig.apiBase}/api/v1/heni/voice-token'),
