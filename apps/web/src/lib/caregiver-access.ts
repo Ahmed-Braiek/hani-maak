@@ -1,5 +1,3 @@
-import { allowLocalDemoAccess } from "./demo-access-policy";
-
 const supabaseUrl = (
   process.env.SUPABASE_URL ||
   process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -53,25 +51,13 @@ export async function verifyCaregiverAccess(
   caregiverId: string,
   patientId: string,
 ) {
-  if (
-    caregiverId === DEMO_CAREGIVER_ID &&
-    patientId === DEMO_PATIENT_ID
-  ) {
-    // Never treat public, client-supplied demo IDs as authentication.
-    // Local demos run against isolated fixture data only.
-    if (!allowLocalDemoAccess()) {
-      throw new Error("authentication_required");
-    }
-    return { demo: true as const, userId: null };
+  // Never authorize requests using fixed demo IDs, regardless of environment.
+  const authorization = req.headers.get("authorization") || "";
+  if (!authorization.startsWith("Bearer ") || authorization.trim().length <= 7) {
+    throw new Error("authentication_required");
   }
-
   if (!supabaseUrl || !supabaseKey) {
     throw new Error("supabase_not_configured");
-  }
-
-  const authorization = req.headers.get("authorization") || "";
-  if (!authorization.startsWith("Bearer ")) {
-    throw new Error("authentication_required");
   }
 
   const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
