@@ -1,3 +1,4 @@
+import { allowLocalDemoAccess } from "@/lib/demo-access-policy";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,10 @@ async function first(path: string) {
 }
 
 async function verifyIdentity(req: Request, caregiverId: string, patientId: string) {
-  if (caregiverId === DEMO_CAREGIVER && patientId === DEMO_PATIENT) return;
+  if (caregiverId === DEMO_CAREGIVER && patientId === DEMO_PATIENT) {
+    if (!allowLocalDemoAccess()) throw new Error("authentication_required");
+    return;
+  }
 
   const auth = req.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) throw new Error("authentication_required");
