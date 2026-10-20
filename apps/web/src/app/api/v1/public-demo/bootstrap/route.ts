@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { demoFixtures, demoUuid } from "@/lib/public-demo-seed";
 import { approvedDemoUser } from "@/lib/public-demo-access";
 
 export const dynamic = "force-dynamic";
@@ -39,44 +38,54 @@ export async function POST(req: Request) {
     return fail("demo_account_only", 403);
   }
 
-  const caregiverId = demoUuid(user.id, "profile");
-  const { patientId, fixtures } = demoFixtures(user.id, caregiverId);
+  // Preserve the existing Mariem / Fatma synthetic scenario, including its
+  // care circle, tasks, medications, conversations and linked helpers.
+  const caregiverId = "10000000-0000-0000-0000-000000000001";
+  const patientId = "30000000-0000-0000-0000-000000000001";
   try {
-    // Never repurpose an existing non-demo profile or patient as demo data.
-    const existing = await rest("profiles?select=id,is_demo,auth_user_id&id=eq." + caregiverId + "&limit=1");
-    if (existing.length && (existing[0].is_demo !== true || existing[0].auth_user_id !== user.id)) {
-      return fail("demo_identity_conflict", 409);
+    const profiles = await rest(
+      "profiles?select=id,is_demo,auth_user_id&id=eq." + caregiverId + "&limit=1",
+    );
+    const patients = await rest(
+      "patients?select=id,is_demo,created_by_profile_id&id=eq." + patientId + "&limit=1",
+    );
+    const relationships = await rest(
+      "caregiver_patient_relationships?select=id,access_status&caregiver_profile_id=eq." +
+        caregiverId + "&patient_id=eq." + patientId + "&limit=1",
+    );
+    const profile = profiles[0];
+    const patient = patients[0];
+    const relationship = relationships[0];
+
+    if (
+      !profile || profile.is_demo !== true ||
+      !patient || patient.is_demo !== true ||
+      patient.created_by_profile_id !== caregiverId ||
+      !relationship || relationship.access_status !== "active"
+    ) return fail("demo_scenario_not_verified", 409);
+
+    if (profile.auth_user_id && profile.auth_user_id !== user.id) {
+      return fail("demo_identity_already_linked", 409);
     }
-    const profile = {
-      id: caregiverId, auth_user_id: user.id, full_name: "Demo caregiver (fictional)",
-      role: "caregiver", preferred_language: "derja", timezone: "Africa/Tunis",
-      is_demo: true, onboarding_completed: true, metadata: { public_demo: true },
-    };
-    if (!existing.length) {
-      await rest("profiles?on_conflict=id", {
-        method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(profile),
+
+    // One-time assignment of the verified synthetic caregiver to the
+    // explicitly allowlisted Supabase Auth account.
+    if (!profile.auth_user_id) {
+      await rest("profiles?id=eq." + caregiverId + "&auth_user_id=is.null", {
+        method: "PATCH",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ auth_user_id: user.id }),
+      }).then((updated) => {
+        if (!Array.isArray(updated) || updated.length !== 1) {
+          throw new Error("demo_identity_link_conflict");
+        }
       });
     }
-    const patient = await rest("patients?select=id,is_demo,created_by_profile_id&id=eq." + patientId + "&limit=1");
-    if (patient.length && (patient[0].is_demo !== true || patient[0].created_by_profile_id !== caregiverId)) {
-      return fail("demo_patient_conflict", 409);
-    }
-    for (const group of fixtures) {
-      if (group.table === "patients" && patient.length) continue;
-      // Idempotent deterministic inserts: never overwrite guest modifications.
-      const ids = group.rows.map(row => row.id).join(",");
-      const current = await rest(group.table + "?select=id&id=in.(" + ids + ")");
-      const present = new Set((current as Array<{id:string}>).map(row => row.id));
-      const missing = group.rows.filter(row => !present.has(String(row.id)));
-      if (missing.length) {
-        await rest(group.table, {
-          method: "POST", headers: { Prefer: "return=minimal" },
-          body: JSON.stringify(missing),
-        });
-      }
-    }
-    return NextResponse.json({ caregiverId, patientId, synthetic: true }, { headers: { "Cache-Control": "no-store" } });
+
+    return NextResponse.json(
+      { caregiverId, patientId, synthetic: true, scenario: "mariem-fatma" },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
     return fail("demo_bootstrap_unavailable", 503);
   }
