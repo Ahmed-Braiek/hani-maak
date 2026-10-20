@@ -1056,6 +1056,20 @@ export async function POST(req: Request) {
       });
     }
     if (action === "send_whatsapp_summary") {
+      // Demo users can preview the exact summary without contacting real recipients.
+      const demoProfile = await first(
+        `profiles?select=is_demo&id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
+      );
+      if (demoProfile?.is_demo === true) {
+        const context = await loadContext(caregiverId, patientId);
+        return json({
+          success: true,
+          sent: false,
+          simulated: true,
+          configurationRequired: true,
+          summaryText: buildCareSummary(context, clean(args.summaryType, 40) === "weekly" ? "weekly" : "daily"),
+        });
+      }
       return json({
         success: true,
         ...(await deliverWhatsAppSummary(caregiverId, patientId, args)),
