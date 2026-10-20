@@ -13,6 +13,7 @@ class CaregiverContextApi {
 
   Future<CaregiverContext> load() async {
     final identity = await CaregiverIdentity.resolve();
+    if (identity.isDemo) return CaregiverContext.fromJson(_demoContext);
 
     try {
       final uri = Uri.parse('${AppConfig.apiBase}/api/v1/caregiver-app').replace(
@@ -49,6 +50,7 @@ class CaregiverContextApi {
     required String locale,
   }) async {
     final identity = await CaregiverIdentity.resolve();
+    if (identity.isDemo) throw StateError('demo_ocr_disabled');
     final response = await _client
         .post(
           Uri.parse('${AppConfig.apiBase}/api/v1/heni/ocr-prescription'),
@@ -84,6 +86,10 @@ class CaregiverContextApi {
     Map<String, dynamic> args = const {},
   }) async {
     final identity = await CaregiverIdentity.resolve();
+    if (identity.isDemo) {
+      if (action == 'preview_summary') return {'summaryText': 'Synthetic demonstration summary. No data was sent.'};
+      throw StateError('demo_action_unavailable_offline');
+    }
     final response = await _client
         .post(
           Uri.parse('${AppConfig.apiBase}/api/v1/caregiver-app'),
