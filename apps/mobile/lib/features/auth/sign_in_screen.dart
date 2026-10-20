@@ -107,8 +107,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         CaregiverIdentity.enterDemo();
         try {
           await CaregiverIdentity.resolve();
-        } catch (_) {
-          CaregiverIdentity.leaveDemo();
+        } on StateError catch (error) {
+          if (error.message == 'demo_account_not_approved') {
+            CaregiverIdentity.leaveDemo();
+          } else {
+            CaregiverIdentity.leaveDemo();
+            rethrow;
+          }
         }
         if (mounted) context.go('/today');
       }
