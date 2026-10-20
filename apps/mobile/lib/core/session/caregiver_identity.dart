@@ -31,6 +31,7 @@ class CaregiverIdentity {
         Uri.parse('${AppConfig.apiBase}/api/v1/public-demo/bootstrap'),
         headers: {'authorization': 'Bearer ${session.accessToken}'},
       ).timeout(const Duration(seconds: 25));
+      if (response.statusCode == 403) throw StateError('demo_account_not_approved');
       if (response.statusCode != 200) throw StateError('demo_bootstrap_unavailable');
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       return CaregiverIdentity(
