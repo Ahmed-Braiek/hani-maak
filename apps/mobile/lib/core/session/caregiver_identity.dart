@@ -2,6 +2,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_config.dart';
 
 class CaregiverIdentity {
+  // Explicitly selected, memory-only synthetic demo mode. Never a server credential.
+  static bool demoSelected = false;
+  static void enterDemo() { demoSelected = true; }
+  static void leaveDemo() { demoSelected = false; }
+
   const CaregiverIdentity({
     required this.caregiverId,
     required this.patientId,
@@ -15,7 +20,7 @@ class CaregiverIdentity {
   final bool isDemo;
 
   static Future<CaregiverIdentity> resolve() async {
-    if (!AppConfig.hasSupabaseAuth) {
+    if (demoSelected) {
       return const CaregiverIdentity(
         caregiverId: AppConfig.demoCaregiverId,
         patientId: AppConfig.demoPatientId,
@@ -23,15 +28,10 @@ class CaregiverIdentity {
       );
     }
 
+    if (!AppConfig.hasSupabaseAuth) throw StateError('authentication_not_configured');
     final client = Supabase.instance.client;
     final session = client.auth.currentSession;
-    if (session == null) {
-      return const CaregiverIdentity(
-        caregiverId: AppConfig.demoCaregiverId,
-        patientId: AppConfig.demoPatientId,
-        isDemo: true,
-      );
-    }
+    if (session == null) throw StateError('authentication_required');
 
     final profiles = await client
         .from('profiles')
