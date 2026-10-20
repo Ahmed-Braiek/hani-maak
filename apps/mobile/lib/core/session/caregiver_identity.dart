@@ -1,8 +1,9 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_config.dart';
 
 class CaregiverIdentity {
-  // Explicitly selected, memory-only synthetic demo mode. Never a server credential.
   static bool demoSelected = false;
   static void enterDemo() { demoSelected = true; }
   static void leaveDemo() { demoSelected = false; }
@@ -20,18 +21,25 @@ class CaregiverIdentity {
   final bool isDemo;
 
   static Future<CaregiverIdentity> resolve() async {
-    if (demoSelected) {
-      return const CaregiverIdentity(
-        caregiverId: AppConfig.demoCaregiverId,
-        patientId: AppConfig.demoPatientId,
-        isDemo: true,
-      );
-    }
-
     if (!AppConfig.hasSupabaseAuth) throw StateError('authentication_not_configured');
     final client = Supabase.instance.client;
     final session = client.auth.currentSession;
     if (session == null) throw StateError('authentication_required');
+    if (session.user.isAnonymous) {
+      if (!demoSelected) throw StateError('demo_session_not_selected');
+      final response = await http.post(
+        Uri.parse('${AppConfig.apiBase}/api/v1/public-demo/bootstrap'),
+        headers: {'authorization': 'Bearer ${session.accessToken}'},
+      ).timeout(const Duration(seconds: 25));
+      if (response.statusCode != 200) throw StateError('demo_bootstrap_unavailable');
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return CaregiverIdentity(
+        caregiverId: data['caregiverId'] as String,
+        patientId: data['patientId'] as String,
+        accessToken: session.accessToken,
+        isDemo: true,
+      );
+    }
 
     final profiles = await client
         .from('profiles')
