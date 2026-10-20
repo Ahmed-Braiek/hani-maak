@@ -30,6 +30,10 @@
 - The team has not verified a formal hospital pilot, implemented FHIR/openEHR exchange, or a Carefluence platform agreement.
 - Demo authentication/public repository cleanup are handled separately in draft PRs [#61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) and [#62](https://github.com/Ahmed-Braiek/hani-maak/pull/62).
 
+## Next 14-day checkpoint
+
+The integrated plan defines a **provisional, relative 14-day review cycle** based on the Thursday sprint and team responses. Salma reported accepting openEHR co-coordination at approximately 8 hours/week; Hela/Eya/Emna/Ahmed participation in new assignments requires confirmation. The first email requests **early scope feedback**—not an assertion that the Day-14 outputs or hospital discovery are complete.
+
 ## Proposed review gate
 
 **Before selecting a standards implementation:** confirm workstream owners and availability, a small clinical dataset, two or three use cases, caregiver/proxy access requirements, and the evidence expected from hospital discovery. Only then proceed to a *synthetic* prototype. Avoid patient data, real hospital write-back and diagnostic claims at this stage.
