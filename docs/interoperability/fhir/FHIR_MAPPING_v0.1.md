@@ -26,7 +26,7 @@ Initial FHIR data should be **synthetic**. No application code, Supabase schema,
 | **Not yet derivable** | Required clinical facts / statuses / identifiers cannot be derived from the current local fields |
 | **Excluded** | Outside the first patient-context exchange or explicitly caregiver-private/experimental |
 
-A local field name can describe **application state**, not a clinical claim. For example, `active` in a local medication table is **not automatically** `MedicationStatement.status`, and `is_verified` in a professional directory is **not** proof of licensure. A caregiver Care Circle is not necessarily a clinically governed `CareTeam`.
+A local field name can describe **application state**, not a clinical claim. For example, `active` in a local medication table is **not automatically** `MedicationStatement.status`, and `is_verified` in a professional directory is **not** proof of licensure. FHIR `CareTeam` **can include informal/family participants**, but Hani Maak's Care Circle is not automatically a clinically governed CareTeam or permission grant.
 
 ### Resource-level conceptual crosswalk
 
@@ -34,7 +34,7 @@ A local field name can describe **application state**, not a clinical claim. For
 |---|---|---|---|
 | `patients` | [`Patient`](https://hl7.org/fhir/R4/patient.html) | **Candidate** | Validated identifiers; correct subject matching; no stage-as-diagnosis |
 | `profiles` + `caregiver_patient_relationships` | [`RelatedPerson`](https://hl7.org/fhir/R4/relatedperson.html) | **Candidate** | Relationship meaning vs operational care role; identity and proxy evidence |
-| `care_circles` / `care_circle_members` | [`CareTeam`](https://hl7.org/fhir/R4/careteam.html) | **Not yet derivable** | No verified institutional care-team membership; keep as internal family collaboration |
+| `care_circles` / `care_circle_members` | [`CareTeam`](https://hl7.org/fhir/R4/careteam.html) | **Not yet derivable** | FHIR CareTeam may include family and informal participants, but local membership alone does not establish a **clinically managed team** or authorized sharing |
 | `patients.alzheimer_stage` | [`Condition`](https://hl7.org/fhir/R4/condition.html) | **Not yet derivable** | No structured diagnosis, code, clinical source, onset/recording verification |
 | `incidents` / `incident_observations` | [`Observation`](https://hl7.org/fhir/R4/observation.html) | **Conditional** | Clinical code/meaning, reporter vs performer, status, consent and review |
 | `patient_medications` | [`MedicationStatement`](https://hl7.org/fhir/R4/medicationstatement.html) | **Conditional** | Asserter, medication identity/coding, actual-use status/as-of date, source verification |
@@ -62,7 +62,7 @@ A local field name can describe **application state**, not a clinical claim. For
 | `patients.external_ids` (JSONB) | `Patient.identifier[]` | Use **only** known, verified values with an explicit `Identifier.system`; do not propagate arbitrary JSON | Trusted issuer, scope and matching algorithm |
 | `patients.display_name`, `preferred_name` | `Patient.name[]` | Name text/use require agreed parsing; no inventing given/family from display string | Identity consistency; privacy |
 | `patients.date_of_birth` | `Patient.birthDate` | Direct date if reliable, permitted and relevant | Date provenance and minimization |
-| `patients.sex` | `Patient.gender` (administrative gender) **only if definitions align** | Local sex values (female/male/other/unknown) are not automatically an authoritative clinical sex or gender record | Confirm semantic meaning and target IG |
+| `patients.sex` | `Patient.gender` (administrative gender) **only if definitions align** | A local `sex` field is not automatically FHIR **administrative gender**: `Patient.gender` allows male/female/other/unknown but represents a different concept | Confirm semantic meaning and target IG |
 | `patients.primary_language` | `Patient.communication.language`, possible | Local language may reflect preferred UI language rather than patient language; do not infer language mastery | Confirm meaning/coding; multilingual terminology |
 | `patients.alzheimer_stage` | **No automatic `Patient` or `Condition` mapping** | Free text describing stage cannot be promoted to a coded diagnosis | Clinical evidence, diagnostic coding, clinician and assessment time |
 | `patients.is_demo` | Internal environment/fixture classification | Never turn demo data into real hospital identity or flags implying a clinical assertion | Test-only routing and synthetic tagging |
@@ -78,12 +78,12 @@ If clinical experts identify an appropriate code and source, `incident_observati
 |---|---|---|
 | `incidents.patient_id` joined via `incident_observations.incident_id` | `Observation.subject = Reference(Patient/...)` | Resolve a verified patient reference |
 | `incident_observations.observed_at` | `Observation.effectiveDateTime` | Occurrence/observation time; do not confuse with record creation |
-| `incident_observations.observation` | `Observation.valueString` or `Observation.note` *only under an agreed observation code* | Unstructured caregiver text alone may belong in a reviewed narrative document instead |
+| `incident_observations.observation` | `Observation.valueString` or `Observation.note` *only under an agreed observation code and resource status* | Unstructured caregiver text alone may belong in a reviewed narrative document instead |
 | `incident_observations.observed_by_profile_id` | Potential `Observation.performer` (RelatedPerson/Practitioner) or associated `Provenance.agent` | The informant is **not automatically** a clinician |
 | `professional_verified`, `verified_by_professional_id` | **No automatic “clinically verified” FHIR property** | Verify actual reviewer evidence; `verified_by_professional_id` points to a local directory entry, not guaranteed credentialing |
 | `incidents.visibility` / `approved_to_share_by_profile_id` | **Not** resource-level proof of exchange permission | Check current authorization, consent, revocation and minimum necessary |
 
-FHIR `Observation.code`, `status`, value semantics and required profile constraints need actual clinical design. This table **does not form a valid Observation JSON object** and is not an implemented exporter.
+FHIR R4 `Observation.status` and `Observation.code` are **required**, while `subject`, `effective[x]`, `performer`, and `value[x]` are optional at the base-resource level but may be required by a selected profile; clinical design must determine which elements are necessary. This table **does not form a valid Observation JSON object** and is not an implemented exporter.
 
 ## 4. UC-02 — Medication information: three distinct assertions
 
@@ -115,7 +115,7 @@ FHIR deliberately separates **orders**, **reported medication use**, and **medic
 | `caregiver_role` (primary/secondary/paid_aide) | **Internal role**, not automatically kinship | 'Primary caregiver' does not say daughter/son/legal guardian |
 | `access_status` and `started_at`/`ended_at` | Candidate `RelatedPerson.active` / `RelatedPerson.period` **only after agreed interpretation** | Relationship record does not prove legal proxy authorization |
 | `can_view_medications`, `can_manage_tasks`, etc. | **Internal application permissions** | Must not be emitted as authoritative hospital grants |
-| `care_circles` + `care_circle_members` | **Not automatically `CareTeam`** | Social/family collaboration is not a verified clinical team |
+| `care_circles` + `care_circle_members` | **Not automatically `CareTeam`** | FHIR CareTeam can represent informal participants; verify clinical care context, role, members and authority |
 
 ### 5.2 `Consent` must represent a verifiable directive
 
@@ -125,7 +125,7 @@ FHIR deliberately separates **orders**, **reported medication use**, and **medic
 | `consents.actor_profile_id` | Potential grantor / recorded actor; not necessarily `Consent.performer` | Prove capacity, patient/proxy role and valid identity |
 | `consents.consent_type`, `scope` JSONB | `Consent.scope`, `category`, `provision` as appropriate | Agree legal purpose, data categories, recipient and policy representation |
 | `recipient_type` / `recipient_id` | `Consent.provision.actor` where a permitted recipient is verifiable | No default entity mapping from arbitrary local IDs |
-| `status` (granted/revoked/expired) | `Consent.status` **requires a reviewed state mapping** | R4 code set differs from local status; historical consent state cannot be silently mapped |
+| `status` (granted/revoked/expired) | `Consent.status` **requires a reviewed state mapping** | R4 codes include `draft`, `proposed`, `active`, `rejected`, `inactive` and `entered-in-error`; local `granted`/`revoked`/`expired` are not one-to-one equivalents |
 | `granted_at`, `revoked_at`, `expires_at` | `Consent.dateTime` / `provision.period` as appropriate | Effective time, latest revocation and policy precedence need resolution |
 | `disclosure_events.data_categories`, `purpose`, `payload_reference` | Disclosure-audit evidence, not `Consent` by itself | Confirm the actual outbound content and legal basis |
 
@@ -145,6 +145,8 @@ FHIR deliberately separates **orders**, **reported medication use**, and **medic
 | `hani_conversations`, `hani_messages`, `wellbeing_checkins` | **No default export** | Caregiver private information; no implied patient-EHR membership |
 | `support_signals`, `voice_emotion_analyses`/`segments` | **No export** | Experimental AI inference; not validated medical findings |
 | `hani_demo_state` | **No direct mapping** | Legacy opaque JSON state, not authoritative normalized clinical data |
+
+**Base R4 resource requirements to validate in a future proof of concept:** `MedicationStatement.status`, `MedicationStatement.medication[x]` and `MedicationStatement.subject` are required; `MedicationRequest.status`, `intent`, `medication[x]` and `subject` are required. `Observation.status` and `code` are required. A mapping table is **not** a valid resource instance and cannot be implemented without resolving these requirements and any selected implementation-guide constraints.
 
 **Provenance versus security audit:** R4 `Provenance` documents who or what created/changed/influenced a particular FHIR resource. R4 `AuditEvent` records actual system access/exchange events. Existing `disclosure_events` and `caregiver_audit_events` can inform design, but **neither should be presented as a complete retrospective FHIR audit trail**, especially if no actual FHIR transactions occurred.
 
