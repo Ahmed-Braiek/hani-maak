@@ -20,7 +20,7 @@ Hani Maak (**هاني معاك**) is a multilingual companion for family and inf
 - **Conversational service:** Python/FastAPI Hani agent with configured Gemini text and live-voice paths.
 - **Data:** Supabase/PostgreSQL with normalized caregiver tables, alongside older demonstration JSON state. The relationship between these needs explicit mapping.
 - **Clinical safeguards:** AI-generated suggestions are not verified treatment instructions; human review, provenance, consent and appropriate escalation ownership are still design requirements.
-- **Demo access:** a dedicated synthetic Mariem/Fatma account is being prepared on PR #61; account provisioning and integrated demonstration remain pending.
+- **Demo access:** PR #61 contains the proposed authenticated synthetic Mariem/Fatma access flow; the required **dedicated Supabase Auth user has not yet been provisioned**. The engineering team will provision and validate it separately from today's documentation handoff.
 
 See the [current architecture](../architecture/CURRENT_ARCHITECTURE.md), [48-table clinical-data/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), [schema audit](CURRENT_SCHEMA_AUDIT.md), and [public repository README under PR #62](https://github.com/Ahmed-Braiek/hani-maak/blob/chore/public-repository-cleanup/README.md) for the detailed baseline.
 
@@ -52,7 +52,7 @@ See the [clinical validation audit](openehr/CLINICAL_VALIDATION_AUDIT.md), [FHIR
 | Hospital discovery | Salma and Hela | Questions about institutional process, EHR/API capability and governance — **not a formal pilot** |
 | Research direction | Salma and Adam, with clinical and technical contributors | Source-linked literature survey and a bounded research concept |
 
-Assignments and the provisional relative 14-day review cycle are further described in the [integrated action plan](ACTION_PLAN_v0.1.md). Not all individual availability or task ownership has been confirmed.
+All six team members are actively engaged and committed to continuing the project. Specific future assignments, review authority and milestones are coordinated within the team; these are not questions about commitment. The corrected **22 October–4 November provisional review window** follows the overdue **21 October** GitHub handoff, explained in the [action plan](ACTION_PLAN_v0.1.md).
 
 ## 4. The guidance we request
 
