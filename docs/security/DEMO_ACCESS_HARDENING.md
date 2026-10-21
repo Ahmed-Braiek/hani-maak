@@ -41,6 +41,15 @@ No usernames, passwords, Supabase secret keys or bearer tokens belong in GitHub,
 
 Until the account is provisioned and these checks pass, **PR #61 is implementation-ready but not an operationally verified demo**.
 
+## Phase 3 security review findings (21 October 2026)
+
+- The caregiver-app API now observes medication-view, task-management and shared-incident relationship flags. Medication/document edits are conservatively limited to the primary caregiver where the schema lacks specific write grants. This policy requires real multi-user permission integration tests before release.
+- The Hani backend tool that previously generated professional-contact consent and a handoff in `approved` state from agent arguments is **temporarily blocked**, returning `explicit_caregiver_approval_required`. A separate authenticated human approval workflow and clinician-verification evidence are required before reopening it.
+- The authenticated demo client now fails on caregiver-context API errors rather than displaying canned offline records, and the old WhatsApp test-number text is removed from the summary UI.
+- **Not tested end to end:** Supabase Auth provisioning, the actual Mariem/Fatma shared login, all caregiver feature paths, revocation and cross-patient access, or a deployed Flutter bundle rebuilt from this PR.
+- **Historical exposure remains:** the original hardcoded demo password and email exist in Git history and main until Ahmed merges. Rotate the old password, treat it as public, and audit history prior to wider distribution. No claim of full secret/history audit is made here.
+- The unused fixture generator/test file describes an older per-user Amina demo variant and is not invoked by the current Mariem/Fatma bootstrap; do not assume that test exercises the actual bootstrap path.
+
 ## Existing scenario and credential handling
 
 - Original public-demo Flutter sign-in was **a hardcoded UI shortcut**, not a Supabase Auth account. Read-only Supabase check found no Auth user with the previously used demo email.
