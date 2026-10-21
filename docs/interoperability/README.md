@@ -1,22 +1,31 @@
 # Interoperability and Clinical Data — Reviewer Guide
 
-**Status:** Draft foundation for discussion, 20 October 2026.  
+**Status:** Draft foundation for discussion, updated 21 October 2026.  
 **Audience:** Lloyd Williams, Aditya Ayyagari, Hani Maak clinical and technical contributors.  
 **Scope:** Alzheimer's family caregiver information, openEHR modeling assessment and potential FHIR exchange. **No hospital integration or clinical approval is claimed.**
 
-## Recommended reading order
+## Suggested advisor reading package
 
-| Sequence | Document | Reviewer focus |
-|---|---|---|
-| 1 | [Integrated Action Plan](ACTION_PLAN_v0.1.md) | Proposed team responsibilities, deliverables, dependencies and review questions |
-| 2 | [Current Architecture](../architecture/CURRENT_ARCHITECTURE.md) | Verified components, demo/production distinctions and open engineering checks |
-| 3 | [Clinical-Data and Provenance Matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md) | All 48 live tables: source/verification fields, caregiver privacy and proposed sharing gates |
-| 4 | [Current Schema Audit](CURRENT_SCHEMA_AUDIT.md) | Normalized caregiver data vs legacy JSON demo-state, access and provenance |
-| 5 | [openEHR Archetype Landscape](openehr/ARCHETYPE_LANDSCAPE.md) | 16 CKM models, published vs in-development, caregiver/provenance gaps |
-| 6 | [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md) | Clinical sign-off gap, boundaries, escalation responsibilities |
-| 7 | [FHIR Use Cases](fhir/USE_CASES.md) | Candidate read-first use cases, identity, consent, source and authorization needs |
-| 8 | [FHIR Source-to-Resource Mapping v0.1](fhir/FHIR_MAPPING_v0.1.md) | Observed field crosswalk, proposed FHIR R4 vocabulary, authorization and non-mapping gates |
-| 9 | [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Read-only technical risks and remediation priorities |
+**Read first (the three primary links to include in the follow-up email):**
+
+1. [Executive Summary](EXECUTIVE_SUMMARY.md) — brief overview of what exists, completed research, open choices and questions
+2. [Advisor Brief](ADVISOR_BRIEF.md) — technical framing, initial standards direction and requested guidance
+3. [Integrated Action Plan](ACTION_PLAN_v0.1.md) — proposed responsibilities, milestones and dependencies (still provisional)
+
+**Supporting technical material (available for deeper review, not required first reading):**
+
+| Document | Scope |
+|---|---|
+| [Current Architecture](../architecture/CURRENT_ARCHITECTURE.md) | Current observed application and service boundaries |
+| [Clinical-Data and Provenance Matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md) | All 48 live public tables, source and privacy gaps |
+| [openEHR Archetype Landscape](openehr/ARCHETYPE_LANDSCAPE.md) | Sixteen published/development CKM candidates and reuse caveats |
+| [FHIR Use Cases](fhir/USE_CASES.md) | Seven proposed exchange scenarios |
+| [FHIR Mapping v0.1](fhir/FHIR_MAPPING_v0.1.md) | Candidate source-field-to-FHIR R4 resource mapping |
+| [Current Schema Audit](CURRENT_SCHEMA_AUDIT.md) | Normalized versus legacy demonstration state |
+| [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md) | Clinical evidence and review gaps |
+| [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Internal security/repository observations; not external clearance |
+
+**Important:** Documents are currently on **draft PR #60's** `docs/interoperability-foundation` branch, not merged into `main`. The full external-sharing/privacy audit in Phase 3 is still required before sending links. PR #61 demo hardening and PR #62 public README updates are separate, unmerged work.
 
 ## Three questions to resolve first
 
