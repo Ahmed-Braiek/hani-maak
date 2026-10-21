@@ -79,6 +79,7 @@ This is an initial feedback request. **We do not need the proof of concept compl
 - [Clinical-data and provenance matrix — all 48 tables](CLINICAL_DATA_PROVENANCE_MATRIX.md)
 - [Running schema findings](CURRENT_SCHEMA_AUDIT.md)
 - [Clinical validation gaps](openehr/CLINICAL_VALIDATION_AUDIT.md)
+- [openEHR archetype landscape — 16 CKM candidates](openehr/ARCHETYPE_LANDSCAPE.md)
 - [Candidate FHIR use cases](fhir/USE_CASES.md)
 - [Documentation index](README.md)
 - [Repository QA risks](../REPOSITORY_QA_AUDIT_2026-10-20.md)
