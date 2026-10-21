@@ -44,6 +44,9 @@ jobs:
       - name: Heni agent Python syntax
         run: python -m compileall -q apps/heni-agent/app apps/heni-agent/tests
 
+      - name: Offline production smoke runner tests
+        run: python3 -m unittest discover -s tests -p test_production_smoke.py -v
+
       - name: Heni agent security tests
         env:
           PYTHONPATH: apps/heni-agent

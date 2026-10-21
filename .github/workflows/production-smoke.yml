@@ -2,10 +2,10 @@ name: Production smoke test
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - ".github/workflows/production-smoke.yml"
+      - "scripts/production_smoke.py"
       - "apps/web/**"
       - "apps/heni-agent/**"
       - "apps/mobile/**"
@@ -20,84 +20,29 @@ concurrency:
 
 jobs:
   smoke:
+    # No secret-bearing test from arbitrary feature branches or forks.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
+    env:
+      HANI_SMOKE_SUPABASE_URL: https://lhrngmuxmjpigycgonnh.supabase.co
+      # Supabase publishable keys are public and already used by the Flutter build.
+      # Never use a service_role/sb_secret_ key here.
+      HANI_SMOKE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_8jxBjLqsE0-8fSxaCZqP7w_7LdAm4SI
     steps:
-      - name: Wait for production aliases
-        run: sleep 20
+      - name: Wait briefly for production aliases
+        run: sleep 30
 
-      - name: Verify web Flutter host
-        run: |
-          curl --fail --silent --show-error             --retry 4 --retry-delay 5             https://hani-maak.vercel.app/flutter/index.html             -o /tmp/flutter.html
-          grep -q '<base href="/flutter/">' /tmp/flutter.html
+      - name: Checkout reviewed main branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - name: Verify Hani agent health
-        run: |
-          curl --fail --silent --show-error             --retry 4 --retry-delay 5             https://hani-maak-heni-agent.vercel.app/health             -o /tmp/agent-health.json
-          python3 - <<'PY'
-          import json
-          body=json.load(open('/tmp/agent-health.json'))
-          assert body.get('status') == 'ok', body
-          assert body.get('service') == 'heni-agent', body
-          print('agent health ok')
-          PY
+      - name: Prepare WebSocket client
+        run: python3 -m pip install --quiet 'websockets==15.0.1'
 
-      - name: Verify voice token and secure WebSocket URL
-        run: |
-          curl --fail --silent --show-error             --retry 3 --retry-delay 4             --max-time 30             -X POST https://hani-maak.vercel.app/api/v1/heni/voice-token             -H 'content-type: application/json'             --data '{"locale":"en","caregiverId":"10000000-0000-0000-0000-000000000001","patientId":"30000000-0000-0000-0000-000000000001"}'             -o /tmp/voice.json
-          python3 - <<'PY'
-          import json
-          body=json.load(open('/tmp/voice.json'))
-          assert body.get('token'), 'voice token missing'
-          assert str(body.get('wsUrl','')).startswith('wss://'), body.get('wsUrl')
-          print('voice token ok')
-          PY
-
-      - name: Verify live voice WebSocket handshake
-        run: |
-          python3 -m pip install --quiet websockets
-          python3 - <<'PY'
-          import asyncio
-          import json
-          import websockets
-
-          body=json.load(open('/tmp/voice.json'))
-          url=body['wsUrl'] + '?token=' + body['token']
-
-          async def main():
-              async with websockets.connect(
-                  url,
-                  origin='https://hani-maak.vercel.app',
-                  open_timeout=15,
-                  close_timeout=5,
-              ) as ws:
-                  saw_session = False
-                  saw_listening = False
-                  for _ in range(5):
-                      raw = await asyncio.wait_for(ws.recv(), timeout=20)
-                      if not isinstance(raw, str):
-                          continue
-                      event = json.loads(raw)
-                      if event.get('type') == 'session':
-                          saw_session = True
-                      if event.get('type') == 'status' and event.get('phase') == 'listening':
-                          saw_listening = True
-                          break
-                  assert saw_session, 'voice session event missing'
-                  assert saw_listening, 'live model did not reach listening state'
-                  print('live voice websocket ok')
-
-          asyncio.run(main())
-          PY
-
-      - name: Verify Hani caregiver chat end to end
-        run: |
-          curl --fail --silent --show-error             --retry 2 --retry-delay 5             --max-time 55             -X POST https://hani-maak.vercel.app/api/v1/heni/chat             -H 'content-type: application/json'             --data '{"message":"Hello Hani. Give me one short supportive sentence.","locale":"en","role":"patient","caregiverId":"10000000-0000-0000-0000-000000000001","patientId":"30000000-0000-0000-0000-000000000001","history":[]}'             -o /tmp/chat.json
-          python3 - <<'PY'
-          import json
-          body=json.load(open('/tmp/chat.json'))
-          assert body.get('message'), body
-          assert body.get('sessionId'), body
-          assert body.get('locale') in {'tn','ar','fr','en'}, body
-          print('chat end-to-end ok')
-          PY
+      - name: Verify production with authenticated synthetic demo session
+        env:
+          HANI_SMOKE_DEMO_EMAIL: ${{ secrets.HANI_SMOKE_DEMO_EMAIL }}
+          HANI_SMOKE_DEMO_PASSWORD: ${{ secrets.HANI_SMOKE_DEMO_PASSWORD }}
+        run: python3 scripts/production_smoke.py
