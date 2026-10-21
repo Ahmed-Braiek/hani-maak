@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/session/caregiver_identity.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/hani_brand_logo.dart';
@@ -11,8 +12,6 @@ import '../../core/widgets/hani_brand_logo.dart';
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
-  static const demoEmail = 'caregiver@hani-maak.demo';
-  static const demoPassword = 'HaniMaak2026!';
 
   @override
   ConsumerState<SignInScreen> createState() => _SignInScreenState();
@@ -59,13 +58,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       return;
     }
 
-    if (!signUp &&
-        mail == SignInScreen.demoEmail &&
-        pass == SignInScreen.demoPassword) {
-      if (mounted) context.go('/today');
-      return;
-    }
-
     if (!AppConfig.hasSupabaseAuth) {
       setState(() {
         error = tr(
@@ -92,6 +84,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         );
         if (!mounted) return;
         if (result.session != null) {
+          CaregiverIdentity.leaveDemo();
           context.go('/today');
         } else {
           setState(() {
@@ -109,6 +102,19 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           email: mail,
           password: pass,
         );
+        // A specially allowlisted demo user receives synthetic records.
+        // A regular account remains on its normal authenticated path.
+        CaregiverIdentity.enterDemo();
+        try {
+          await CaregiverIdentity.resolve();
+        } on StateError catch (error) {
+          if (error.message == 'demo_account_not_approved') {
+            CaregiverIdentity.leaveDemo();
+          } else {
+            CaregiverIdentity.leaveDemo();
+            rethrow;
+          }
+        }
         if (mounted) context.go('/today');
       }
     } on AuthException catch (e) {
@@ -130,12 +136,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 
   void _useDemo() {
-    email.text = SignInScreen.demoEmail;
-    password.text = SignInScreen.demoPassword;
+    // The demo uses the normal email/password login form, never public credentials.
     setState(() {
       signUp = false;
       error = null;
-      message = null;
+      message = 'Enter the shared demo email and password provided by the team.';
     });
   }
 
@@ -274,7 +279,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 if (!signUp) ...[
                   const SizedBox(height: 14),
                   TextButton.icon(
-                    onPressed: _useDemo,
+                    onPressed: loading ? null : _useDemo,
                     icon: const Icon(Icons.science_outlined),
                     label: Text(t(
                       'استعمل حساب الديمو',

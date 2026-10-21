@@ -34,12 +34,11 @@ class CaregiverContextApi {
         }
       }
     } catch (_) {
-      // Never silently replace a signed-in caregiver's authorized context with
-      // synthetic demo data. That would be confusing and unsafe in production.
-      if (!identity.isDemo) rethrow;
+      // Authenticated demo data is real server-backed context, never an offline fallback.
+      rethrow;
     }
 
-    return CaregiverContext.fromJson(_demoContext);
+    throw StateError('caregiver_context_unavailable');
   }
 
   Future<Map<String, dynamic>> ocrPrescription({

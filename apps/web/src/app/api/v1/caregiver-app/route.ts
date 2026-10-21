@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canPerformCaregiverAction, canSeeIncident, mayRequestProfessionalHelp } from "@/lib/caregiver-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -6,8 +7,6 @@ type Json = Record<string, any>;
 
 const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)?.replace(/\/$/, "");
 const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const DEMO_CAREGIVER = "10000000-0000-0000-0000-000000000001";
-const DEMO_PATIENT = "30000000-0000-0000-0000-000000000001";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -65,8 +64,6 @@ async function first(path: string) {
 }
 
 async function verifyIdentity(req: Request, caregiverId: string, patientId: string) {
-  if (caregiverId === DEMO_CAREGIVER && patientId === DEMO_PATIENT) return;
-
   const auth = req.headers.get("authorization") || "";
   if (!auth.startsWith("Bearer ")) throw new Error("authentication_required");
   if (!supabaseUrl || !supabaseKey) throw new Error("supabase_not_configured");
@@ -136,7 +133,7 @@ async function loadContext(caregiverId: string, patientId: string) {
   ] = await Promise.all([
     first(`profiles?select=id,full_name,preferred_language,timezone,role,avatar_url,metadata&id=eq.${encodeURIComponent(caregiverId)}&limit=1`),
     first(`patients?select=id,display_name,preferred_name,date_of_birth,sex,alzheimer_stage,primary_language,important_notes,photo_url,is_demo&id=eq.${encodeURIComponent(patientId)}&limit=1`),
-    sb(`patient_medications?select=id,medication_name,dose_text,schedule_text,instructions,verified,active&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true`),
+    relationship.can_view_medications === true ? sb(`patient_medications?select=id,medication_name,dose_text,schedule_text,instructions,verified,active&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true`) : Promise.resolve([]),
     sb(`professional_instructions?select=id,instruction_type,title,body,status,verified_at,professional_id,created_at&patient_id=eq.${encodeURIComponent(patientId)}&status=eq.active&order=created_at.desc`),
     sb(`incidents?select=id,reported_by_profile_id,scenario_id,title,summary,occurred_at,support_level,visibility,created_at,shared_at,resolved_at&patient_id=eq.${encodeURIComponent(patientId)}&order=created_at.desc&limit=30`),
     sb(`care_tasks?select=id,title,description,source,status,effort_weight,difficulty,starts_at,due_at,overnight,requested_by_profile_id,assigned_to_profile_id,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=due_at.asc.nullslast&limit=50`),
@@ -150,8 +147,8 @@ async function loadContext(caregiverId: string, patientId: string) {
     sb(`care_task_requests?select=id,task_id,requester_profile_id,recipient_profile_id,status,message,alternative_note,alternative_starts_at,responded_at,created_at&recipient_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
     sb(`care_task_requests?select=id,task_id,requester_profile_id,recipient_profile_id,status,message,alternative_note,alternative_starts_at,responded_at,created_at&requester_profile_id=eq.${encodeURIComponent(caregiverId)}&order=created_at.desc&limit=20`),
     sb("questionnaire_definitions?select=id,code,name,purpose,owner,active&active=eq.true&order=created_at.desc"),
-    sb(`medication_schedules?select=id,patient_medication_id,timezone,times,days_of_week,reminder_minutes_before,active,starts_on,ends_on,notes,created_at&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true&order=created_at.desc`),
-    sb(`medication_events?select=id,patient_medication_id,scheduled_for,status,actual_at,note,source,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=scheduled_for.desc&limit=80`),
+    relationship.can_view_medications === true ? sb(`medication_schedules?select=id,patient_medication_id,timezone,times,days_of_week,reminder_minutes_before,active,starts_on,ends_on,notes,created_at&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true&order=created_at.desc`) : Promise.resolve([]),
+    relationship.can_view_medications === true ? sb(`medication_events?select=id,patient_medication_id,scheduled_for,status,actual_at,note,source,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=scheduled_for.desc&limit=80`) : Promise.resolve([]),
     sb(`care_documents?select=id,document_type,title,original_file_name,extracted_text,extraction_json,reviewed,created_at,updated_at&patient_id=eq.${encodeURIComponent(patientId)}&order=created_at.desc&limit=40`),
     sb(`patient_memory_items?select=id,item_type,title,subtitle,image_url,media_url,prompt,sort_order,active,metadata,created_at&patient_id=eq.${encodeURIComponent(patientId)}&active=eq.true&order=sort_order.asc,created_at.asc`),
     sb(`patient_activity_sessions?select=id,memory_item_id,activity_type,started_at,ended_at,response_label,note,metadata,created_at&patient_id=eq.${encodeURIComponent(patientId)}&order=started_at.desc&limit=40`),
@@ -162,7 +159,7 @@ async function loadContext(caregiverId: string, patientId: string) {
   if (!patient) throw new Error("patient_not_found");
 
   const incidents = (incidentRows as Json[]).filter(
-    (i) => i.reported_by_profile_id === caregiverId || i.visibility === "shared_care_timeline",
+    (i) => canSeeIncident(relationship, caregiverId, i),
   );
 
   let members: Json[] = [];
@@ -983,6 +980,9 @@ export async function POST(req: Request) {
     const args = (body.args && typeof body.args === "object" ? body.args : {}) as Json;
     if (!caregiverId || !patientId) return json({ error: "caregiver_and_patient_required" }, { status: 400 });
     await verifyIdentity(req, caregiverId, patientId);
+    const grants = await first(`caregiver_patient_relationships?select=caregiver_role,can_view_medications,can_manage_tasks,can_request_professional_help&caregiver_profile_id=eq.${encodeURIComponent(caregiverId)}&patient_id=eq.${encodeURIComponent(patientId)}&access_status=eq.active&limit=1`);
+    if (!grants) throw new Error("caregiver_patient_access_denied");
+    if (!canPerformCaregiverAction(grants, action)) return json({ error: "caregiver_permission_denied" }, { status: 403 });
 
     if (action === "get_questionnaire") {
       const versionId = clean(args.versionId, 120);
@@ -1060,12 +1060,28 @@ export async function POST(req: Request) {
       });
     }
     if (action === "send_whatsapp_summary") {
+      if (!mayRequestProfessionalHelp(grants)) return json({ error: "caregiver_permission_denied" }, { status: 403 });
+      // Demo users can preview the exact summary without contacting real recipients.
+      const demoProfile = await first(
+        `profiles?select=is_demo&id=eq.${encodeURIComponent(caregiverId)}&limit=1`,
+      );
+      if (demoProfile?.is_demo === true) {
+        const context = await loadContext(caregiverId, patientId);
+        return json({
+          success: true,
+          sent: false,
+          simulated: true,
+          configurationRequired: true,
+          summaryText: buildCareSummary(context, clean(args.summaryType, 40) === "weekly" ? "weekly" : "daily"),
+        });
+      }
       return json({
         success: true,
         ...(await deliverWhatsAppSummary(caregiverId, patientId, args)),
       });
     }
     if (action === "preview_summary") {
+      if (!mayRequestProfessionalHelp(grants)) return json({ error: "caregiver_permission_denied" }, { status: 403 });
       const context = await loadContext(caregiverId, patientId);
       return json({
         success: true,

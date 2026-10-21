@@ -20,7 +20,8 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   String type = 'daily';
   String? preview;
   String? status;
-  static const testRecipient = '21627983305';
+  // Recipients must be entered and authorized separately; never embed real test numbers.
+  static const testRecipient = '';
 
   Future<void> generate() async {
     setState(() {
@@ -218,7 +219,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Test recipient: +216 27 983 305. Direct automated sending requires an approved WhatsApp Business sender.',
+            'Recipient must be entered and authorized separately. Direct automated sending requires an approved WhatsApp Business sender.',
             style: TextStyle(color: HaniColors.muted, fontSize: 11.5),
           ),
           const SizedBox(height: 24),
