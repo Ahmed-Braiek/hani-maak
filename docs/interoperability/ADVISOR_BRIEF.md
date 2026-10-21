@@ -38,7 +38,7 @@ The **FHIR exploration** will focus on a very small number of explicit exchange 
 
 These concepts are **candidates**, not committed FHIR profiles. Neither a hospital's technical capability nor its exchange authorization has been verified. Later consideration may include reviewed incident summaries, provenance/audit and explicitly consented clinical handoffs.
 
-See the [clinical validation audit](openehr/CLINICAL_VALIDATION_AUDIT.md) and [FHIR use-case register](fhir/USE_CASES.md).
+See the [clinical validation audit](openehr/CLINICAL_VALIDATION_AUDIT.md), [FHIR use-case register](fhir/USE_CASES.md) and the [preliminary source-to-resource mapping](fhir/FHIR_MAPPING_v0.1.md). FHIR R4 is used for reference terminology only, not selected as our implementation standard.
 
 ## 3. Proposed workstreams
 
@@ -66,7 +66,7 @@ We would appreciate Lloyd's and Aditya's perspective on:
 
 1. A **clinical domain and provenance matrix**, clearly separating caregiver-private and care-recipient information.
 2. A **small, source-linked inventory of existing openEHR archetypes**, highlighting gaps rather than inventing templates immediately.
-3. A **candidate FHIR concept map** for one approved use case, with synthetic data and explicit authorization assumptions.
+3. **Review and refine the preliminary FHIR source-to-resource mapping** (now drafted across the first three candidate use cases), then select *one* approved use case and later prepare a synthetic example.
 4. An **architecture and scope decision log**, updated after advisor feedback.
 5. Only after review, a **synthetic technical proof of concept**, with negative access tests and no live hospital write-back.
 
@@ -81,6 +81,7 @@ This is an initial feedback request. **We do not need the proof of concept compl
 - [Clinical validation gaps](openehr/CLINICAL_VALIDATION_AUDIT.md)
 - [openEHR archetype landscape — 16 CKM candidates](openehr/ARCHETYPE_LANDSCAPE.md)
 - [Candidate FHIR use cases](fhir/USE_CASES.md)
+- [Preliminary FHIR field mapping v0.1](fhir/FHIR_MAPPING_v0.1.md)
 - [Documentation index](README.md)
 - [Repository QA risks](../REPOSITORY_QA_AUDIT_2026-10-20.md)
 
