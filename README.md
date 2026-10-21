@@ -111,7 +111,7 @@ The repository also retains an **earlier Future Health Connectathon patient-jour
 
 - Use **synthetic information only**. Never enter real patient records, prescription photographs, private telephone numbers or identifiable medical details.
 - The dedicated synthetic demo now uses a confirmed **Supabase Auth email/password account**. The coordinator verified browser sign-in and the Mariem/Fatma dashboard on **21 October 2026**; this does **not** establish clinical identity verification, full caregiver isolation, or complete end-to-end security.
-- [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) is merged. The dedicated demo account is provisioned and linked to the **existing fictional Mariem/Fatma scenario**; protected chat/voice smoke testing, broader feature checks and negative authorization tests remain pending. **No working credentials are published here.**
+- [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) is merged. The dedicated demo account is provisioned and linked to the **existing fictional Mariem/Fatma scenario**. The [authenticated production smoke test](https://github.com/Ahmed-Braiek/hani-maak/actions/runs/39691081980) passed on **21 October 2026**, including chat, voice token/WebSocket and negative checks for absent or invalid credentials and an unrelated patient ID. Broader feature, cross-account isolation and clinical-safety testing remain outstanding. **No working credentials are published here.**
 - The demo is not a real care service. Hani is not qualified to give medical diagnoses or handle emergencies.
 
 ## Develop locally

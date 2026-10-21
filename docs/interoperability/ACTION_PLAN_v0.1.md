@@ -180,7 +180,7 @@ This last diagram is a **discussion option**, not a selected architecture, an ag
 | Date / window | Workstream | Milestone or dependency |
 |---|---|---|
 | **21 Oct — before email** | Ahmed, supported by team review | **Completed:** PRs **#61, #62, #60** merged into `main`, and the combined repository state reviewed. **Outstanding:** confirm final documentation links and send the overdue advisor reply after coordinator review; the email is not recorded as sent. |
-| **22–26 Oct** | Engineering and QA | **Provisioning milestone completed separately after merge:** the confirmed synthetic Supabase Auth account is linked to Mariem/Fatma, Vercel demo configuration is reported as configured, and browser login/dashboard were verified. **Remaining:** verify current deployment settings and rebuilt bundle, protected chat/voice smoke tests, additional feature paths and positive/negative caregiver authorization. The demo is not clinical production readiness. |
+| **22–26 Oct** | Engineering and QA | **Provisioning milestone completed separately after merge:** the confirmed synthetic Supabase Auth account is linked to Mariem/Fatma, Vercel demo configuration is reported as configured, and browser login/dashboard were verified. **Completed after merge:** production deployment SHA and hosting verified, and the [authenticated production smoke run](https://github.com/Ahmed-Braiek/hani-maak/actions/runs/39691081980) passed (chat, live voice, absent/invalid credential rejection, unrelated-patient denial). **Remaining:** broader feature paths, cross-account authorization and comprehensive security verification. The demo is not clinical production readiness. |
 | **22–28 Oct** | Salma, Hela, Eya; Adam documents | Review the clinical/provenance matrix and candidate openEHR archetypes; agree a clinically meaningful minimal dataset and sources. Qualified clinical verification is separate. |
 | **22–30 Oct** | Ahmed, Emna, Adam | Agree a first read-oriented FHIR use case, source/consent/authorization conditions and standards questions, informed by advisor feedback if available. |
 | **22 Oct onward** | Salma and Hela | Coordinate hospital discovery when external participants are available; no pilot meeting or approval date assumed. |
@@ -197,7 +197,7 @@ This last diagram is a **discussion option**, not a selected architecture, an ag
 3. No mapping of raw/private caregiver chat or wellbeing into the patient's record by default; consent, minimization and provenance are required.
 4. No automatic database migration or production change from this plan. OpenEHR and FHIR remain **evaluation tracks**, not a selected stack.
 5. Verify implementation evidence and coordinate precise next-workstream scheduling before reporting milestones. **All six team members remain committed.**
-6. **Ahmed merged PRs #60–#62 into `main` on 21 October.** The synthetic Auth account was provisioned separately and browser login/dashboard confirmed. Verify final main-branch links and outstanding authenticated smoke/access tests before claiming broader demo readiness.
+6. **Ahmed merged PRs #60–#62 into `main` on 21 October.** The synthetic Auth account was provisioned separately and browser login/dashboard confirmed. The authenticated production smoke test passed on 21 October; verify main-branch research links and complete broader feature and distinct-user access tests before claiming comprehensive demo readiness.
 
 ## 6. Questions for Lloyd and Aditya
 
@@ -212,7 +212,7 @@ This last diagram is a **discussion option**, not a selected architecture, an ag
 
 The next advisor-facing package contains this plan, a verified architecture summary, a reconciled data-model status (including unknowns), prioritized interoperability use cases and outstanding clinical-review questions. It should clearly separate **implemented**, **experimentally configured**, **proposed** and **not yet confirmed** items.
 
-**Next action:** verify final main-branch documentation and authenticated demo smoke-test results, send the overdue advisor follow-up after coordinator review, then seek feedback on workstream design and the initial interoperability use case. Coordinate detailed future tasks within the already committed team and retain honest clinical/demo limitations.
+**Next action:** use the verified main-branch research package and passing authenticated production smoke-test evidence for the overdue advisor follow-up after coordinator review, then seek feedback on workstream design and the initial interoperability use case. Coordinate detailed future tasks within the already committed team and retain honest clinical/demo limitations.
 
 ### Decision and risk register
 
@@ -227,7 +227,7 @@ The next advisor-facing package contains this plan, a verified architecture summ
 | D07 | Carefluence integration needed? | Architectural evaluation option only, no agreed integration | Lloyd/Aditya and Adam |
 | D08 | Exact next workstream schedules and responsibilities? | **All six members are active and committed**; individual technical/clinical approval tasks and dates are being coordinated. Salma's reported openEHR capacity is ~8h/week. | Adam + team |
 | D09 | Is Alzheimer data modeling an approved thesis? | **No**; separate exploratory paper possible | Salma and research team |
-| D10 | Demo identity and review readiness? | **Dedicated Supabase Auth demo user provisioned**, linked to synthetic Mariem/Fatma records; browser login/dashboard confirmed. Full feature E2E, authorization-negative tests and authenticated production smoke test remain outstanding | Engineering / QA after merge |
+| D10 | Demo identity and review readiness? | **Dedicated Supabase Auth demo user provisioned**, linked to synthetic Mariem/Fatma records; browser login/dashboard confirmed. [Authenticated production smoke](https://github.com/Ahmed-Braiek/hani-maak/actions/runs/39691081980) passed 21 October with basic negative-auth probes; full feature E2E, distinct-user access isolation and clinical validation remain outstanding | Engineering / QA after merge |
 
 ### Evidence provenance and revision notes
 
