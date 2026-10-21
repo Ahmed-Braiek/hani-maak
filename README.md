@@ -59,7 +59,7 @@ Caregiver information and the care recipient's clinical information have differe
 | Emotion inference | Separate experimental Railway service | **Disabled in the inspected Hani agent**; no approved clinical use |
 | FHIR / openEHR / hospital EHR | Initial research and documentation | **Not implemented or approved** |
 
-An implemented route, screen or database table does not prove a production-ready feature. [Current limitations](docs/KNOWN_LIMITATIONS.md) primarily describe the **historical competition system**; the current caregiver audit is in [Draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60).
+An implemented route, screen or database table does not prove a production-ready feature. [Current limitations](docs/KNOWN_LIMITATIONS.md) primarily describe the **historical competition system**; the current caregiver evidence is documented in the [architecture](docs/architecture/CURRENT_ARCHITECTURE.md) and [schema audit](docs/interoperability/CURRENT_SCHEMA_AUDIT.md), merged via [PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60).
 
 ## System architecture
 
@@ -82,8 +82,8 @@ This is a **logical overview** of observed code and deployment paths, not a proo
 
 **How it works:** Flutter requests approved context/actions from Next.js; the Hani agent handles conversational text and voice with tightly scoped backend tools. Caregiver authorization, underlying application facts and sensitive data boundaries must remain server responsibilities—not model-generated assumptions.
 
-- Current-state architecture and schema analysis: [Draft interoperability documentation PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60).
-- Demo authentication hardening and synthetic shared-account work: [Draft security PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61).
+- Current-state architecture and schema analysis: [interoperability documentation](docs/interoperability/README.md), merged via [PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60).
+- Demo authentication hardening and synthetic shared-account work: [security documentation](docs/security/DEMO_ACCESS_HARDENING.md), merged via [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61).
 
 ## Repository structure
 
@@ -110,8 +110,8 @@ The repository also retains an **earlier Future Health Connectathon patient-jour
 **Web entry:** [Hani Maak caregiver demonstration](https://hani-maak.vercel.app/flutter/index.html).
 
 - Use **synthetic information only**. Never enter real patient records, prescription photographs, private telephone numbers or identifiable medical details.
-- The currently deployed build and the unmerged security PR can behave differently. **Do not treat a UI demo login as an authenticated clinical account.**
-- [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) is preparing a dedicated email/password Supabase demo account backed by the **existing fictional Mariem/Fatma scenario**. At this stage, that account still needs provisioning and end-to-end validation. **No working credentials are published here.**
+- The dedicated synthetic demo now uses a confirmed **Supabase Auth email/password account**. The coordinator verified browser sign-in and the Mariem/Fatma dashboard on **21 October 2026**; this does **not** establish clinical identity verification, full caregiver isolation, or complete end-to-end security.
+- [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) is merged. The dedicated demo account is provisioned and linked to the **existing fictional Mariem/Fatma scenario**; protected chat/voice smoke testing, broader feature checks and negative authorization tests remain pending. **No working credentials are published here.**
 - The demo is not a real care service. Hani is not qualified to give medical diagnoses or handle emergencies.
 
 ## Develop locally
@@ -180,7 +180,7 @@ Never commit credentials, use real patient information in fixtures, or expose se
 | `HENI_AGENT_BASE_URL`, `HENI_AGENT_WSS_URL` | Next.js | Text/voice agent connection |
 | `HENI_AGENT_SHARED_SECRET` | Next.js and agent **server only** | Trusted service-to-service calls |
 | `GEMINI_API_KEY` | Hani agent **server only** | Model access |
-| `DEMO_ACCOUNT_USER_ID`, `PUBLIC_SYNTHETIC_DEMO` | **Proposed by PR #61**, Next.js | Limit provisioning to an approved synthetic demo account |
+| `DEMO_ACCOUNT_USER_ID`, `PUBLIC_SYNTHETIC_DEMO` | Next.js; merged in [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) | Restrict bootstrap to the approved synthetic demo account; configured for the hosted demo |
 
 Availability varies by deployment and branch. The [root environment example](.env.example) contains older competition flags as well as the Next.js settings. The Hani agent documents its **own** settings separately.
 
@@ -199,7 +199,7 @@ npm run build
 npm run verify
 ~~~
 
-For Flutter, use `flutter analyze` and `flutter build web --release --base-href /flutter/` with appropriate **test** configuration. PR #61 adds a separate Flutter validation workflow; it is not yet part of `main`.
+For Flutter, use `flutter analyze` and `flutter build web --release --base-href /flutter/` with appropriate **test** configuration. The Flutter validation changes from [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) are merged into `main`; current workflow results and hosted functionality must still be checked.
 
 **What CI proves:** source builds, static checks, deterministic tests and selected agent safety tests. **What it does not prove:** secure end-to-end patient-data handling, clinical safety or language validity, live-device speech reliability, hospital interoperability or completed privacy review.
 
@@ -220,9 +220,9 @@ The team is evaluating **openEHR** for clinical information modeling and **FHIR*
 | Workstream | Next step | Current status |
 |---|---|---|
 | Engineering | Reconcile normalized Supabase data, historical demo state and access rules | Audit/review in progress |
-| Demo experience | Complete authenticated, synthetic Mariem/Fatma showcase | [Draft PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) |
-| Public repository | Accurate documentation, attribution and removal of unnecessary test data | [Draft PR #62](https://github.com/Ahmed-Braiek/hani-maak/pull/62) |
-| Clinical data / openEHR | Clinical inventory, provenance, review evidence and reusable archetype study | [Draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60) |
+| Demo experience | Validate full authenticated, synthetic Mariem/Fatma showcase and isolation | [PR #61 merged](https://github.com/Ahmed-Braiek/hani-maak/pull/61); account provisioned; browser login/dashboard verified; full E2E pending |
+| Public repository | Maintain accurate documentation and complete separate historical security review | [PR #62 merged](https://github.com/Ahmed-Braiek/hani-maak/pull/62); history-wide audit deferred |
+| Clinical data / openEHR | Seek advisor review of inventory, provenance and archetype candidates | [PR #60 merged](https://github.com/Ahmed-Braiek/hani-maak/pull/60); research package available, clinical validation pending |
 | FHIR | Prioritize use cases, proxy identity, consent, resource mapping and synthetic POC | Exploratory |
 | Hospital engagement | Technical and clinical discovery through authorized channels | No formally approved pilot or live EHR exchange |
 

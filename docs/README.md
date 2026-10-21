@@ -5,14 +5,14 @@ This index separates the **current Alzheimer caregiver-first application** from 
 ## Current caregiver project
 
 - [Root README](../README.md) — project purpose, capabilities and maturity, architecture, setup, demo, testing and contributor information
-- [Current architecture — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/architecture/CURRENT_ARCHITECTURE.md) — observed Flutter / Next.js / FastAPI / Supabase architecture
-- [Current schema audit — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/CURRENT_SCHEMA_AUDIT.md) — normalized caregiver schema, demo-state legacy and privacy gaps
-- [Integrated interoperability action plan — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/ACTION_PLAN_v0.1.md) — team workstreams and proposed review gates
-- [Clinical validation audit — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/openehr/CLINICAL_VALIDATION_AUDIT.md) — gaps requiring qualified clinical review
-- [Initial FHIR use cases — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/fhir/USE_CASES.md) — proposed data exchange scenarios, **not a working hospital integration**
-- [Security and synthetic-demo changes — draft PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) — hardening and proposed shared demo-account flow; not yet merged or operationally verified
+- [Current architecture](https://github.com/Ahmed-Braiek/hani-maak/blob/main/docs/architecture/CURRENT_ARCHITECTURE.md) — observed Flutter / Next.js / FastAPI / Supabase architecture
+- [Current schema audit](https://github.com/Ahmed-Braiek/hani-maak/blob/main/docs/interoperability/CURRENT_SCHEMA_AUDIT.md) — normalized caregiver schema, demo-state legacy and privacy gaps
+- [Integrated interoperability action plan](https://github.com/Ahmed-Braiek/hani-maak/blob/main/docs/interoperability/ACTION_PLAN_v0.1.md) — team workstreams and proposed review gates
+- [Clinical validation audit](https://github.com/Ahmed-Braiek/hani-maak/blob/main/docs/interoperability/openehr/CLINICAL_VALIDATION_AUDIT.md) — gaps requiring qualified clinical review
+- [Initial FHIR use cases](https://github.com/Ahmed-Braiek/hani-maak/blob/main/docs/interoperability/fhir/USE_CASES.md) — proposed data exchange scenarios, **not a working hospital integration**
+- [Security and synthetic-demo changes — merged PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) — hardening and authenticated synthetic demo-account flow; browser sign-in/dashboard verified, other E2E and isolation checks pending
 
-The above files on PR #60 do not yet exist on `main`. The direct branch links remain usable until Ahmed reviews and merges those changes.
+The linked research files are now available on `main`: [PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60), [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) and [PR #62](https://github.com/Ahmed-Braiek/hani-maak/pull/62) were merged on 21 October 2026. The dedicated synthetic Auth demo account was subsequently provisioned; complete E2E and security verification remain outstanding.
 
 ## Developing and testing
 

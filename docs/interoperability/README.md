@@ -25,7 +25,7 @@
 | [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md) | Clinical evidence and review gaps |
 | [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Internal security/repository observations; not external clearance |
 
-**21 October merge gate:** Ahmed will review and merge PRs #60, #61 and #62 into `main` **before** the revised follow-up email. These are still draft branches until GitHub confirms the merges. The full historical privacy/secret audit is **deferred beyond the current email phase**, not completed; current shared-document checks and known credential exposure must not be misrepresented as cleared. The dedicated Supabase Auth demo user is a separate uncompleted provisioning task.
+**21 October integration status:** [PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60), [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61), and [PR #62](https://github.com/Ahmed-Braiek/hani-maak/pull/62) were merged into `main` on 21 October 2026. The dedicated Supabase Auth demo account was separately provisioned and linked to the synthetic Mariem/Fatma scenario; browser login and dashboard display were confirmed by the coordinator. Full feature, negative authorization and production smoke testing remain outstanding. The historical privacy/secret audit is **deferred beyond the current email phase**, not completed; known historical credential exposure is not considered cleared.
 
 ## Three questions to resolve first
 
@@ -40,11 +40,11 @@
 - The checked agent reported emotion analysis disabled despite a separate online experimental inference service.
 - Ten dilemma scenarios were labeled validated without corresponding database clinical-content reviews. This is not proof of clinician sign-off.
 - The team has not verified a formal hospital pilot, implemented FHIR/openEHR exchange, or a Carefluence platform agreement.
-- Demo authentication/public repository cleanup are handled separately in draft PRs [#61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) and [#62](https://github.com/Ahmed-Braiek/hani-maak/pull/62).
+- Demo authentication hardening and repository cleanup were merged through PRs [#61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) and [#62](https://github.com/Ahmed-Braiek/hani-maak/pull/62). Browser demo access is confirmed, but this is not a full security validation.
 
 ## Next 14-day checkpoint
 
-The corrected provisional internal window is **22 October–4 November 2026**, after the delayed 21 October follow-up (originally promised for Friday 16 October). **All six team members remain actively committed.** Precise future technical/clinical review tasks and dates will be coordinated; institutional clinical sign-off remains separate. The email requests early scope feedback, not a claim that the two-week outputs or hospital discovery are complete.
+The corrected provisional internal window is **22 October–4 November 2026**, after the original Friday 16 October commitment was missed and a 21 October follow-up target was set (email not confirmed as sent). **All six team members remain actively committed.** Precise future technical/clinical review tasks and dates will be coordinated; institutional clinical sign-off remains separate. The email requests early scope feedback, not a claim that the two-week outputs or hospital discovery are complete.
 
 ## Proposed review gate
 
@@ -58,4 +58,4 @@ The corrected provisional internal window is **22 October–4 November 2026**, a
 - **Ahmed:** committed engineering contributor, GitHub merge owner and proposed FHIR technical lead; detailed FHIR implementation schedule to coordinate.
 - **Emna:** committed engineering/QA contributor; particular FHIR tasks to coordinate.
 
-This review package is designed to solicit feedback, not to imply endorsement by the named advisors. No files in this PR should be used as production migrations or treatment guidance.
+This review package is designed to solicit feedback, not to imply endorsement by the named advisors. This research package should not be used as production migrations or treatment guidance.
