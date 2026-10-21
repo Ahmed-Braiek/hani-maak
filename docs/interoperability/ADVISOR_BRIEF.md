@@ -16,13 +16,13 @@ Hani Maak (**هاني معاك**) is a multilingual companion for family and inf
 **Verified technical direction:**
 
 - **Caregiver app:** Flutter (web/mobile source).
-- **API and hosting:** Next.js caregiver API on Vercel; existing older competition-era routes are being isolated in [security PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61).
+- **API and hosting:** Next.js caregiver API on Vercel; [security PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) merged hardening of older competition-era access paths; full negative-access verification remains outstanding.
 - **Conversational service:** Python/FastAPI Hani agent with configured Gemini text and live-voice paths.
 - **Data:** Supabase/PostgreSQL with normalized caregiver tables, alongside older demonstration JSON state. The relationship between these needs explicit mapping.
 - **Clinical safeguards:** AI-generated suggestions are not verified treatment instructions; human review, provenance, consent and appropriate escalation ownership are still design requirements.
-- **Demo access:** PR #61 contains the proposed authenticated synthetic Mariem/Fatma access flow; the required **dedicated Supabase Auth user has not yet been provisioned**. The engineering team will provision and validate it separately from today's documentation handoff.
+- **Demo access:** [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) merged the authenticated synthetic Mariem/Fatma flow. The dedicated Supabase Auth user has been provisioned and the coordinator verified browser login and the Mariem/Fatma dashboard. Protected chat/voice, full feature coverage and cross-patient access safeguards still require end-to-end testing.
 
-See the [current architecture](../architecture/CURRENT_ARCHITECTURE.md), [48-table clinical-data/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), [schema audit](CURRENT_SCHEMA_AUDIT.md), and [public repository README under PR #62](https://github.com/Ahmed-Braiek/hani-maak/blob/chore/public-repository-cleanup/README.md) for the detailed baseline.
+See the [current architecture](../architecture/CURRENT_ARCHITECTURE.md), [48-table clinical-data/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), [schema audit](CURRENT_SCHEMA_AUDIT.md), and [current public repository README](../../README.md) (merged via [PR #62](https://github.com/Ahmed-Braiek/hani-maak/pull/62)) for the detailed baseline.
 
 ## 2. Why we are considering clinical-data standards
 

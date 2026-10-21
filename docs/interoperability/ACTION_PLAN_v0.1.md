@@ -11,9 +11,9 @@
 
 **Documentation progress (21 October 2026):** An initial read-only 48-table [clinical/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), a 16-candidate [openEHR CKM landscape](openehr/ARCHETYPE_LANDSCAPE.md), and a [FHIR source-to-resource mapping v0.1](fhir/FHIR_MAPPING_v0.1.md) are now **drafted for advisor review**. These are engineering/research inventories, **not clinical approval**, a finalized minimal dataset, a working FHIR interface, or completion of the proposed clinical team's workstream. The [executive summary](EXECUTIVE_SUMMARY.md) is the recommended entry point for the follow-up email.
 
-**Schedule correction (21 October):** The follow-up previously promised for **Friday 16 October** was **not sent**. The revised target is **Wednesday 21 October**, **after Ahmed reviews and merges PRs #60, #61 and #62 into `main` and their combined state is checked**. This is a target, not a claim of completion. A new provisional internal 14-day window runs **22 October–4 November**, instead of treating 19 October–1 November as still on schedule. Actual advisor-response-dependent milestones will be recalculated after feedback, with no assumed reply date.
+**Schedule correction (21 October):** The follow-up previously promised for **Friday 16 October** was **not sent**. The revised target is **Wednesday 21 October**, **after PRs #60, #61 and #62 were merged into `main` on 21 October and their combined state checked**. The email target is not a claim that it was sent. A new provisional internal 14-day window runs **22 October–4 November**, instead of treating 19 October–1 November as still on schedule. Actual advisor-response-dependent milestones will be recalculated after feedback, with no assumed reply date.
 
-**Scope boundary:** the comprehensive **all-history personal-data/secret scan** is outside this email phase and remains a future security task. This does **not** clear known historical credential exposure. Check current material before sharing and do not claim that the demo login is ready. The expanded research package is retained as helpful context for Lloyd and Aditya.
+**Scope boundary:** the comprehensive **all-history personal-data/secret scan** is outside this email phase and remains a future security task. This does **not** clear known historical credential exposure. Check current material before sharing. The dedicated synthetic demo account now supports browser login and the Mariem/Fatma dashboard, but complete feature and security validation remain pending. The expanded research package is retained as helpful context for Lloyd and Aditya.
 
 **Navigate:** [Product](#1-product-and-current-state) · [Team assignments](#2-team-and-ownership) · [Workstreams](#3-integrated-workstreams) · [Architectures](#4-architecture-directions) · [Timeline](#5-integrated-roadmap) · [Review questions](#6-questions-for-lloyd-and-aditya)
 
@@ -38,7 +38,7 @@ Hani Maak does **not** autonomously diagnose, prescribe, modify medication or re
 | Clinical governance | 10 dilemma scenarios marked “validated”; no clinical-review records found | Establish evidence and appropriate review status |
 | Hospital exchange | No confirmed production FHIR/openEHR or Razi connection | Clinical and technical discovery |
 
-The demonstration sign-in includes a shortcut; it must not be represented as production-grade patient identity verification. The full trace and constraints are in [Current Architecture](../architecture/CURRENT_ARCHITECTURE.md) and [Current Schema Audit](CURRENT_SCHEMA_AUDIT.md).
+The original demonstration sign-in used a shortcut. A dedicated authenticated synthetic Mariem/Fatma account now works in the hosted browser, but that milestone must not be represented as production-grade patient identity verification or full isolation testing. The full trace and constraints are in [Current Architecture](../architecture/CURRENT_ARCHITECTURE.md) and [Current Schema Audit](CURRENT_SCHEMA_AUDIT.md).
 
 ## 2. Team and ownership
 
@@ -64,7 +64,7 @@ The prior integrated revision dated 18 October drew on the original action plan,
 - **Salma:** written continued-support statement from the Connectathon organizers was *reported*; a possible Digital Hospital implementation was discussed **verbally only**. Neither establishes an executed agreement. Hospital meeting not scheduled and proposed testing postponed. An Alzheimer's data-model **paper is exploratory and separate from her thesis**; the supervisor had not accepted that topic as her thesis.
 - **Hela:** reported chat/voice, emotional check-ins, cognitive activities, peer-support, crisis protocols and doctor alerts; **reported features are not verified live clinical workflows**. She supplied focused hospital discovery questions.
 - **Eya:** proposed review of caregiver burden tools (ZBI variants), mental-health screening suitability, wandering/nocturnal agitation, caregiver-versus-patient privacy and clinically governed escalation. These suggestions **are not adopted/validated tools or clinical sign-off**.
-- **Emna:** initially flagged a public WhatsApp test number and did **not** complete a full history/secrets/synthetic-data review. A later GitHub-only cleanup is proposed in draft PR #62; historical content and deployment changes remain separate.
+- **Emna:** initially flagged a public WhatsApp test number and did **not** complete a full history/secrets/synthetic-data review. A later GitHub-only cleanup was merged in [PR #62](https://github.com/Ahmed-Braiek/hani-maak/pull/62); historical content and deployment changes remain separate.
 
 ## 3. Integrated workstreams
 
@@ -175,12 +175,12 @@ This last diagram is a **discussion option**, not a selected architecture, an ag
 
 **Missed commitment:** The email to Lloyd promised for **Friday 16 October 2026** was not sent. This revised plan targets **Wednesday 21 October** for the actual reply and GitHub package, after the required merges and verification. The original **19 October–1 November** planning assumption is replaced by **22 October–4 November** for remaining internal tasks; no advisor reply date is assumed. Prior work already completed is retained, not restarted.
 
-**GitHub merge prerequisite:** Before today's email, **Ahmed merges PRs #61, #62 and #60 into `main`** after reviewing the latest checks, then verifies the combined state and main-branch documentation links. This is **GitHub integration, not a Supabase database migration**. A draft PR and a green isolated CI check are not proof of a successful merge. Merges remain planned until verified.
+**GitHub merge prerequisite — completed 21 October:** Ahmed merged PRs #61, #62 and #60 into `main`. The merge records and combined main-branch state were verified separately; this was **GitHub integration, not a Supabase database migration**. A successful merge/build does not establish complete end-to-end validation.
 
 | Date / window | Workstream | Milestone or dependency |
 |---|---|---|
-| **21 Oct — before email** | Ahmed, supported by team review | Review and merge PRs **#61, #62, #60** into `main`; inspect resulting files and build status; project coordinator sends overdue reply to Lloyd after verification. No merge or email is recorded as completed in advance. |
-| **22–26 Oct** | Engineering and QA | **Provision the dedicated Supabase Auth demo user, which does not currently exist.** Verify confirmed email, immutable user UID, allowlisted `DEMO_ACCOUNT_USER_ID`, opt-in `PUBLIC_SYNTHETIC_DEMO` only in an authorized preview, rebuilt Flutter bundle and positive/negative access tests. **Not required for a documentation-only email**; merged code alone is not a working account. |
+| **21 Oct — before email** | Ahmed, supported by team review | **Completed:** PRs **#61, #62, #60** merged into `main`, and the combined repository state reviewed. **Outstanding:** confirm final documentation links and send the overdue advisor reply after coordinator review; the email is not recorded as sent. |
+| **22–26 Oct** | Engineering and QA | **Provisioning milestone completed separately after merge:** the confirmed synthetic Supabase Auth account is linked to Mariem/Fatma, Vercel demo configuration is reported as configured, and browser login/dashboard were verified. **Remaining:** verify current deployment settings and rebuilt bundle, protected chat/voice smoke tests, additional feature paths and positive/negative caregiver authorization. The demo is not clinical production readiness. |
 | **22–28 Oct** | Salma, Hela, Eya; Adam documents | Review the clinical/provenance matrix and candidate openEHR archetypes; agree a clinically meaningful minimal dataset and sources. Qualified clinical verification is separate. |
 | **22–30 Oct** | Ahmed, Emna, Adam | Agree a first read-oriented FHIR use case, source/consent/authorization conditions and standards questions, informed by advisor feedback if available. |
 | **22 Oct onward** | Salma and Hela | Coordinate hospital discovery when external participants are available; no pilot meeting or approval date assumed. |
@@ -197,7 +197,7 @@ This last diagram is a **discussion option**, not a selected architecture, an ag
 3. No mapping of raw/private caregiver chat or wellbeing into the patient's record by default; consent, minimization and provenance are required.
 4. No automatic database migration or production change from this plan. OpenEHR and FHIR remain **evaluation tracks**, not a selected stack.
 5. Verify implementation evidence and coordinate precise next-workstream scheduling before reporting milestones. **All six team members remain committed.**
-6. **Ahmed handles the merges of PRs #60–#62 into `main` ahead of the revised 21 October email.** Verify combined main-branch state and links before sharing. The merge does not provision Supabase Auth or validate the hosted demo.
+6. **Ahmed merged PRs #60–#62 into `main` on 21 October.** The synthetic Auth account was provisioned separately and browser login/dashboard confirmed. Verify final main-branch links and outstanding authenticated smoke/access tests before claiming broader demo readiness.
 
 ## 6. Questions for Lloyd and Aditya
 
@@ -212,7 +212,7 @@ This last diagram is a **discussion option**, not a selected architecture, an ag
 
 The next advisor-facing package contains this plan, a verified architecture summary, a reconciled data-model status (including unknowns), prioritized interoperability use cases and outstanding clinical-review questions. It should clearly separate **implemented**, **experimentally configured**, **proposed** and **not yet confirmed** items.
 
-**Next action:** complete and verify GitHub merges on 21 October, send the overdue advisor follow-up, then seek feedback on workstream design and the initial interoperability use case. Coordinate detailed future tasks within the already committed team and retain honest clinical/demo limitations.
+**Next action:** verify final main-branch documentation and authenticated demo smoke-test results, send the overdue advisor follow-up after coordinator review, then seek feedback on workstream design and the initial interoperability use case. Coordinate detailed future tasks within the already committed team and retain honest clinical/demo limitations.
 
 ### Decision and risk register
 
@@ -227,7 +227,7 @@ The next advisor-facing package contains this plan, a verified architecture summ
 | D07 | Carefluence integration needed? | Architectural evaluation option only, no agreed integration | Lloyd/Aditya and Adam |
 | D08 | Exact next workstream schedules and responsibilities? | **All six members are active and committed**; individual technical/clinical approval tasks and dates are being coordinated. Salma's reported openEHR capacity is ~8h/week. | Adam + team |
 | D09 | Is Alzheimer data modeling an approved thesis? | **No**; separate exploratory paper possible | Salma and research team |
-| D10 | Demo identity and review readiness? | **Dedicated Supabase Auth demo user not yet provisioned**. PR #61 code merge, Auth setup, preview config and end-to-end validation are separate milestones | Engineering / QA after merge |
+| D10 | Demo identity and review readiness? | **Dedicated Supabase Auth demo user provisioned**, linked to synthetic Mariem/Fatma records; browser login/dashboard confirmed. Full feature E2E, authorization-negative tests and authenticated production smoke test remain outstanding | Engineering / QA after merge |
 
 ### Evidence provenance and revision notes
 
