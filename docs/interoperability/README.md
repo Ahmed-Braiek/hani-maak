@@ -25,7 +25,7 @@
 | [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md) | Clinical evidence and review gaps |
 | [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Internal security/repository observations; not external clearance |
 
-**Important:** Documents are currently on **draft PR #60's** `docs/interoperability-foundation` branch, not merged into `main`. The full external-sharing/privacy audit in Phase 3 is still required before sending links. PR #61 demo hardening and PR #62 public README updates are separate, unmerged work.
+**21 October merge gate:** Ahmed will review and merge PRs #60, #61 and #62 into `main` **before** the revised follow-up email. These are still draft branches until GitHub confirms the merges. The full historical privacy/secret audit is **deferred beyond the current email phase**, not completed; current shared-document checks and known credential exposure must not be misrepresented as cleared. The dedicated Supabase Auth demo user is a separate uncompleted provisioning task.
 
 ## Three questions to resolve first
 
@@ -44,7 +44,7 @@
 
 ## Next 14-day checkpoint
 
-The integrated plan defines a **provisional, relative 14-day review cycle** based on the Thursday sprint and team responses. Salma reported accepting openEHR co-coordination at approximately 8 hours/week; Hela/Eya/Emna/Ahmed participation in new assignments requires confirmation. The first email requests **early scope feedback**—not an assertion that the Day-14 outputs or hospital discovery are complete.
+The corrected provisional internal window is **22 October–4 November 2026**, after the delayed 21 October follow-up (originally promised for Friday 16 October). **All six team members remain actively committed.** Precise future technical/clinical review tasks and dates will be coordinated; institutional clinical sign-off remains separate. The email requests early scope feedback, not a claim that the two-week outputs or hospital discovery are complete.
 
 ## Proposed review gate
 
@@ -54,8 +54,8 @@ The integrated plan defines a **provisional, relative 14-day review cycle** base
 
 - **Adam:** coordination, technical architecture, consolidated review materials.
 - **Salma and Hela:** clinical-data/openEHR investigation and hospital communication.
-- **Eya:** clinical, privacy and safety review (subject to confirmation).
-- **Ahmed:** proposed FHIR technical lead; implementation capacity to confirm.
-- **Emna:** proposed engineering/QA contribution; participation to confirm.
+- **Eya:** committed clinical, privacy and safety contributor; review timing to coordinate.
+- **Ahmed:** committed engineering contributor, GitHub merge owner and proposed FHIR technical lead; detailed FHIR implementation schedule to coordinate.
+- **Emna:** committed engineering/QA contributor; particular FHIR tasks to coordinate.
 
 This review package is designed to solicit feedback, not to imply endorsement by the named advisors. No files in this PR should be used as production migrations or treatment guidance.
