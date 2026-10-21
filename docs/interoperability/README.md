@@ -12,9 +12,10 @@
 | 2 | [Current Architecture](../architecture/CURRENT_ARCHITECTURE.md) | Verified components, demo/production distinctions and open engineering checks |
 | 3 | [Clinical-Data and Provenance Matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md) | All 48 live tables: source/verification fields, caregiver privacy and proposed sharing gates |
 | 4 | [Current Schema Audit](CURRENT_SCHEMA_AUDIT.md) | Normalized caregiver data vs legacy JSON demo-state, access and provenance |
-| 5 | [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md) | Clinical sign-off gap, boundaries, escalation responsibilities |
-| 6 | [FHIR Use Cases](fhir/USE_CASES.md) | Candidate read-first use cases, identity, consent, source and authorization needs |
-| 7 | [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Read-only technical risks and remediation priorities |
+| 5 | [openEHR Archetype Landscape](openehr/ARCHETYPE_LANDSCAPE.md) | 16 CKM models, published vs in-development, caregiver/provenance gaps |
+| 6 | [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md) | Clinical sign-off gap, boundaries, escalation responsibilities |
+| 7 | [FHIR Use Cases](fhir/USE_CASES.md) | Candidate read-first use cases, identity, consent, source and authorization needs |
+| 8 | [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Read-only technical risks and remediation priorities |
 
 ## Three questions to resolve first
 
