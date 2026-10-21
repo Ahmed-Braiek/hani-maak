@@ -1,30 +1,51 @@
-# Hani Maak Documentation
+# Hani Maak Documentation Guide
 
-This directory is the technical source of truth for the competition prototype and its production-oriented evolution.
+This index separates the **current Alzheimer caregiver-first application** from the **historical Future Health Connectathon patient-journey prototype**. A documented feature is not automatically deployed, clinically validated or ready for real patient data.
 
-## Start here
+## Current caregiver project
 
-- [Repository reviewer guide](REPOSITORY_GUIDE.md) - fastest path for judges and new developers.
-- [Architecture overview](architecture/OVERVIEW.md) - system boundaries and major components.
-- [Heni AI](ai/HENI.md) - chat, voice, safety and provider/fine-tuned-model architecture.
-- [Heni fine-tuning preparation](ai/FINE_TUNING.md) - dataset governance and evaluation expectations.
-- [Heni voice](ai/VOICE.md) - voice channels and realtime boundary.
-- [Security architecture](security/SECURITY_ARCHITECTURE.md) - threat-sensitive design and remaining production work.
-- [Roles and permissions](roles-and-permissions/RBAC.md) - Doctor, Administration and Super Admin access model.
-- [Testing strategy](testing/TESTING_STRATEGY.md) - domain, RBAC, AI and build verification.
-- [Local development](setup/LOCAL_DEVELOPMENT.md) - exact setup/run commands.
+- [Root README](../README.md) — project purpose, capabilities and maturity, architecture, setup, demo, testing and contributor information
+- [Current architecture — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/architecture/CURRENT_ARCHITECTURE.md) — observed Flutter / Next.js / FastAPI / Supabase architecture
+- [Current schema audit — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/CURRENT_SCHEMA_AUDIT.md) — normalized caregiver schema, demo-state legacy and privacy gaps
+- [Integrated interoperability action plan — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/ACTION_PLAN_v0.1.md) — team workstreams and proposed review gates
+- [Clinical validation audit — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/openehr/CLINICAL_VALIDATION_AUDIT.md) — gaps requiring qualified clinical review
+- [Initial FHIR use cases — draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/blob/docs/interoperability-foundation/docs/interoperability/fhir/USE_CASES.md) — proposed data exchange scenarios, **not a working hospital integration**
+- [Security and synthetic-demo changes — draft PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) — hardening and proposed shared demo-account flow; not yet merged or operationally verified
 
-## Competition / existing product documentation
+The above files on PR #60 do not yet exist on `main`. The direct branch links remain usable until Ahmed reviews and merges those changes.
 
-The existing root-level documentation remains intentionally preserved while this structure is introduced safely:
+## Developing and testing
 
-- `ARCHITECTURE.md` - original architecture explanation.
-- `AI_EVALUATION.md` - measured deterministic evaluation context.
-- `COMPETITION_RUNBOOK.md` - presentation preparation.
-- `FEATURE_MATRIX.md` - implemented feature coverage.
-- `KNOWN_LIMITATIONS.md` - truthful prototype boundaries.
-- `PRODUCTION_PATH.md` - earlier production evolution notes.
-- `THIRD_PARTY_SETUP.md` - optional provider setup.
-- `Hani-Maak-PRD-v2.0.pdf` - source product requirements.
+- [Contribution guidelines](../CONTRIBUTING.md) — branch/PR conventions and quality expectations
+- [Security reporting](../SECURITY.md) — private vulnerability reporting
+- [Hani agent service](../apps/heni-agent/README.md) — FastAPI runtime, chat/voice/OCR interfaces and server-side configuration; check historical descriptions
+- [Local development for the earlier competition application](setup/LOCAL_DEVELOPMENT.md) — **legacy** setup and data-reset instructions; do not run shared demo resets in production
+- [Testing strategy for competition code](testing/TESTING_STRATEGY.md) — currently documented test categories; additional caregiver E2E testing needed
+- [License status](../LICENSE.md) — no open-source license currently granted
 
-Existing documents are not deleted merely to make the directory tree look cleaner. They can be consolidated incrementally after references and competition workflows are verified.
+For the Flutter caregiver application, start in `apps/mobile/` and follow the commands in the root README. The compiled Flutter production web bundle is a build artifact; source changes must be compiled before a preview reflects them.
+
+## Historical competition documents
+
+The following reference an earlier patient/staff appointment and hospital-navigation application and **should not be used as current caregiver product specifications**:
+
+| Document | Historical focus |
+|---|---|
+| [Repository guide](REPOSITORY_GUIDE.md) | Patient/staff journey and competition walkthrough |
+| [Architecture overview](architecture/OVERVIEW.md) | Next.js patient/staff UI, scheduling and legacy voice bridge |
+| [Heni AI](ai/HENI.md) and [voice](ai/VOICE.md) | Administrative patient-journey assistant / previous voice model |
+| [RBAC roles](roles-and-permissions/RBAC.md) | Competition Doctor / Administration / Super Admin permissions |
+| [Feature matrix](FEATURE_MATRIX.md) | Historical feature inventory |
+| [Build status](BUILD_STATUS.md) | Old competition packaging, not current GitHub CI |
+| [Known limitations](KNOWN_LIMITATIONS.md) | Historical competition limitations |
+| [Production path](PRODUCTION_PATH.md) | Earlier evolution proposal |
+| [Competition runbook](COMPETITION_RUNBOOK.md) | Historical presentation workflow |
+
+We retain these files for provenance and engineering context; do not silently delete or reinterpret them as current facts.
+
+## Safety and documentation policy
+
+- Use synthetic examples; never commit identifiable medical content or private contact details.
+- Distinguish implemented routes from demonstrated behavior and from clinically reviewed features.
+- Never claim operational emergency triage, clinical approval, a hospital pilot or a live FHIR/openEHR interface without traceable evidence.
+- Treat PRs as drafts until reviewed and merged by the maintainer.

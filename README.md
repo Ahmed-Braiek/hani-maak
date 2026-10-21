@@ -1,258 +1,241 @@
-# Hani Maak - هاني معاك
+# Hani Maak | هاني معاك
 
-> **Access -> Guidance -> Continuity** for the patient journey around a healthcare appointment.
+**A multilingual, caregiver-first companion for families supporting someone living with Alzheimer's disease.**
 
-Hani Maak is a multilingual, white-label patient-journey platform designed for healthcare providers. It helps patients discover services, book and manage appointments, prepare correctly, navigate the facility, understand the next administrative step, and stay connected after the visit - through both a mobile experience and Heni, the conversational assistant.
+Hani Maak brings everyday caregiving information, coordination and supportive conversation into one experience. It is designed primarily for **family and informal caregivers**; the person receiving care can also take part in familiar-memory and activity experiences through the caregiver's device.
 
-**Live competition build:** https://hani-maak.vercel.app/
+> **Project status — October 2026:** Active research and engineering **prototype**, demonstrated with synthetic caregiver data. It is **not** a medical device, clinical diagnostic/triage service, guaranteed emergency-response system, or connected hospital record. Features are at different maturity levels and require additional quality, security and clinical review before real-world deployment.
 
-> Competition prototype for the Future Health Connectathon 2026. Demo patients and clinical examples are synthetic. The Charles Nicolle geographic context is real; prototype indoor routing is not presented as an authoritative hospital floor plan.
+[Caregiver demo](https://hani-maak.vercel.app/flutter/index.html) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [License status](LICENSE.md)
+
+## Contents
+
+- [Why Hani Maak](#why-hani-maak)
+- [Who it supports](#who-it-supports)
+- [Features and maturity](#features-and-maturity)
+- [System architecture](#system-architecture)
+- [Repository structure](#repository-structure)
+- [Try the demo](#try-the-demo)
+- [Develop locally](#develop-locally)
+- [Configuration](#configuration)
+- [Testing and quality](#testing-and-quality)
+- [Privacy and clinical safety](#privacy-and-clinical-safety)
+- [Interoperability and roadmap](#interoperability-and-roadmap)
+- [Project team and contribution](#project-team-and-contribution)
 
 ## Why Hani Maak
 
-Most appointment systems stop after scheduling. Patients still need to know where to go, what to bring, what happens next, and who to contact when they are confused. Healthcare staff repeatedly answer the same administrative questions while still needing strict boundaries around clinical responsibility and sensitive data.
+Caring for a person living with Alzheimer's disease often means tracking medication instructions, daily activities, changes in behavior, appointments, responsibilities and the caregiver's own wellbeing across several disconnected tools. Hani Maak explores how an accessible, multilingual digital companion can help caregivers coordinate these **non-diagnostic** tasks and prepare better information for discussions with qualified professionals.
 
-Hani Maak connects the steps around the appointment without making the AI the source of truth.
+Our initial focus is **Alzheimer's family caregiving**. Possible extension to other caregiving contexts is future research, not the current validated scope.
 
-## Product at a glance
+## Who it supports
 
-| Area | What the prototype demonstrates |
-| --- | --- |
-| Patient | Service discovery, booking, appointment management, journey steps, multilingual UI, hospital map, recorded AR guidance |
-| Heni Chat | Floating assistant with Tunisian Derja / French / English support, deterministic actions, safety boundaries, model-provider abstraction |
-| Heni Voice | Browser voice fallback plus an optional realtime/PSTN bridge with constrained administrative tools |
-| Doctor | Clinical patient workspace and clinical-note access through explicit permissions |
-| Administration | Appointments, services, schedules and patient operations without full clinical access |
-| Super Admin | Roles, accounts, audit visibility, maps, white-label and platform configuration |
-| Platform | Audited domain actions, deterministic scheduling and routing, optional Supabase persistence, synthetic demo reset |
+| Person or role | Intended experience |
+|---|---|
+| **Primary caregiver** | Daily overview, assistance from Hani, care notes, tasks, medication tracking, wellbeing and private conversations |
+| **Care recipient** | Familiar activities and memory prompts facilitated by the caregiver; **not** formal cognitive testing |
+| **Family / Care Circle** | Shared responsibilities, permissions and coordination where supported and authorized |
+| **Healthcare professional (future governed workflow)** | Potentially receive an explicit, reviewed, minimal-necessary care summary with appropriate permission; **no confirmed hospital integration** |
 
-## Heni AI
+Caregiver information and the care recipient's clinical information have different privacy boundaries. Family membership does not automatically authorize access to clinical records.
 
-Heni is a **first-class product module**, not a generic chatbot added on top of the UI.
+## Features and maturity
 
-Heni's default spoken style is natural Tunisian Derja. French code-switching is expected and English is supported. The assistant follows the user's language when they switch during a conversation.
+**Legend:** *Implemented* means code and/or data-model evidence exists; it does **not** establish full end-to-end reliability. *Experimental* is a prototype requiring validation. *Exploratory* is a proposal, not an integration.
 
-The architecture is intentionally provider-aware but not provider-locked:
+| Area | Current implementation evidence | Important limit |
+|---|---|---|
+| Caregiver dashboard and context | Flutter views, caregiver-patient relationship model and synthetic data | Browser/mobile E2E and full access tests pending |
+| **Hani text chat** | Flutter client, Next.js proxy, FastAPI agent and conversation/message persistence | AI quality, safeguarding and multilingual evaluation ongoing |
+| **Hani live voice** | Signed voice-session path and Gemini Live agent deployed | Real device/audio and provider failure testing pending |
+| Daily care and Care Circle | Care tasks, assignments, task requests, reminders and permissions modeled | Some multi-user flows and alert delivery need verification |
+| Medication support | Caregiver-entered lists, schedules, event tracking, reviewed OCR workflow code | Not prescribing or dose advice; OCR accuracy requires human review |
+| Incidents and dilemmas | Incident records and scenario-based support concepts | Clinical sign-off evidence incomplete; never assume automatic urgent escalation |
+| Memory and activities | Familiar people, places, routines, music and activity records | Supportive engagement only, not a diagnostic assessment |
+| Caregiver wellbeing | Private check-ins and questionnaire-oriented schema | Screening instruments and referrals not clinically validated |
+| Professional handoff and summaries | UI, data model and partial delivery workflows | Delivery/consent and actual clinician integration unproven |
+| Notifications and WhatsApp | UI, local reminder paths and optional provider adapters | Server push/provider setup may be absent; no delivery guarantee |
+| Emotion inference | Separate experimental Railway service | **Disabled in the inspected Hani agent**; no approved clinical use |
+| FHIR / openEHR / hospital EHR | Initial research and documentation | **Not implemented or approved** |
 
-- `development` mode keeps the tested deterministic competition behavior available without paid AI services;
-- a server-side model provider can be enabled for conversational turns;
-- `HENI_FINE_TUNED_MODEL_ID` can select a validated future fine-tuned model without changing the patient UI;
-- action truth remains in deterministic application tools, not in model memory;
-- realtime speech is isolated in the voice bridge so the speech provider can evolve independently.
+An implemented route, screen or database table does not prove a production-ready feature. [Current limitations](docs/KNOWN_LIMITATIONS.md) primarily describe the **historical competition system**; the current caregiver audit is in [Draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60).
 
-### Heni safety boundary
+## System architecture
 
-Heni may automate administrative tasks and surface provider-authored information. It does **not** diagnose, prescribe, change medication doses, determine clinical urgency, or certify medication safety. Clinical-boundary requests are redirected to human support.
+The current caregiver-focused implementation spans **Flutter**, a **Next.js application API**, a separate **FastAPI Hani agent**, **Supabase/PostgreSQL** and external AI services.
 
-State-changing actions require explicit confirmation, and the application backend remains the authority for availability, appointments, permissions, routing and journey state.
-
-### Patient-aware Heni runtime
-
-Every Heni text turn and live voice session now refreshes a trusted runtime context from the Hani Maak backend before the model responds. That context contains only the current authorized patient's non-clinical profile, their own appointments/journey state, plus verified public hospital information. Mutable facts are not memorized in the prompt or fine-tuning dataset.
-
-Heni can list the patient's appointments, distinguish "I already have a rendez-vous" from "I want to book one", check availability, book/reschedule/cancel with code-enforced confirmation, retrieve approved instructions, provide platform navigation context and create a human escalation. If the external model or tool transport is temporarily unavailable, the website falls back to the deterministic Heni flow instead of breaking the patient conversation.
-
-## Architecture
-
-**Core principle: deterministic core, probabilistic interface.**
-
-```mermaid
+~~~mermaid
 flowchart TD
-    P[Patient mobile UI] --> API[Next.js API / domain layer]
-    D[Doctor workspace] --> API
-    A[Administration] --> API
-    S[Super Admin] --> API
-    HC[Heni Chat] --> HO[Heni orchestration]
-    HV[Heni Voice] --> VB[Realtime voice bridge]
-    HO --> API
-    VB --> API
-    HO --> MP[Replaceable model provider]
-    VB --> RP[Realtime speech provider]
-    API --> SCH[Scheduling engine]
-    API --> J[Journey engine]
-    API --> R[Deterministic route graph]
-    API --> RBAC[RBAC / policy checks]
-    API --> AUD[Audit events]
-    API --> DB[(Demo JSON or Supabase path)]
-```
+    User["Family caregiver"] --> App["Flutter application / web bundle"]
+    App --> Auth["Supabase Auth + demonstration sign-in"]
+    App --> API["Next.js caregiver API on Vercel"]
+    App -. "signed real-time voice session" .-> Agent["FastAPI Hani agent on Vercel"]
+    API --> DB[("Supabase: normalized caregiver data")]
+    API --> Legacy[("Supabase: legacy demo-state JSON")]
+    API --> Agent
+    Agent --> AI["Gemini text / Live voice"]
+    Agent -. "optional, not enabled at last check" .-> Emotion["Experimental Railway emotion service"]
+~~~
 
-AI interprets language and can request approved actions. It does not own the underlying healthcare workflow state.
+This is a **logical overview** of observed code and deployment paths, not a proof that every request traverses every service. The running Supabase database contains both normalized caregiver records and an older single-record demo-state path. The repository's historical SQL does **not** fully represent the running normalized schema.
 
-## User roles and access model
+**How it works:** Flutter requests approved context/actions from Next.js; the Hani agent handles conversational text and voice with tightly scoped backend tools. Caregiver authorization, underlying application facts and sensitive data boundaries must remain server responsibilities—not model-generated assumptions.
 
-- **Patient** - sees their journey, appointments, guidance and approved instructions.
-- **Doctor** - receives the medical access required by the doctor workspace, including clinical information and notes.
-- **Administration** - manages scheduling and operational data without full clinical access.
-- **Super Admin** - manages platform configuration, accounts, roles, AI settings, maps, integrations and white-label behavior; clinical access is not granted by default merely because the user is a platform administrator.
-
-Authorization is enforced at server/API boundaries for protected staff operations, not only by hiding menu items.
-
-## Technology stack
-
-- **Frontend / application:** Next.js 16.3.5 App Router, React 19.2, TypeScript 5.9
-- **Runtime:** Node.js 22.6+
-- **Persistence:** local JSON demo repository or optional Supabase/Postgres path
-- **Voice bridge:** Fastify 5, WebSockets, optional Twilio media streaming and realtime AI provider
-- **Deployment:** Vercel for the web application
-- **Testing:** Node test runner plus deterministic Heni/voice evaluation scenarios
-- **Maps / guidance:** deterministic facility graph plus web map context and recorded AR-style walkthrough
+- Current-state architecture and schema analysis: [Draft interoperability documentation PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60).
+- Demo authentication hardening and synthetic shared-account work: [Draft security PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61).
 
 ## Repository structure
 
-```text
+~~~text
 hani-maak/
 ├── apps/
-│   ├── web/                 # Patient app, staff consoles, APIs, Heni Chat and browser Voice Lab
-│   └── voice-bridge/        # Optional realtime / PSTN speech bridge
-├── ai/                      # Fine-tuning and model-governance documentation; synthetic examples only
-├── docs/                    # Architecture, security, setup, testing and competition documentation
-├── evals/                   # Deterministic Heni intent/safety evaluation set and results
-├── scripts/                 # Demo reset and evaluation scripts
-├── supabase/                # Production-oriented schema and competition persistence path
-├── tests/                   # Domain, RBAC and Heni safety tests
-├── .github/                 # CI, issue forms, PR template and repository governance
-└── README.md
-```
+│   ├── mobile/           Flutter caregiver application (mobile + web source)
+│   ├── web/              Next.js backend and compiled Flutter web host
+│   ├── heni-agent/       Python/FastAPI chat, voice and OCR service
+│   ├── emotion-service/  Experimental independent inference service
+│   └── voice-bridge/     Older competition/PSTN voice integration
+├── docs/                 Product, architecture, technical and clinical notes
+├── supabase/             Historical SQL and migrations; reconcile with live DB
+├── tests/                TypeScript domain and API tests
+├── evals/                Synthetic deterministic evaluation scenarios
+├── scripts/              Development/competition utilities
+└── .github/workflows/    CI and build workflows
+~~~
 
-The repository remains a small monorepo because the product currently has two real deployable applications. We deliberately avoid creating empty microservices or architecture layers purely for appearance.
+The repository also retains an **earlier Future Health Connectathon patient-journey prototype** (patient/doctor/staff appointment workflows, indoor navigation and AR). That code and older documentation provide historical context. They should not be confused with the present caregiver-first roadmap or presented as integrated hospital functionality.
 
-## Getting started
+## Try the demo
 
-### Prerequisites
+**Web entry:** [Hani Maak caregiver demonstration](https://hani-maak.vercel.app/flutter/index.html).
 
-- Node.js 22.6+
-- npm 10+
+- Use **synthetic information only**. Never enter real patient records, prescription photographs, private telephone numbers or identifiable medical details.
+- The currently deployed build and the unmerged security PR can behave differently. **Do not treat a UI demo login as an authenticated clinical account.**
+- [PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) is preparing a dedicated email/password Supabase demo account backed by the **existing fictional Mariem/Fatma scenario**. At this stage, that account still needs provisioning and end-to-end validation. **No working credentials are published here.**
+- The demo is not a real care service. Hani is not qualified to give medical diagnoses or handle emergencies.
 
-```bash
+## Develop locally
+
+### 1. Prerequisites
+
+- **Node.js 22.6+** and npm (the repository test runner uses Node's TypeScript type-stripping).
+- **Flutter SDK** compatible with the constraints in [apps/mobile/pubspec.yaml](apps/mobile/pubspec.yaml).
+- **Python 3** and pip for the optional Hani agent.
+- Optional, separately configured **Supabase project** for authenticated caregiver workflows.
+
+### 2. Next.js API / legacy web host
+
+~~~bash
 git clone https://github.com/Ahmed-Braiek/hani-maak.git
 cd hani-maak
-cp .env.example .env.local
-npm install
-npm run demo:reset
+npm ci
 npm run dev
-```
+~~~
 
-Open `http://localhost:3000`.
+The Next.js host should start on [http://localhost:3000](http://localhost:3000). Its root pages include older competition-era experiences; the caregiver-first Flutter app is maintained under `apps/mobile/` and compiled into `apps/web/public/flutter/` by the web build workflow.
 
-### Useful routes
+For local environment configuration, copy the **variable names** from [.env.example](.env.example) into `apps/web/.env.local` or follow the specific subsystem documentation. Do **not** copy production secrets into your workstation or commit any `.env.local`.
 
-- `/patient` - patient journey home
-- `/patient/services` - service discovery and booking
-- `/patient/journey` - appointment-to-follow-up journey
-- `/patient/map` - hospital map, localization and AR entry point
-- `/patient/map/ar?demo=nuclear-medicine` - recorded nuclear-medicine walkthrough
-- `/voice-lab` - browser Heni voice fallback
-- `/staff` - authenticated role-oriented staff console (redirects to `/staff-login` when signed out)
-- `/staff-login` - role-aware staff sign-in with public competition demo accounts
-- `/staff-signup` - staff access request flow; requests remain pending until approval
-- `/present` - competition presentation mode
+**Do not run `npm run demo:reset` or `npm run fresh` against shared/production data.** These scripts belong to the historical competition demo and may reset state.
 
+### 3. Flutter caregiver application
 
-### Competition staff accounts
+~~~bash
+cd apps/mobile
+flutter pub get
+flutter analyze
+flutter run -d chrome \
+  --dart-define=HANI_API_BASE=http://localhost:3000 \
+  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_KEY
+~~~
 
-The public competition build includes three intentionally public demo accounts so reviewers can verify authentication and role separation end to end. These credentials are **not production secrets** and must never be reused for a hospital deployment.
+Use **a test Supabase project and publishable key**, never a secret/service-role key. Replace example values with your own test configuration. Authenticated flows also depend on a correctly configured backend, account, profile and caregiver-patient relationship. Without those, sign-in and data changes may fail even if Flutter builds successfully.
 
-| Role | Username | Password |
-| --- | --- | --- |
-| Doctor | `doctor.demo` | `HaniDoctor2026!` |
-| Administration | `admin.demo` | `HaniAdmin2026!` |
-| Super Admin | `super.demo` | `HaniSuper2026!` |
+If the Flutter `web/` platform folder is missing, see the commands used by [.github/workflows/flutter-production-web.yml](.github/workflows/flutter-production-web.yml) to generate it. The deployed compiled bundle must be **rebuilt** after Flutter source changes; a Next.js-only preview does not automatically update that bundle.
 
-Open `/staff` while signed out to be redirected to the sign-in screen. Role changes inside the authenticated console remain available only in competition demo mode. Account requests created from `/staff-signup` stay pending and do not receive permissions automatically.
+### 4. Optional Hani agent
 
-## Environment configuration
+~~~bash
+cd apps/heni-agent
+python -m venv .venv
+# Activate .venv using your operating system's instructions
+pip install -r requirements.txt
+# Configure the required server-side values in .env
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8080
+~~~
 
-`.env.example` documents the supported environment variables. Secrets are server-side only and must never be committed.
+The agent requires correctly configured model/backend settings for full AI functionality. Its [README](apps/heni-agent/README.md) documents endpoints, model selection and safety limitations; older patient-journey wording in that file is historical and should be reviewed separately.
 
-For the zero-setup competition path, keep:
+## Configuration
 
-```text
-DEMO_MODE=true
-HANI_DATA_BACKEND=file
-HENI_AI_PROVIDER=development
-```
+Never commit credentials, use real patient information in fixtures, or expose server-only keys through Flutter / `NEXT_PUBLIC_*` variables.
 
-For shared competition persistence, use Supabase with the documented server-side secret. For model-backed Heni Chat, configure `HENI_AI_PROVIDER`, `HENI_CHAT_MODEL` or a validated `HENI_FINE_TUNED_MODEL_ID`, and a server-side provider key.
+| Variable | Used by | Purpose |
+|---|---|---|
+| `HANI_API_BASE` | Flutter build | URL of the matching Next.js API |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Flutter build | Public Supabase client configuration |
+| `NEXT_PUBLIC_SUPABASE_URL` | Next.js | Public project URL |
+| `SUPABASE_SECRET_KEY` | Next.js **server only** | Privileged data access, subject to authorization |
+| `HENI_AGENT_BASE_URL`, `HENI_AGENT_WSS_URL` | Next.js | Text/voice agent connection |
+| `HENI_AGENT_SHARED_SECRET` | Next.js and agent **server only** | Trusted service-to-service calls |
+| `GEMINI_API_KEY` | Hani agent **server only** | Model access |
+| `DEMO_ACCOUNT_USER_ID`, `PUBLIC_SYNTHETIC_DEMO` | **Proposed by PR #61**, Next.js | Limit provisioning to an approved synthetic demo account |
 
-See [`docs/setup/LOCAL_DEVELOPMENT.md`](docs/setup/LOCAL_DEVELOPMENT.md) and [`docs/ai/HENI.md`](docs/ai/HENI.md).
+Availability varies by deployment and branch. The [root environment example](.env.example) contains older competition flags as well as the Next.js settings. The Hani agent documents its **own** settings separately.
 
-## Testing and verification
+## Testing and quality
 
-```bash
+The root package scripts are implemented and used in GitHub CI:
+
+~~~bash
+npm ci
+npm run typecheck
 npm test
 npm run evals
-npm run typecheck
 npm run voice:check
 npm run build
-```
-
-Or run the complete repository verification sequence:
-
-```bash
+# Or run the aggregated check:
 npm run verify
-```
+~~~
 
-The deterministic evaluation dataset is a prototype engineering check, not a claim of clinical accuracy or live speech-recognition accuracy.
+For Flutter, use `flutter analyze` and `flutter build web --release --base-href /flutter/` with appropriate **test** configuration. PR #61 adds a separate Flutter validation workflow; it is not yet part of `main`.
 
-## Security and privacy
+**What CI proves:** source builds, static checks, deterministic tests and selected agent safety tests. **What it does not prove:** secure end-to-end patient-data handling, clinical safety or language validity, live-device speech reliability, hospital interoperability or completed privacy review.
 
-Security is part of the product architecture because Hani Maak may eventually process sensitive healthcare information.
+## Privacy and clinical safety
 
-Current principles include:
+- **Synthetic data only** in public demos, screenshots, issue reports, evaluations and shared examples.
+- The caregiver's private conversations, emotional wellbeing, and family situations must not automatically be shared into the care recipient's clinical record.
+- Clinical information should identify its source and distinguish caregiver-reported from professionally verified facts.
+- Hani cannot diagnose Alzheimer's stage, prescribe drugs, adjust dosages, or guarantee urgent-response escalation.
+- Medication OCR is for **review assistance**, not an authoritative prescription.
+- Production use requires verified authentication, authorization, consent, retention policies, safety oversight and applicable legal review.
+- Responsible vulnerability reporting: [SECURITY.md](SECURITY.md). Please do not open public issues containing sensitive data.
 
-- signed HttpOnly staff sessions in front of the staff console;
-- demo sign-in credentials that are intentionally public for competition review, never treated as production secrets;
-- self-signup requests that never grant a privileged role automatically;
-- least-privilege role/permission design;
-- separate administrative and clinical access;
-- server-side secret handling;
-- explicit confirmation for voice-driven mutations;
-- audit events for important actions;
-- deterministic tool ownership of appointment and route truth;
-- no public repository of private medical training data;
-- human escalation at the clinical boundary;
-- no unnecessary sensitive information in logs or GitHub issues.
+## Interoperability and roadmap
 
-The competition build uses synthetic patient data. It is **not represented as HIPAA, GDPR, ISO 27001, or other certified/compliant production infrastructure**. Production authentication, provider agreements, data-retention policy, security monitoring, validated hospital data and formal compliance work remain deployment requirements.
+The team is evaluating **openEHR** for clinical information modeling and **FHIR** for possible future authorized information exchange. The first goal is a small, clinically reviewed dataset and several concrete use cases, **not** an unapproved hospital integration.
 
-Read [`SECURITY.md`](SECURITY.md) and [`docs/security/SECURITY_ARCHITECTURE.md`](docs/security/SECURITY_ARCHITECTURE.md).
+| Workstream | Next step | Current status |
+|---|---|---|
+| Engineering | Reconcile normalized Supabase data, historical demo state and access rules | Audit/review in progress |
+| Demo experience | Complete authenticated, synthetic Mariem/Fatma showcase | [Draft PR #61](https://github.com/Ahmed-Braiek/hani-maak/pull/61) |
+| Public repository | Accurate documentation, attribution and removal of unnecessary test data | [Draft PR #62](https://github.com/Ahmed-Braiek/hani-maak/pull/62) |
+| Clinical data / openEHR | Clinical inventory, provenance, review evidence and reusable archetype study | [Draft PR #60](https://github.com/Ahmed-Braiek/hani-maak/pull/60) |
+| FHIR | Prioritize use cases, proxy identity, consent, resource mapping and synthetic POC | Exploratory |
+| Hospital engagement | Technical and clinical discovery through authorized channels | No formally approved pilot or live EHR exchange |
 
-## Documentation
+The team may explore relationships with hospitals and technical advisors, but no clinical trial, formal hospital pilot or Carefluence integration is confirmed by this repository.
 
-Start with [`docs/README.md`](docs/README.md).
+## Project team and contribution
 
-Key references:
+Hani Maak is developed by a multidisciplinary team. Current contributor attribution and responsibilities are listed in [AUTHORS.md](AUTHORS.md); repository ownership alone does not determine academic or legal authorship.
 
-- [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md)
-- [`docs/ai/HENI.md`](docs/ai/HENI.md)
-- [`docs/roles-and-permissions/RBAC.md`](docs/roles-and-permissions/RBAC.md)
-- [`docs/testing/TESTING_STRATEGY.md`](docs/testing/TESTING_STRATEGY.md)
-- [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md)
-- [`docs/COMPETITION_RUNBOOK.md`](docs/COMPETITION_RUNBOOK.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and review standards, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for collaboration expectations, and [SUPPORT.md](SUPPORT.md) for issue reporting.
 
-## Roadmap
+**License:** This public repository is **not currently open-source licensed**. Read [LICENSE.md](LICENSE.md) before copying, redistributing or reusing its contents. Publishing source code does not waive the contributors' rights.
 
-Near-term production work is intentionally concrete:
+---
 
-1. validate and connect the selected fine-tuned Heni model against the documented multilingual/safety evaluation suite;
-2. complete production identity/authentication and database-enforced tenant/RBAC policies;
-3. production-harden realtime speech, telephony verification, rate limiting and observability;
-4. validate facility maps/routes with a healthcare-provider partner before clinical-site use;
-5. integrate authorized HIS/EHR/FHIR systems only where a provider supplies governance and API access.
-
-## Contributing, support and security reporting
-
-- Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Support routes: [`SUPPORT.md`](SUPPORT.md)
-- Security reporting: [`SECURITY.md`](SECURITY.md)
-- Change history from this point forward: [`CHANGELOG.md`](CHANGELOG.md)
-
-Do not include real patient information, credentials or security-sensitive details in public issues or pull requests.
-
-## License status
-
-This repository is not currently offered under an open-source license. See [`LICENSE.md`](LICENSE.md) for the current project notice. The project owners can replace it with an explicit license later if the legal/distribution model changes.
-
-## Maintainer
-
-Repository maintained through the `Ahmed-Braiek/hani-maak` project. Additional contribution attribution should follow the Git history rather than being invented manually.
+*Hani Maak is built to support caregivers—not to replace clinicians, emergency services, or patients' formal care relationships.*
