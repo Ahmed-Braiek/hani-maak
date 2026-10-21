@@ -1372,6 +1372,9 @@ export async function POST(req: Request) {
     }
 
     if (tool === "create_professional_contact_request") {
+      // AI tools cannot assert a patient/proxy consent or a clinician-approved handoff.
+      // A dedicated authenticated caregiver review and authorization flow is required.
+      return NextResponse.json({ error: "explicit_caregiver_approval_required" }, { status: 403 });
       const professionalId = clean(args.professionalId, 120);
       const channel = clean(args.channel, 40);
       if (!["call", "whatsapp", "appointment"].includes(channel)) {
