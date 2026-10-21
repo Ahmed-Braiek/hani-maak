@@ -8,12 +8,13 @@ Thank you for helping improve Hani Maak. This repository contains a healthcare-a
 git clone https://github.com/Ahmed-Braiek/hani-maak.git
 cd hani-maak
 cp .env.example .env.local
-npm install
-npm run demo:reset
+npm ci
 npm run dev
 ```
 
-Use Node.js 20.9+ and npm 10+.
+Use Node.js 22.6+ and npm 10+ for the current TypeScript test runner. The checked-in configuration may still require test-only backend variables; never use production credentials locally.
+
+**Safety:** Do not run historical `demo:reset` or `fresh` scripts on any shared or production database. These commands are not part of standard setup. The older patient/staff workflows documented below are maintained for historical competition context, not the current caregiver-first product.
 
 ## Branches
 
