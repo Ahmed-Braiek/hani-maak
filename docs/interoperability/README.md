@@ -16,7 +16,8 @@
 | 6 | [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md) | Clinical sign-off gap, boundaries, escalation responsibilities |
 | 7 | [FHIR Use Cases](fhir/USE_CASES.md) | Candidate read-first use cases, identity, consent, source and authorization needs |
 | 8 | [FHIR Source-to-Resource Mapping v0.1](fhir/FHIR_MAPPING_v0.1.md) | Observed field crosswalk, proposed FHIR R4 vocabulary, authorization and non-mapping gates |
-| 9 | [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Read-only technical risks and remediation priorities |
+| 9 | [Phase 1 Technical and Clinical Claims Review](PHASE1_TECHNICAL_CLINICAL_REVIEW.md) | CKM revision corrections, FHIR R4 semantic checks, remaining clinical evidence gaps |
+| 10 | [Repository QA Audit](../REPOSITORY_QA_AUDIT_2026-10-20.md) | Read-only technical risks and remediation priorities |
 
 ## Three questions to resolve first
 
