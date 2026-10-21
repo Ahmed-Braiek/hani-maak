@@ -2,10 +2,12 @@
 
 **For discussion with:** Lloyd Williams and Aditya Ayyagari  
 **Prepared by:** Hani Maak team, coordinated by Adam Ben Arbia  
-**Status:** Technical review draft, 20 October 2026  
+**Status:** Technical review draft, updated 21 October 2026  
 **Purpose:** Present our current Alzheimer's caregiver prototype, explain a proposed clinical-data/openEHR and FHIR research direction, and request targeted feedback before choosing an implementation path.
 
 > **Scope and maturity:** Hani Maak is a caregiver-support research prototype using synthetic demonstration records. We are **not** claiming clinically validated decision support, real hospital access, an implemented FHIR/openEHR interface, a pilot agreement, or a confirmed integration/partnership with Carefluence.
+
+**Start here:** [One-page Executive Summary](EXECUTIVE_SUMMARY.md) → this brief → [Integrated Action Plan](ACTION_PLAN_v0.1.md). Detailed mappings are supporting references, not required first reading.
 
 ## 1. What Hani Maak currently is
 
@@ -26,15 +28,15 @@ See the [current architecture](../architecture/CURRENT_ARCHITECTURE.md), [48-tab
 
 We want to avoid building a bespoke, poorly evidenced medical-data schema or treating caregiver-entered observations as clinician-authored records.
 
-The **openEHR exploration** will first inventory caregiver and care-recipient concepts, identify source/verification/privacy status, survey existing archetypes and templates, and propose a minimal Alzheimer-relevant information model requiring clinical review.
+**Initial research completed:** a [48-table source/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md) and a [16-candidate openEHR CKM archetype landscape](openehr/ARCHETYPE_LANDSCAPE.md). We now seek clinical guidance on which patient-relevant, source-verifiable fields and published models to prioritize. No locally approved openEHR template has been produced.
 
-The **FHIR exploration** will focus on a very small number of explicit exchange cases rather than attempting broad EHR synchronization. Preliminary candidates are:
+**Initial research completed:** [seven candidate FHIR use cases](fhir/USE_CASES.md) and a [field-level preliminary FHIR mapping](fhir/FHIR_MAPPING_v0.1.md) covering three first-review cases. We recommend selecting only **one** read-oriented synthetic use case before building an adapter. Leading options are:
 
 | Proposed use case | Candidate FHIR concepts | Critical question |
 |---|---|---|
 | Authorized care-recipient context | Patient, Condition, Observation | Who may access which clinically verified facts? |
-| Professional medication list | MedicationRequest, MedicationStatement, AllergyIntolerance | How is clinician-verified medication information reconciled with caregiver notes? |
-| Caregiver/proxy access | RelatedPerson, CareTeam, Consent | How is proxy authority established, scoped and revoked? |
+| Professional medication context | MedicationStatement (reported use), MedicationRequest (genuine order); AllergyIntolerance only if verified allergy data exists | How is professionally sourced medication information distinguished from caregiver reports? |
+| Caregiver/proxy access | RelatedPerson, Consent; CareTeam conditional on appropriate care context | How is proxy authority established, scoped and revoked? |
 
 These concepts are **candidates**, not committed FHIR profiles. Neither a hospital's technical capability nor its exchange authorization has been verified. Later consideration may include reviewed incident summaries, provenance/audit and explicitly consented clinical handoffs.
 
@@ -44,8 +46,8 @@ See the [clinical validation audit](openehr/CLINICAL_VALIDATION_AUDIT.md), [FHIR
 
 | Workstream | Proposed contributors | First reviewable output |
 |---|---|---|
-| Clinical data and openEHR | Salma and Hela, with Eya's review as available | Inventory, provenance/privacy matrix, archetype landscape and clinical review gaps |
-| FHIR and backend architecture | Adam; Ahmed as proposed technical lead; Emna subject to confirmation | Prioritized exchange cases, source-to-concept mapping, proxy/consent requirements |
+| Clinical data and openEHR | Salma and Hela, with Eya's review as available | **Prepared:** technical matrix and archetype shortlist. **Next:** qualified clinical evaluation and minimal field set |
+| FHIR and backend architecture | Adam; Ahmed as proposed technical lead; Emna subject to confirmation | **Prepared:** use cases and draft field mapping. **Next:** select one exchange and authorization contract |
 | Product, demo and repository quality | Adam and engineering contributors | Verified current-state diagram, synthetic demo, CI and explicit known limitations |
 | Hospital discovery | Salma and Hela | Questions about institutional process, EHR/API capability and governance — **not a formal pilot** |
 | Research direction | Salma and Adam, with clinical and technical contributors | Source-linked literature survey and a bounded research concept |
@@ -64,16 +66,17 @@ We would appreciate Lloyd's and Aditya's perspective on:
 
 ## 5. What we propose to deliver next
 
-1. A **clinical domain and provenance matrix**, clearly separating caregiver-private and care-recipient information.
-2. A **small, source-linked inventory of existing openEHR archetypes**, highlighting gaps rather than inventing templates immediately.
-3. **Review and refine the preliminary FHIR source-to-resource mapping** (now drafted across the first three candidate use cases), then select *one* approved use case and later prepare a synthetic example.
-4. An **architecture and scope decision log**, updated after advisor feedback.
-5. Only after review, a **synthetic technical proof of concept**, with negative access tests and no live hospital write-back.
+1. **Seek clinical feedback** on the completed [48-table provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md) and [16-candidate openEHR inventory](openehr/ARCHETYPE_LANDSCAPE.md).
+2. **Select a minimal dataset** and verify subject, asserter, clinical evidence and caregiver-private boundaries with qualified reviewers.
+3. **Review the completed preliminary FHIR mapping**, prioritize **one** read-oriented use case and agree identity, proxy authority, consent and revocation assumptions.
+4. Record the **architecture and scope decisions** after advisor feedback, including proposed workstream owners and capacity.
+5. **Only after review**, prepare a strictly synthetic draft archetype/template exercise or FHIR example with negative authorization tests; no live hospital write-back.
 
 This is an initial feedback request. **We do not need the proof of concept completed before seeking scope guidance**.
 
 ## 6. Navigation
 
+- [Executive summary — recommended first read](EXECUTIVE_SUMMARY.md)
 - [Integrated work plan](ACTION_PLAN_v0.1.md)
 - [Current system](../architecture/CURRENT_ARCHITECTURE.md)
 - [Clinical-data and provenance matrix — all 48 tables](CLINICAL_DATA_PROVENANCE_MATRIX.md)
