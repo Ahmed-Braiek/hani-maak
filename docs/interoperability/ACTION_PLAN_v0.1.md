@@ -2,7 +2,7 @@
 ### Clinical Data, openEHR, FHIR, Product Development and Research
 
 **Version:** v0.1 — draft for technical review  
-**Prepared:** 16 October 2026 · **Revised:** 20 October 2026  
+**Originally drafted:** 16 October 2026 · **Timeline reconciled:** 21 October 2026  
 **Prepared for review by:** Lloyd Williams and Aditya Ayyagari  
 **Coordinator:** Adam Ben Arbia  
 **Status:** Workstream ownership, standards choices, proposed architecture and timelines are subject to review.
@@ -10,6 +10,10 @@
 > **Purpose.** This is the integrated follow-up plan requested after our Hani Maak demonstration. It defines a clinical-data/openEHR group, a FHIR implementation group, and how both connect with existing engineering, clinical safety, research and potential hospital work. It identifies decisions where advisor guidance would be most valuable.
 
 **Documentation progress (21 October 2026):** An initial read-only 48-table [clinical/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), a 16-candidate [openEHR CKM landscape](openehr/ARCHETYPE_LANDSCAPE.md), and a [FHIR source-to-resource mapping v0.1](fhir/FHIR_MAPPING_v0.1.md) are now **drafted for advisor review**. These are engineering/research inventories, **not clinical approval**, a finalized minimal dataset, a working FHIR interface, or completion of the proposed clinical team's workstream. The [executive summary](EXECUTIVE_SUMMARY.md) is the recommended entry point for the follow-up email.
+
+**Schedule correction (21 October):** The follow-up previously promised for **Friday 16 October** was **not sent**. The revised target is **Wednesday 21 October**, **after Ahmed reviews and merges PRs #60, #61 and #62 into `main` and their combined state is checked**. This is a target, not a claim of completion. A new provisional internal 14-day window runs **22 October–4 November**, instead of treating 19 October–1 November as still on schedule. Actual advisor-response-dependent milestones will be recalculated after feedback, with no assumed reply date.
+
+**Scope boundary:** the comprehensive **all-history personal-data/secret scan** is outside this email phase and remains a future security task. This does **not** clear known historical credential exposure. Check current material before sharing and do not claim that the demo login is ready. The expanded research package is retained as helpful context for Lloyd and Aditya.
 
 **Navigate:** [Product](#1-product-and-current-state) · [Team assignments](#2-team-and-ownership) · [Workstreams](#3-integrated-workstreams) · [Architectures](#4-architecture-directions) · [Timeline](#5-integrated-roadmap) · [Review questions](#6-questions-for-lloyd-and-aditya)
 
@@ -38,16 +42,16 @@ The demonstration sign-in includes a shortcut; it must not be represented as pro
 
 ## 2. Team and ownership
 
-Responsibilities below separate **accepted capacity**, **reported contributions** and **proposals**. No role is assigned by inference from a person appearing in a meeting or from GitHub account ownership.
+**All six team members are actively involved and committed to continuing Hani Maak.** Exact next-task allocation, qualified clinical sign-off and schedules are separate coordination questions, not indications of reduced team commitment.
 
 | Member | Working responsibility | Confirmation and constraints |
 |---|---|---|
 | **Adam Ben Arbia** | Coordination, technical architecture and source-of-truth verification, document integration, FHIR/research support | Coordination and final package editing established in the sprint brief. Does **not** own hospital outreach. |
 | **Salma Ghorbel** | Co-coordinate clinical-data/openEHR; team hospital-contact owner; research exploration | **Explicitly accepted openEHR co-coordination at approximately 8 hours/week** in her response. Hospital/Digital Hospital status is still discovery, not a formal pilot. |
-| **Hela Sellami** | Clinical-domain inventory, clinical and governance questions, Razi discovery with Salma | Clinical/hospital brief provided; individual future capacity and assignments need reconfirmation. |
-| **Eya Sassi** | Clinical, caregiver privacy and safety review; candidate questionnaire and openEHR input | Clinical review notes supplied; future availability and institutional reviewer authority **not confirmed**. |
-| **Ahmed Braiek** | Proposed technical lead for FHIR, schema/integration verification and engineering | No technical truth-sheet response in original team packet. Repository engineering work exists; capacity and formal workstream assignment **remain to confirm**. Ahmed performs merges after reviews. |
-| **Emna Fradi** | Engineering/QA and provisional FHIR-group contribution | Preliminary QA report exists; **FHIR-group membership and availability were not checked/confirmed**. |
+| **Hela Sellami** | Clinical-domain inventory, clinical and governance questions, Razi discovery with Salma | Actively engaged; specific next deliverables and dates to coordinate. |
+| **Eya Sassi** | Clinical, caregiver privacy and safety review; candidate questionnaire and openEHR input | Actively engaged; review scheduling and independent clinician/institutional approval are distinct from team commitment. |
+| **Ahmed Braiek** | Engineering, repository maintenance and GitHub merges; proposed technical lead for FHIR | Actively engaged; responsible for merging reviewed PRs. The old response packet lacked a standalone technical truth sheet; precise FHIR allocation and schedules remain to coordinate. |
+| **Emna Fradi** | Engineering/QA and FHIR-group contribution to be scheduled | Actively engaged; specific FHIR review tasks and dates remain to coordinate. |
 
 **Hospital communication:** Salma and Hela coordinate requests to Razi/Hôpital Numérique; Adam provides the technical questions and uses results for design, but does not initiate hospital outreach.
 
@@ -82,7 +86,7 @@ The prior integrated revision dated 18 October drew on the original action plan,
 Supporting initial audit: [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md). **Initial engineering inventory drafted:** [Clinical-Data and Provenance Matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), [openEHR Archetype Landscape](openehr/ARCHETYPE_LANDSCAPE.md); clinical verification, sign-off and archetype/template selection remain open.
 
 ### B. FHIR implementation
-**Proposed lead:** Ahmed; **contributors:** Adam, Emna (to confirm).
+**Proposed technical lead:** Ahmed; **contributors:** Adam and Emna (specific FHIR tasks to schedule).
 
 **Goal:** design a purpose-driven FHIR exchange boundary. First discover use cases, identity, consent and hospital capability; implement only after selecting a feasible, reviewable path.
 
@@ -104,7 +108,7 @@ See [Initial FHIR Use Cases](fhir/USE_CASES.md) and [preliminary field-to-resour
 1. **Establish the current truth:** verify deployment and the specific routes using normalized caregiver tables versus the earlier Supabase-backed demo-state JSON; reconcile historical repository SQL and actual migrations.
 2. **Document safe boundaries:** caregiver/care-recipient relationship, RLS and backend privileges, private Hani messages, voice/transcript retention and consent.
 3. **Correct public documentation:** caregiver-first README positioning, distinguish current and historical modules, list all team contributors accurately.
-4. **Repository QA:** remove unnecessary public test numbers, review tracked files **and Git history** for secrets/personal details, validate synthetic-data provenance and check links/build/test results.
+4. **Repository QA:** check current shareable files for unnecessary test numbers and exposed values, verify relevant links/builds and record known limitations. The comprehensive **all-history privacy/secret audit is deferred outside this email phase**, not completed and not a safety clearance.
 5. **Resolve clinical labeling:** do not treat database flags as independent clinician review. Establish approval evidence and impact assessment before changing production status or behavior.
 
 **Outputs:** [Current Architecture](../architecture/CURRENT_ARCHITECTURE.md), [Schema Audit](CURRENT_SCHEMA_AUDIT.md), verified repository/QA notes (Markdown), and a later architecture decision record if needed. Neither a schema snapshot nor an illustrative FHIR mapping should be deployed as an unreviewed migration.
@@ -167,24 +171,24 @@ flowchart LR
 
 This last diagram is a **discussion option**, not a selected architecture, an agreed platform integration or proof that the hospital interface exists.
 
-## 5. Integrated roadmap — provisional 14-day checkpoint
+## 5. Corrected roadmap — 21 October delivery, then two-week coordination
 
-The team-response revision adopted a **two-week checkpoint**. Times below are relative to an agreed kickoff, **not fixed deadlines or commitments from unconfirmed members**. The initial plan and current-state audit can be shared for **early advisor feedback**; the Day-14 package is the more developed set of technical/clinical outputs.
+**Missed commitment:** The email to Lloyd promised for **Friday 16 October 2026** was not sent. This revised plan targets **Wednesday 21 October** for the actual reply and GitHub package, after the required merges and verification. The original **19 October–1 November** planning assumption is replaced by **22 October–4 November** for remaining internal tasks; no advisor reply date is assumed. Prior work already completed is retained, not restarted.
 
-| Window | Owners (unless noted as proposed) | Reviewable evidence | Dependency |
-|---|---|---|---|
-| **Days 1–2** | Adam; Emna/maintainer for QA (proposed) | Repository contact-info removal and historical privacy/secrets scan status | Public repository disclosure review |
-| **Days 1–3** | Adam; Ahmed for verification (proposed) | Deployed architecture, provider and source-of-truth ledger, gaps highlighted | Read-only system evidence; no clinical claims |
-| **Days 2–6** | Salma + Hela; Eya reviews if available | Clinical inventory, private caregiver versus patient classification and safety questions | Clinical capacity and review |
-| **Days 3–7** | Adam + provisional FHIR team | Rank the first **one or two** use cases by clinical need, scope, privacy and feasibility | Verified data model; no hospital access assumed |
-| **Days 4–8** | Salma + Hela | Hospital discovery status/questions | Institution's timing; **not** a confirmed pilot |
-| **Days 6–10** | Clinical-data/openEHR group | Reusable archetype survey, consent model, minimum dataset hypotheses | Clinical validity and provenance evidence |
-| **Days 7–11** | Provisional FHIR team + Adam | Narrow resource mappings, proxy consent, read/write and audit decisions | Target FHIR version and implementation guide unknown |
-| **Days 8–12** | Salma + Adam with research contributors | Source-linked literature matrix and distinct research hypothesis | No thesis/paper commitment |
-| **Days 11–13** | Adam + proposed QA reviewers | Documentation consistency, links, build results and evidence register | Any sharing risk kept explicit |
-| **Day 14** | Adam + available contributors | Advisor review checkpoint, open decisions, demonstrated evidence and requested feedback | External clinical/technical review before implementation |
+**GitHub merge prerequisite:** Before today's email, **Ahmed merges PRs #61, #62 and #60 into `main`** after reviewing the latest checks, then verifies the combined state and main-branch documentation links. This is **GitHub integration, not a Supabase database migration**. A draft PR and a green isolated CI check are not proof of a successful merge. Merges remain planned until verified.
 
-**Beyond Day 14, conditional:** design and test a *synthetic*, governed proof of concept only after use cases, intended profiles and access boundaries are reviewed. A hospital-specific integration requires additional agreements, governance and actual hospital capability discovery.
+| Date / window | Workstream | Milestone or dependency |
+|---|---|---|
+| **21 Oct — before email** | Ahmed, supported by team review | Review and merge PRs **#61, #62, #60** into `main`; inspect resulting files and build status; project coordinator sends overdue reply to Lloyd after verification. No merge or email is recorded as completed in advance. |
+| **22–26 Oct** | Engineering and QA | **Provision the dedicated Supabase Auth demo user, which does not currently exist.** Verify confirmed email, immutable user UID, allowlisted `DEMO_ACCOUNT_USER_ID`, opt-in `PUBLIC_SYNTHETIC_DEMO` only in an authorized preview, rebuilt Flutter bundle and positive/negative access tests. **Not required for a documentation-only email**; merged code alone is not a working account. |
+| **22–28 Oct** | Salma, Hela, Eya; Adam documents | Review the clinical/provenance matrix and candidate openEHR archetypes; agree a clinically meaningful minimal dataset and sources. Qualified clinical verification is separate. |
+| **22–30 Oct** | Ahmed, Emna, Adam | Agree a first read-oriented FHIR use case, source/consent/authorization conditions and standards questions, informed by advisor feedback if available. |
+| **22 Oct onward** | Salma and Hela | Coordinate hospital discovery when external participants are available; no pilot meeting or approval date assumed. |
+| **By 4 Nov — provisional internal checkpoint** | Committed Hani Maak team | Review actual advisor feedback **if received**, technical/clinical evidence and prototype/demo validation; reset advisor-dependent dates based on their real availability. |
+
+**Outside the current email phase:** comprehensive history-wide privacy/secret and personal-data auditing is deferred to a **separate security workstream**. Known publicly exposed demo credentials are not considered cleared by this deferral. No real clinical exchange, Razi pilot or working FHIR/openEHR adapter is implied.
+
+**Beyond this window:** any synthetic standards proof of concept, Carefluence technical assessment or hospital implementation is subject to advisor/clinical guidance, correct authorizations and independent validation.
 
 ### Readiness and dependency gates
 
@@ -192,8 +196,8 @@ The team-response revision adopted a **two-week checkpoint**. Times below are re
 2. No clinical screening, crisis routing or doctor-alert claims without an accountable human response pathway and qualified clinical sign-off.
 3. No mapping of raw/private caregiver chat or wellbeing into the patient's record by default; consent, minimization and provenance are required.
 4. No automatic database migration or production change from this plan. OpenEHR and FHIR remain **evaluation tracks**, not a selected stack.
-5. Check active implementation and owner availability before reporting task completion.
-6. Keep GitHub draft PRs separate. **Ahmed is responsible for all merges; docs branches are not published into `main`.**
+5. Verify implementation evidence and coordinate precise next-workstream scheduling before reporting milestones. **All six team members remain committed.**
+6. **Ahmed handles the merges of PRs #60–#62 into `main` ahead of the revised 21 October email.** Verify combined main-branch state and links before sharing. The merge does not provision Supabase Auth or validate the hosted demo.
 
 ## 6. Questions for Lloyd and Aditya
 
@@ -208,7 +212,7 @@ The team-response revision adopted a **two-week checkpoint**. Times below are re
 
 The next advisor-facing package contains this plan, a verified architecture summary, a reconciled data-model status (including unknowns), prioritized interoperability use cases and outstanding clinical-review questions. It should clearly separate **implemented**, **experimentally configured**, **proposed** and **not yet confirmed** items.
 
-**Next action:** collect advisor feedback on the proposed workstream split and top use cases, confirm owners/capacity, and keep the unverified claims and repository sharing gate visible. Do not wait for a finished FHIR interface or hospital pilot to request **planning feedback**.
+**Next action:** complete and verify GitHub merges on 21 October, send the overdue advisor follow-up, then seek feedback on workstream design and the initial interoperability use case. Coordinate detailed future tasks within the already committed team and retain honest clinical/demo limitations.
 
 ### Decision and risk register
 
@@ -217,13 +221,13 @@ The next advisor-facing package contains this plan, a verified architecture summ
 | D01 | Which one or two FHIR use cases lead? | Seven candidates; first shortlist remains proposed | Adam, FHIR group, Lloyd/Aditya |
 | D02 | openEHR archetype/community reuse? | Not selected or reviewed by an external modeler | Salma, Hela, Eya, advisors |
 | D03 | Which schema/API path is authoritative? | Normalized and older demo-state storage **both observed** | Adam, proposed Ahmed/Emna review |
-| D04 | Are all fixtures and Git history free of private data/secrets? | Full history/provenance scan **not complete** | Engineering and QA review |
+| D04 | Historical personal-data/secret audit? | **Out of scope for the 21 October email phase**; not performed or cleared. Known public demo-credential exposure and current-file checks remain distinct | Separate future security workstream |
 | D05 | Clinical approval for dilemmas, burden scales or alerts? | No clinical-content review records in checked DB; external sign-off **unverified** | Clinical group and qualified clinicians |
 | D06 | Hospital capability, contact, pilot approval, recipient for alerts? | Unconfirmed; **Razi engagement is discovery only** | Salma/Hela and institution |
 | D07 | Carefluence integration needed? | Architectural evaluation option only, no agreed integration | Lloyd/Aditya and Adam |
-| D08 | FHIR group, QA and clinical capacity? | Salma openEHR capacity accepted (~8h/week); others pending | Adam + team |
+| D08 | Exact next workstream schedules and responsibilities? | **All six members are active and committed**; individual technical/clinical approval tasks and dates are being coordinated. Salma's reported openEHR capacity is ~8h/week. | Adam + team |
 | D09 | Is Alzheimer data modeling an approved thesis? | **No**; separate exploratory paper possible | Salma and research team |
-| D10 | Demo identity and review readiness? | Security draft PR #61 has implementation work but setup/E2E remains pending | Engineering; Ahmed handles merge |
+| D10 | Demo identity and review readiness? | **Dedicated Supabase Auth demo user not yet provisioned**. PR #61 code merge, Auth setup, preview config and end-to-end validation are separate milestones | Engineering / QA after merge |
 
 ### Evidence provenance and revision notes
 
