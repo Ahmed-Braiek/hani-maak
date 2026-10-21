@@ -39,3 +39,6 @@ The current Supabase schema and older demo-state JSON path need reconciliation b
 4. Advisor review of read/write direction and FHIR version.
 5. Synthetic FHIR JSON examples and negative authorization tests.
 6. Conditional interoperability proof of concept after technical and clinical review.
+## First source-to-resource mapping
+
+See [FHIR_MAPPING_v0.1.md](FHIR_MAPPING_v0.1.md) for the field-level analysis against the actual Supabase schema, candidate FHIR R4 element names and explicit non-mappings. The target FHIR release, profiles and hospital capability are **not selected**. This is an advisor-review crosswalk, not deployable interface code.
