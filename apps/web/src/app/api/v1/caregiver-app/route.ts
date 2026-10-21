@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canPerformCaregiverAction, canSeeIncident, mayViewMedications, mayRequestProfessionalHelp } from "@/lib/caregiver-permissions";
+import { canPerformCaregiverAction, canSeeIncident, mayRequestProfessionalHelp } from "@/lib/caregiver-permissions";
 
 export const dynamic = "force-dynamic";
 
