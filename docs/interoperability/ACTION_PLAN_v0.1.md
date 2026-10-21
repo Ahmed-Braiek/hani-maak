@@ -9,6 +9,8 @@
 
 > **Purpose.** This is the integrated follow-up plan requested after our Hani Maak demonstration. It defines a clinical-data/openEHR group, a FHIR implementation group, and how both connect with existing engineering, clinical safety, research and potential hospital work. It identifies decisions where advisor guidance would be most valuable.
 
+**Documentation progress (21 October 2026):** An initial read-only 48-table [clinical/provenance matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), a 16-candidate [openEHR CKM landscape](openehr/ARCHETYPE_LANDSCAPE.md), and a [FHIR source-to-resource mapping v0.1](fhir/FHIR_MAPPING_v0.1.md) are now **drafted for advisor review**. These are engineering/research inventories, **not clinical approval**, a finalized minimal dataset, a working FHIR interface, or completion of the proposed clinical team's workstream. The [executive summary](EXECUTIVE_SUMMARY.md) is the recommended entry point for the follow-up email.
+
 **Navigate:** [Product](#1-product-and-current-state) · [Team assignments](#2-team-and-ownership) · [Workstreams](#3-integrated-workstreams) · [Architectures](#4-architecture-directions) · [Timeline](#5-integrated-roadmap) · [Review questions](#6-questions-for-lloyd-and-aditya)
 
 ## 1. Product and current state
@@ -77,7 +79,7 @@ The prior integrated revision dated 18 October drew on the original action plan,
 
 **Clinical safeguards:** A caregiver wellbeing check-in is not a diagnosis. Alzheimer's stage, cognitive measures, medication instructions, burden scales and emergency criteria require documented sources and qualified review. In particular, caregiver conversations, emotions and family conflicts must not be copied into a care recipient's hospital record by default.
 
-Supporting initial audit: [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md).
+Supporting initial audit: [Clinical Validation Audit](openehr/CLINICAL_VALIDATION_AUDIT.md). **Initial engineering inventory drafted:** [Clinical-Data and Provenance Matrix](CLINICAL_DATA_PROVENANCE_MATRIX.md), [openEHR Archetype Landscape](openehr/ARCHETYPE_LANDSCAPE.md); clinical verification, sign-off and archetype/template selection remain open.
 
 ### B. FHIR implementation
 **Proposed lead:** Ahmed; **contributors:** Adam, Emna (to confirm).
@@ -94,7 +96,7 @@ Supporting initial audit: [Clinical Validation Audit](openehr/CLINICAL_VALIDATIO
 
 The hospital FHIR version, implementation guides and authentication scheme are **not yet selected**. A **read-oriented first proof of concept** is the current hypothesis. Sharing reviewed incidents, caregiver summaries or questionnaires back to a hospital is a separate later possibility that needs consent and clinical governance.
 
-See [Initial FHIR Use Cases](fhir/USE_CASES.md).
+See [Initial FHIR Use Cases](fhir/USE_CASES.md) and [preliminary field-to-resource mapping](fhir/FHIR_MAPPING_v0.1.md). Those documents provide initial candidate designs, **not approved FHIR implementation or clinical data exchange**.
 
 ### C. Product and engineering
 **Owners:** Adam + Ahmed (proposed technical owner); **QA:** Emna (to confirm).
